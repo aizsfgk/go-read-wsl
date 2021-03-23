@@ -669,7 +669,7 @@ TEXT runtime·settls(SB),NOSPLIT,$32
 	ADDQ	$8, DI	// ELF wants to use -8(FS)
 #endif
 	MOVQ	DI, SI
-	MOVQ	$0x1002, DI	// ARCH_SET_FS
+	MOVQ	$0x1002, DI	// ARCH_SET_FS   /// 设置FS
 	MOVQ	$SYS_arch_prctl, AX
 	SYSCALL
 	CMPQ	AX, $0xfffffffffffff001

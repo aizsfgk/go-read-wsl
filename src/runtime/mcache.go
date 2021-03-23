@@ -10,7 +10,7 @@ import (
 )
 
 // Per-thread (in Go, per-P) cache for small objects.
-// No locking needed because it is per-thread (per-P).
+// No locking needed because it is per-thread (per-P).  /// 内存分配器里边的一级：Thread-Cache
 //
 // mcaches are allocated from non-GC'd memory, so any heap pointers
 // must be specially handled.

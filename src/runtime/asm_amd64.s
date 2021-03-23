@@ -86,14 +86,15 @@ DATA _rt0_amd64_lib_argv<>(SB)/8, $0
 GLOBL _rt0_amd64_lib_argv<>(SB),NOPTR, $8
 
 /// Go程序入口点；调用的函数
+/// 做一些列的初始化工作
 TEXT runtime·rt0_go(SB),NOSPLIT,$0
-	// copy arguments forward on an even stack
+	// copy arguments forward on an even stack /// 复制参数到平坦栈
 	MOVQ	DI, AX		// argc
 	MOVQ	SI, BX		// argv
-	SUBQ	$(4*8+7), SP		// 2args 2auto
-	ANDQ	$~15, SP    /// 字节对齐：36字节
-	MOVQ	AX, 16(SP)  /// argc
-	MOVQ	BX, 24(SP)  /// argv
+	SUBQ	$(4*8+7), SP		// 2args 2auto; 39
+	ANDQ	$~15, SP    /// 调整栈顶寄存器使其按16字节对齐
+	MOVQ	AX, 16(SP)  /// argc ; argc放在SP + 16字节处
+	MOVQ	BX, 24(SP)  /// argv ; argv放在SP + 24字节处
 
     /// ************* 01. 创建g0栈 ************** ///
 	// create istack out of the given (operating system) stack.
@@ -189,6 +190,7 @@ needtls:
 	// store through it, to make sure it works  /// 检验 TLS 功能是否可用
 	get_tls(BX)
 	MOVQ	$0x123, g(BX)   /// 通过TLS找到m0.tls[1], 进而找到m0.g0
+	                        /// g(BX) 会对 tls偏移1位索引，燃火就变成了tls[0]
 	MOVQ	runtime·m0+m_tls(SB), AX
 	CMPQ	AX, $0x123
 	JEQ 2(PC)
@@ -196,6 +198,9 @@ needtls:
 ok:
 
     /// ************* 02. g0 和 m0 绑定 ************** ///
+    /// g0 因为保存在了TLS上，所以是一个线程本地存储变量
+    /// 每一个线程都会有一个g0;
+    /// 而m0只有主线程才是m0; 全局只有一个
 	// set the per-goroutine and per-mach "registers"
 	get_tls(BX)                   /// 获取fs段基址到BX寄存器
 	LEAQ	runtime·g0(SB), CX
@@ -229,8 +234,8 @@ ok:
 
     /// ************* 07. 新启动goroutine g1 ************ ///
 	// create a new goroutine to start program
-	MOVQ	$runtime·mainPC(SB), AX		// entry /// main.main 进入点???
-	PUSHQ	AX
+	MOVQ	$runtime·mainPC(SB), AX		// newproc 第二个参数 runtime.main
+	PUSHQ	AX                          /// newproc 第二个参数； fn *funcval &funcval{runtime·main}
 	PUSHQ	$0			// arg size
 	CALL	runtime·newproc(SB)       /// 新启动一个goroutine;为g1;
 	POPQ	AX

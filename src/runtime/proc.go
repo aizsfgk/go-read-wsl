@@ -155,7 +155,7 @@ func main() {
 	// Those can arrange for main.main to run in the main thread
 	// by calling runtime.LockOSThread during initialization
 	// to preserve the lock.
-	lockOSThread()
+	lockOSThread() /// main goroutine 必须锁住线程
 
 	if g.m != &m0 {
 		throw("runtime.main not on m0")
@@ -177,7 +177,7 @@ func main() {
 	// Record when the world started.
 	runtimeInitTime = nanotime()
 
-	gcenable()
+	gcenable() // 激活gc
 
 	main_init_done = make(chan bool)
 	if iscgo {
@@ -214,6 +214,8 @@ func main() {
 		return
 	}
 	fn := main_main // make an indirect call, as the linker doesn't know the address of the main package when laying down the runtime
+
+	/// 调用main.main函数
 	fn()
 	if raceenabled {
 		racefini()
@@ -578,6 +580,11 @@ func schedinit() {
 
 	// raceinit must be the first call to race detector.
 	// In particular, it must be done before mallocinit below calls racemapshadow.
+	//
+	//getg函数在源代码中没有对应的定义，由编译器插入类似下面两行代码
+	//get_tls(CX)
+	//MOVQ g(CX), BX; BX存器里面现在放的是当前g结构体对象的地址
+	/// 这里是g0
 	_g_ := getg()
 	//println("schedinit: _g_", _g_)
 	if raceenabled {
@@ -596,8 +603,8 @@ func schedinit() {
 
 	fastrandinit() // must run before mcommoninit
 
-	/// ************** 01. m 通用初始化 ************* ///
-	mcommoninit(_g_.m, -1) /// m启动初始化
+	/// ************** 01. m0 通用初始化 ************* ///
+	mcommoninit(_g_.m, -1) /// m0启动初始化
 
 	cpuinit()       // must run before alginit
 	alginit()       // maps must not be used before this call
@@ -615,7 +622,7 @@ func schedinit() {
 
 	parsedebugvars()  /// 解析DEBUG变量
 
-
+	/// 垃圾回收初始化
 	gcinit()
 
 	sched.lastpoll = uint64(nanotime())
@@ -625,7 +632,7 @@ func schedinit() {
 	}
 
 	/// ************* 02. p 重置大小为ncpu个，关联G和P，M和P关系 ************* ///
-	if procresize(procs) != nil { /// 一开始等于nil
+	if procresize(procs) != nil { /// 一开始等于nil; //创建和初始化全局变量allp
 		throw("unknown runnable goroutine during bootstrap")
 	}
 
@@ -1159,7 +1166,7 @@ func startTheWorldWithSema(emitTraceEvent bool) int64 {
 //
 //go:nosplit
 //go:nowritebarrierrec
-func mstart() {   /// 启动m
+func mstart() {   /// 启动m0
 	_g_ := getg()
 
 	//println("proc.go=>mstart=>_g_: ", _g_)
@@ -1217,11 +1224,12 @@ func mstart1() {
 	save(getcallerpc(), getcallersp()) ///
 
 
-	asminit()
-	minit()
+	asminit() /// 在AMD64 Linux平台中，这个函数什么也没做，是个空函数
+	minit()   /// 与信号相关的初始化，目前不需要关心
 
 	// Install signal handlers; after minit so that minit can
 	// prepare the thread to be able to handle the signals.
+	/// m0 才会执行这个; g0 --> m0 /// 只执行一次???
 	if _g_.m == &m0 {
 		mstartm0() /// 启动m0
 	}
@@ -1840,7 +1848,7 @@ var newmHandoff struct {
 // id is optional pre-allocated m ID. Omit by passing -1.
 //go:nowritebarrierrec
 func newm(fn func(), _p_ *p, id int64) {
-	mp := allocm(_p_, fn, id)  /// 新分配一个m结构
+	mp := allocm(_p_, fn, id)  /// 1. 新分配一个m结构
 	mp.nextp.set(_p_)
 	mp.sigmask = initSigmask
 	if gp := getg(); gp != nil && gp.m != nil && (gp.m.lockedExt != 0 || gp.m.incgo) && GOOS != "plan9" {
@@ -2004,7 +2012,7 @@ func startm(_p_ *p, spinning bool) {
 		}
 	}
 	mp := mget() /// 获取空闲的m
-	if mp == nil {
+	if mp == nil { /// 如果获取不到m; 则新建一个m osThread
 		// No M is available, we must drop sched.lock and call newm.
 		// However, we already own a P to assign to the M.
 		//
@@ -2753,13 +2761,16 @@ top:
 		}
 	}
 
-	/// 偷其他p队列
+	/// 从与m关联的p的本地运行队列中获取goroutine
 	if gp == nil {
 		gp, inheritTime = runqget(_g_.m.p.ptr())
 		// We can see gp != nil here even if the M is spinning,
 		// if checkTimers added a local goroutine via goready.
 	}
 	if gp == nil {
+		//如果从本地运行队列和全局运行队列都没有找到需要运行的goroutine，
+		//则调用findrunnable函数从其它工作线程的运行队列中偷取，如果偷取不到，则当前工作线程进入睡眠，
+		//直到获取到需要运行的goroutine之后findrunnable函数才会返回
 		gp, inheritTime = findrunnable() // blocks until work is available
 	}
 
@@ -3051,7 +3062,7 @@ func goexit1() {
 ///
 // goexit continuation on g0.
 func goexit0(gp *g) { /// gp 是用户线程
-	_g_ := getg() /// 90
+	_g_ := getg() /// g0
 
 	casgstatus(gp, _Grunning, _Gdead) /// goexit
 
@@ -4556,7 +4567,7 @@ func procresize(nprocs int32) *p {
 		p.m = 0
 		p.status = _Pidle /// 空闲的
 
-		acquirep(p) /// 关联p和当前的m
+		acquirep(p) /// init 关联p和当前的m
 
 		if trace.enabled {
 			traceGoStart()
