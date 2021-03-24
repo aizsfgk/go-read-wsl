@@ -1113,7 +1113,7 @@ var (
 	allpLock   mutex // Protects P-less reads of allp and all writes
 	gomaxprocs int32
 	ncpu       int32  /// cpu个数
-	forcegc    forcegcstate
+	forcegc    forcegcstate  /// 强制GC的状态
 	sched      schedt   /// 全局队列结构
 	newprocs   int32
 

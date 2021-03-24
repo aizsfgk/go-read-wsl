@@ -134,7 +134,7 @@ func main() {
 	// Using decimal instead of binary GB and MB because
 	// they look nicer in the stack overflow failure message.
 	if sys.PtrSize == 8 {
-		maxstacksize = 1000000000
+		maxstacksize = 1000000000 /// 最大栈大小； 1G
 	} else {
 		maxstacksize = 250000000
 	}
@@ -259,7 +259,11 @@ func init() {
 }
 
 func forcegchelper() {
+	/// 获取G
 	forcegc.g = getg()
+	/// dumpgstatus(forcegc.g)
+	/// runtime: gp: gp=0xc000000600, goid=2, gp->atomicstatus=2
+	/// runtime:  g:  g=0xc000000600, goid=2,  g->atomicstatus=2
 	lockInit(&forcegc.lock, lockRankForcegc)
 	for {
 		lock(&forcegc.lock)
@@ -774,6 +778,8 @@ var freezing uint32
 // Similar to stopTheWorld but best-effort and can be called several times.
 // There is no reverse operation, used during crashing.
 // This function must not lock any mutexes.
+/// 类似 stopTheWorld 但更加搞笑的 能够被调用几次
+///
 func freezetheworld() {
 	atomic.Store(&freezing, 1)
 	// stopwait and preemption requests can be lost
@@ -797,6 +803,7 @@ func freezetheworld() {
 
 // All reads and writes of g's status go through readgstatus, casgstatus
 // castogscanstatus, casfrom_Gscanstatus.
+// 读取g程状态
 //go:nosplit
 func readgstatus(gp *g) uint32 {
 	return atomic.Load(&gp.atomicstatus)
@@ -1126,7 +1133,8 @@ func startTheWorldWithSema(emitTraceEvent bool) int64 {
 	for p1 != nil {
 		p := p1
 		p1 = p1.link.ptr()
-		if p.m != 0 {
+
+		if p.m != 0 {  /// 如果 m 不是空的化
 			mp := p.m.ptr()
 			p.m = 0
 			if mp.nextp != 0 {
@@ -1269,7 +1277,8 @@ func mstartm0() {
 }
 
 // mexit tears down and exits the current thread.
-//
+/// mexit 摘下并退出当前os Thread
+
 // Don't call this directly to exit the thread, since it must run at
 // the top of the thread stack. Instead, use gogo(&_g_.m.g0.sched) to
 // unwind the stack to the point that exits the thread.
@@ -1295,10 +1304,13 @@ func mexit(osStack bool) {
 		// We could try to clean up this M more before wedging
 		// it, but that complicates signal handling.
 		handoffp(releasep()) /// 释放P, 传递P
+
+
 		lock(&sched.lock)
 		sched.nmfreed++
 		checkdead()   /// mexit
 		unlock(&sched.lock)
+
 		notesleep(&m.park) /// 进入睡眠。。。m0
 		throw("locked m0 woke up")
 	}
@@ -2055,16 +2067,20 @@ func startm(_p_ *p, spinning bool) {
 
 // Hands off P from syscall or locked M.
 // Always runs without a P, so write barriers are not allowed.
+/// 传递一个P从系统调用或者一个锁着的M
+///
 //go:nowritebarrierrec
 func handoffp(_p_ *p) {
 	// handoffp must start an M in any situation where
 	// findrunnable would return a G to run on _p_.
 
+	/// 1. 有本地运行队列
 	// if it has local work, start it straight away
 	if !runqempty(_p_) || sched.runqsize != 0 {
 		startm(_p_, false)
 		return
 	}
+	/// 2. 有GC工作
 	// if it has GC work, start it straight away
 	if gcBlackenEnabled != 0 && gcMarkWorkAvailable(_p_) {
 		startm(_p_, false)
@@ -2076,16 +2092,19 @@ func handoffp(_p_ *p) {
 		startm(_p_, true)
 		return
 	}
+	// 锁住全局队列
 	lock(&sched.lock)
+	/// gc等待
 	if sched.gcwaiting != 0 {
 		_p_.status = _Pgcstop
 		sched.stopwait--
 		if sched.stopwait == 0 {
-			notewakeup(&sched.stopnote)
+			notewakeup(&sched.stopnote) /// 唤醒这停止的note
 		}
 		unlock(&sched.lock)
 		return
 	}
+	/// 运行安全点
 	if _p_.runSafePointFn != 0 && atomic.Cas(&_p_.runSafePointFn, 1, 0) {
 		sched.safePointFn(_p_)
 		sched.safePointWait--
@@ -2093,6 +2112,8 @@ func handoffp(_p_ *p) {
 			notewakeup(&sched.safePointNote)
 		}
 	}
+
+	/// 全局度列有G需要运行
 	if sched.runqsize != 0 {
 		unlock(&sched.lock)
 		startm(_p_, false)
@@ -2108,6 +2129,8 @@ func handoffp(_p_ *p) {
 	if when := nobarrierWakeTime(_p_); when != 0 {
 		wakeNetPoller(when)
 	}
+
+	/// 最后放到空闲队列中
 	pidleput(_p_)
 	unlock(&sched.lock)
 }
@@ -2639,7 +2662,7 @@ func injectglist(glist *gList) { /// 注入
 	for gp := head; gp != nil; gp = gp.schedlink.ptr() {
 		tail = gp
 		qsize++
-		casgstatus(gp, _Gwaiting, _Grunnable) /// injectglist
+		casgstatus(gp, _Gwaiting, _Grunnable) /// injectglist /// 修改状态
 	}
 
 	// Turn the gList into a gQueue.
@@ -2671,6 +2694,7 @@ func injectglist(glist *gList) { /// 注入
 	}
 	unlock(&sched.lock)
 	startIdle(n)
+
 	qsize -= n
 
 	if !q.empty() {
@@ -2976,7 +3000,7 @@ func gosched_m(gp *g) {
 	if trace.enabled {
 		traceGoSched()
 	}
-	goschedImpl(gp)
+	goschedImpl(gp) /// 调度出去
 }
 
 // goschedguarded is a forbidden-states-avoided version of gosched_m
@@ -3620,9 +3644,11 @@ func syscall_runtime_AfterExec() {
 }
 
 // Allocate a new g, with a stack big enough for stacksize bytes.
+/// 分配一个新的G持有足够大的栈使用stacksize字节
 func malg(stacksize int32) *g {
 	newg := new(g)    ///
 	if stacksize >= 0 {
+		/// round x up to a power of 2.
 		stacksize = round2(_StackSystem + stacksize)
 		systemstack(func() { // 内存分配都是在系统栈上
 			newg.stack = stackalloc(uint32(stacksize))
@@ -3724,7 +3750,7 @@ func newproc1(fn *funcval, argp unsafe.Pointer, narg int32, callergp *g, callerp
 	newg := gfget(_p_) /// 从p的空闲list中获取一个g
 
 	if newg == nil {
-		newg = malg(_StackMin) /// malg内存分配一个g
+		newg = malg(_StackMin) /// malg内存分配一个g; 在栈上分配
 		casgstatus(newg, _Gidle, _Gdead) /// newproc1
 		allgadd(newg) // publishes with a g->status of Gdead so GC scanner doesn't look at uninitialized stack.
 	}
@@ -3831,6 +3857,7 @@ func newproc1(fn *funcval, argp unsafe.Pointer, narg int32, callergp *g, callerp
 // saveAncestors copies previous ancestors of the given caller g and
 // includes infor for the current caller into a new set of tracebacks for
 // a g being created.
+/// 复制之前的调用者祖先和信息为当前的调用者到一个新的跟踪集合
 func saveAncestors(callergp *g) *[]ancestorInfo {
 	// Copy all prior info, except for the root goroutine (goid 0).
 	if debug.tracebackancestors <= 0 || callergp.goid == 0 {
@@ -4099,6 +4126,9 @@ func _VDSO()                      { _VDSO() }
 
 // Called if we receive a SIGPROF signal.
 // Called by the signal handler, may run during STW.
+///
+/// 被调用，如果我们接受了一个 SIGPROF 信号
+///
 //go:nowritebarrierrec
 func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 	if prof.hz == 0 {
@@ -4802,6 +4832,7 @@ func checkdead() {
 // is forced to run.
 //
 // This is a variable for testing purposes. It normally doesn't change.
+/// 垃圾回收器运行的最大间隔：2分钟
 var forcegcperiod int64 = 2 * 60 * 1e9
 
 /// sysmon 监控线程运行，不需要P
@@ -4813,7 +4844,7 @@ var forcegcperiod int64 = 2 * 60 * 1e9
 func sysmon() {
 	lock(&sched.lock)
 	sched.nmsys++
-	checkdead()
+	checkdead() /// sysmon; 1. 检查死锁
 	unlock(&sched.lock)
 
 	lasttrace := int64(0)
@@ -4908,7 +4939,7 @@ func sysmon() {
 		}
 		// retake P's blocked in syscalls
 		// and preempt long running G's
-		if retake(now) != 0 {
+		if retake(now) != 0 { /// 签章一个运行中的P
 			idle = 0
 		} else {
 			idle++
@@ -5460,6 +5491,7 @@ func runqget(_p_ *p) (gp *g, inheritTime bool) {
 	}
 }
 
+// 窃取一些 G 从其他的P中
 // Grabs a batch of goroutines from _p_'s runnable queue into batch.
 // Batch is a ring buffer starting at batchHead.
 // Returns number of grabbed goroutines.

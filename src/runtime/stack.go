@@ -320,6 +320,7 @@ func stackcache_clear(c *mcache) {
 }
 
 // stackalloc allocates an n byte stack.
+/// 申请n字节的栈
 //
 // stackalloc must run on the system stack because it uses per-P
 // resources and must not split the stack.
