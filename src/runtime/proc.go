@@ -750,20 +750,24 @@ func ready(gp *g, traceskip int, next bool) {
 		traceGoUnpark(gp, traceskip)
 	}
 
+	/// 1. 获取整个G的状态
 	status := readgstatus(gp)
 
 	// Mark runnable.
-	_g_ := getg()
+	_g_ := getg()   /// g0
 	mp := acquirem() // disable preemption because it can be holding p in a local var
-	if status&^_Gscan != _Gwaiting {
+	if status&^_Gscan != _Gwaiting {  /// 如果不是等待状态，则报错
 		dumpgstatus(gp)
 		throw("bad g->status in ready")
 	}
 
 	// status is Gwaiting or Gscanwaiting, make Grunnable and put on runq
 	casgstatus(gp, _Gwaiting, _Grunnable) /// ready
-	runqput(_g_.m.p.ptr(), gp, next)      /// 放入队列
+
+	runqput(_g_.m.p.ptr(), gp, next)      /// 放入队列; 1. 优先放入本地队列. 2. 如果满了，则拿一半放入全局
+
 	wakep()                               /// 唤醒操作
+
 	releasem(mp)                          /// 释放mp
 }
 
@@ -2008,7 +2012,7 @@ func mspinning() {
 // either decrement nmspinning or set m.spinning in the newly started M.
 //go:nowritebarrierrec
 func startm(_p_ *p, spinning bool) {
-	lock(&sched.lock)
+	lock(&sched.lock) /// 锁住全局sched
 	if _p_ == nil {
 		_p_ = pidleget()   /// 这里会获取空闲的P
 		if _p_ == nil {
@@ -2023,7 +2027,7 @@ func startm(_p_ *p, spinning bool) {
 			return /// //没有空闲的p，直接返回
 		}
 	}
-	mp := mget() /// 获取空闲的m
+	mp := mget() /// 获取空闲的m; 分配m的内存空间
 	if mp == nil { /// 如果获取不到m; 则新建一个m osThread
 		// No M is available, we must drop sched.lock and call newm.
 		// However, we already own a P to assign to the M.
@@ -2138,9 +2142,11 @@ func handoffp(_p_ *p) {
 // Tries to add one more P to execute G's.
 // Called when a G is made runnable (newproc, ready).
 func wakep() {
+	/// 没有空闲P退出
 	if atomic.Load(&sched.npidle) == 0 {
 		return
 	}
+	/// 自选m非0
 	// be conservative about spinning threads
 	if atomic.Load(&sched.nmspinning) != 0 || !atomic.Cas(&sched.nmspinning, 0, 1) {
 		return
@@ -5359,6 +5365,7 @@ func runqput(_p_ *p, gp *g, next bool) {
 		next = false
 	}
 
+	// 如果任然为true, 则优先放入next
 	if next {
 	retryNext:
 		oldnext := _p_.runnext
@@ -5380,6 +5387,7 @@ retry:
 		atomic.StoreRel(&_p_.runqtail, t+1) // store-release, makes the item available for consumption
 		return
 	}
+
 	if runqputslow(_p_, gp, h, t) {
 		return
 	}
@@ -5394,11 +5402,13 @@ func runqputslow(_p_ *p, gp *g, h, t uint32) bool {
 
 	// First, grab a batch from local queue.
 	n := t - h
-	n = n / 2
+	n = n / 2 /// 将本地队列的一半放到全局队列
 	if n != uint32(len(_p_.runq)/2) {
 		throw("runqputslow: queue is not full")
 	}
-	for i := uint32(0); i < n; i++ {
+
+	/// n 表示几个
+	for i := uint32(0); i < n; i++ { /// 会做一个随机替换
 		batch[i] = _p_.runq[(h+i)%uint32(len(_p_.runq))].ptr()
 	}
 	if !atomic.CasRel(&_p_.runqhead, h, h+n) { // cas-release, commits consume
@@ -5406,6 +5416,7 @@ func runqputslow(_p_ *p, gp *g, h, t uint32) bool {
 	}
 	batch[n] = gp
 
+	/// 随机替换下
 	if randomizeScheduler {
 		for i := uint32(1); i <= n; i++ {
 			j := fastrandn(i + 1)
@@ -5419,10 +5430,10 @@ func runqputslow(_p_ *p, gp *g, h, t uint32) bool {
 	}
 	var q gQueue
 	q.head.set(batch[0])
-	q.tail.set(batch[n])
+	q.tail.set(batch[n])   /// 构造gQueue
 
 	// Now put the batch on global queue.
-	lock(&sched.lock)
+	lock(&sched.lock)   /// 放到全局队列上
 	globrunqputbatch(&q, int32(n+1))
 	unlock(&sched.lock)
 	return true
