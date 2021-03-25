@@ -3760,6 +3760,7 @@ func newproc1(fn *funcval, argp unsafe.Pointer, narg int32, callergp *g, callerp
 	newg := gfget(_p_) /// 从p的空闲list中获取一个g
 
 	if newg == nil {
+		/// **************** 栈上分配 G ******************** ///
 		newg = malg(_StackMin) /// malg内存分配一个g; 在栈上分配
 		casgstatus(newg, _Gidle, _Gdead) /// newproc1
 		allgadd(newg) // publishes with a g->status of Gdead so GC scanner doesn't look at uninitialized stack.
@@ -4605,7 +4606,7 @@ func procresize(nprocs int32) *p {
 		_g_.m.p = 0
 		p := allp[0]
 		p.m = 0
-		p.status = _Pidle /// 空闲的
+		p.status = _Pidle /// 空闲的; 置位空闲的
 
 		acquirep(p) /// init 关联p和当前的m
 
