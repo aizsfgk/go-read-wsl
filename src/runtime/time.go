@@ -982,6 +982,10 @@ func updateTimer0When(pp *p) {
 // timeSleepUntil returns the time when the next timer should fire,
 // and the P that holds the timer heap that that timer is on.
 // This is only called by sysmon and checkdead.
+///
+/// timeSleepUntil 返回下次定时器驱动的时间
+/// 并且这个P持有这个定时器所在的定时器堆
+/// This is only called by sysmon and checkdead.
 func timeSleepUntil() (int64, *p) {
 	next := int64(maxWhen)
 	var pret *p

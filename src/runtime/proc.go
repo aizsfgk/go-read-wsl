@@ -2027,6 +2027,8 @@ func startm(_p_ *p, spinning bool) {
 			return /// //没有空闲的p，直接返回
 		}
 	}
+
+	///
 	mp := mget() /// 获取空闲的m; 分配m的内存空间
 	if mp == nil { /// 如果获取不到m; 则新建一个m osThread
 		// No M is available, we must drop sched.lock and call newm.
@@ -2993,7 +2995,9 @@ func goschedImpl(gp *g) {
 		throw("bad g status")
 	}
 	casgstatus(gp, _Grunning, _Grunnable) ///goschedImpl ==> GoSched
+
 	dropg()
+
 	lock(&sched.lock)
 	globrunqput(gp) /// 放入队列
 	unlock(&sched.lock)
@@ -4915,6 +4919,7 @@ func sysmon() {
 		if *cgo_yield != nil {
 			asmcgocall(*cgo_yield, nil)
 		}
+
 		// poll network if not polled for more than 10ms
 		lastpoll := int64(atomic.Load64(&sched.lastpoll))
 		if netpollinited() && lastpoll != 0 && lastpoll+10*1000*1000 < now {
@@ -4939,13 +4944,14 @@ func sysmon() {
 			// Try to start an M to run them.
 			startm(nil, false)
 		}
+
 		if atomic.Load(&scavenge.sysmonWake) != 0 {
 			// Kick the scavenger awake if someone requested it.
 			wakeScavenger()
 		}
 		// retake P's blocked in syscalls
 		// and preempt long running G's
-		if retake(now) != 0 { /// 签章一个运行中的P
+		if retake(now) != 0 { /// 抢占一个运行中的P
 			idle = 0
 		} else {
 			idle++
@@ -4968,10 +4974,10 @@ func sysmon() {
 }
 
 type sysmontick struct {
-	schedtick   uint32
-	schedwhen   int64
-	syscalltick uint32
-	syscallwhen int64
+	schedtick   uint32    /// 调度tick次数
+	schedwhen   int64     /// 调度时间
+	syscalltick uint32    /// 系统调用tick次数
+	syscallwhen int64     /// 系统调用时间
 }
 
 // forcePreemptNS is the time slice given to a G before it is
@@ -4982,6 +4988,7 @@ func retake(now int64) uint32 {
 	n := 0
 	// Prevent allp slice changes. This lock will be completely
 	// uncontended unless we're already stopping the world.
+	/// 阻止allp切片改变。
 	lock(&allpLock)
 	// We can't use a range loop over allp because we may
 	// temporarily drop the allpLock. Hence, we need to re-fetch
@@ -4993,23 +5000,32 @@ func retake(now int64) uint32 {
 			// allp but not yet created new Ps.
 			continue
 		}
-		pd := &_p_.sysmontick
-		s := _p_.status
-		sysretake := false
+
+		pd := &_p_.sysmontick /// 系统监控tick
+		s := _p_.status       /// 获取P的状态
+		sysretake := false    /// 系统抢占
+
+		/// 这两种状态会发生 抢占 ///
 		if s == _Prunning || s == _Psyscall {
+
 			// Preempt G if it's running for too long.
 			t := int64(_p_.schedtick)
 			if int64(pd.schedtick) != t {
 				pd.schedtick = uint32(t)
 				pd.schedwhen = now
 			} else if pd.schedwhen+forcePreemptNS <= now {
-				preemptone(_p_)
+
+				preemptone(_p_) /// 抢占1个P，
+
 				// In case of syscall, preemptone() doesn't
 				// work, because there is no M wired to P.
 				sysretake = true
 			}
 		}
+
+		/// 系统调用
 		if s == _Psyscall {
+
 			// Retake P from syscall if it's there for more than 1 sysmon tick (at least 20us).
 			t := int64(_p_.syscalltick)
 			if !sysretake && int64(pd.syscalltick) != t {
@@ -5025,11 +5041,14 @@ func retake(now int64) uint32 {
 			}
 			// Drop allpLock so we can take sched.lock.
 			unlock(&allpLock)
+
 			// Need to decrement number of idle locked M's
 			// (pretending that one more is running) before the CAS.
 			// Otherwise the M from which we retake can exit the syscall,
 			// increment nmidle and report deadlock.
 			incidlelocked(-1)
+
+			/// p 转换为空闲状态
 			if atomic.Cas(&_p_.status, s, _Pidle) {
 				if trace.enabled {
 					traceGoSysBlock(_p_)
@@ -5037,12 +5056,17 @@ func retake(now int64) uint32 {
 				}
 				n++
 				_p_.syscalltick++
-				handoffp(_p_)
+
+				handoffp(_p_) /// 传递P
 			}
+
 			incidlelocked(1)
-			lock(&allpLock)
+
+			lock(&allpLock) /// 锁住
 		}
 	}
+
+	/// 解锁allp
 	unlock(&allpLock)
 	return uint32(n)
 }
