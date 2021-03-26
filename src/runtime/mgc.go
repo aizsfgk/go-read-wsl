@@ -268,8 +268,11 @@ var writeBarrier struct {
 var gcBlackenEnabled uint32
 
 const (
+	/// GC 没有运行; 在后台清扫，写栅栏取消
 	_GCoff             = iota // GC not running; sweeping in background, write barrier disabled
+	/// GC 标记roots 和 workbufs; 划拨黑对象，写栅栏激活
 	_GCmark                   // GC marking roots and workbufs: allocate black, write barrier ENABLED
+	/// GC 标记结束; 划拨黑对象， P帮助GC, 写栅栏激活
 	_GCmarktermination        // GC mark termination: allocate black, P's help GC, write barrier ENABLED
 )
 

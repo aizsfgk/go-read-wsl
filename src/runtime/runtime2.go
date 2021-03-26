@@ -559,7 +559,7 @@ type m struct {
 	nextp         puintptr
 	oldp          puintptr // the p that was attached before executing a syscall
 	id            int64    /// MID
-	mallocing     int32
+	mallocing     int32    //// 是否正在分配内存； 1 是； 0 否
 	throwing      int32
 	preemptoff    string // if != "", keep curg running on this m
 	locks         int32  /// 1. 用来锁住goroutine和P关系; locks++; locks--;

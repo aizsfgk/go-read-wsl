@@ -286,6 +286,7 @@ func isSweepDone() bool {
 }
 
 // Returns only when span s has been swept.
+/// 只有当span清扫完成 返回
 //go:nowritebarrier
 func (s *mspan) ensureSwept() {
 	// Caller must disable preemption.

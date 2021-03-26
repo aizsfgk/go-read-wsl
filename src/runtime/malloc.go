@@ -905,6 +905,7 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		throw("mallocgc called with gcphase == _GCmarktermination")
 	}
 
+	/// 大小为0; 直接返回固定指针
 	if size == 0 {
 		return unsafe.Pointer(&zerobase)
 	}
@@ -961,7 +962,7 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 	if mp.gsignal == getg() {
 		throw("malloc during signal")
 	}
-	mp.mallocing = 1
+	mp.mallocing = 1 /// 正在分配中
 
 	shouldhelpgc := false
 	dataSize := size
@@ -978,11 +979,14 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 			throw("malloc called with no P")
 		}
 	}
+
 	var span *mspan
 	var x unsafe.Pointer
 	noscan := typ == nil || typ.ptrdata == 0
 	if size <= maxSmallSize {
 		if noscan && size < maxTinySize {
+			/// 微对象分配器
+			///
 			// Tiny allocator.
 			//
 			// Tiny allocator combines several tiny allocation requests
@@ -990,6 +994,10 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 			// is freed when all subobjects are unreachable. The subobjects
 			// must be noscan (don't have pointers), this ensures that
 			// the amount of potentially wasted memory is bounded.
+
+			/// 压缩几个微对象分配请求为一个单一的内存块。当所有的子对象不再使用的时候
+			/// 这个内存块会被释放。这些子对象必须是不包含指针的，这确保这些内存浪费的
+			/// 总数是有限的。
 			//
 			// Size of the memory block used for combining (maxTinySize) is tunable.
 			// Current setting is 16 bytes, which relates to 2x worst case memory
@@ -1003,7 +1011,11 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 			// Objects obtained from tiny allocator must not be freed explicitly.
 			// So when an object will be freed explicitly, we ensure that
 			// its size >= maxTinySize.
-			//
+
+			/// 从微分配器获取的对象必须是不能明确释放的。
+			/// 因此当一个对象将被明确释放，我们确保它的大小是大于等于16Bytes
+			///
+
 			// SetFinalizer has a special case for objects potentially coming
 			// from tiny allocator, it such case it allows to set finalizers
 			// for an inner byte of a memory block.
@@ -1012,6 +1024,9 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 			// standalone escaping variables. On a json benchmark
 			// the allocator reduces number of allocations by ~12% and
 			// reduces heap size by ~20%.
+			///
+			///
+			///
 			off := c.tinyoffset
 			// Align tiny pointer for required (conservative) alignment.
 			if size&7 == 0 {
@@ -1047,13 +1062,14 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 			}
 			size = maxTinySize
 		} else {
+			/// 小对象分配
 			var sizeclass uint8
 			if size <= smallSizeMax-8 {
-				sizeclass = size_to_class8[divRoundUp(size, smallSizeDiv)]
+				sizeclass = size_to_class8[divRoundUp(size, smallSizeDiv)] /// 16 -> 21
 			} else {
 				sizeclass = size_to_class128[divRoundUp(size-smallSizeMax, largeSizeDiv)]
 			}
-			size = uintptr(class_to_size[sizeclass])
+			size = uintptr(class_to_size[sizeclass]) /// 384
 			spc := makeSpanClass(sizeclass, noscan)
 			span = c.alloc[spc]
 			v := nextFreeFast(span)
@@ -1066,6 +1082,7 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 			}
 		}
 	} else {
+		/// 大对象分配
 		shouldhelpgc = true
 		systemstack(func() {
 			span = largeAlloc(size, needzero, noscan)
@@ -1117,15 +1134,17 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		gcmarknewobject(span, uintptr(x), size, scanSize)
 	}
 
+	/// 激活竞争
 	if raceenabled {
 		racemalloc(x, size)
 	}
 
+	/// mscan 激活
 	if msanenabled {
 		msanmalloc(x, size)
 	}
 
-	mp.mallocing = 0
+	mp.mallocing = 0  /// 分配结束
 	releasem(mp)
 
 	if debug.allocfreetrace != 0 {
@@ -1160,9 +1179,11 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 func largeAlloc(size uintptr, needzero bool, noscan bool) *mspan {
 	// print("largeAlloc size=", size, "\n")
 
+	/// _PageSize == 8K , 表明对象太大，溢出
 	if size+_PageSize < size {
 		throw("out of memory")
 	}
+	/// _PageShift == 13, 计算需要分配的页数
 	npages := size >> _PageShift
 	if size&_PageMask != 0 {
 		npages++
@@ -1174,6 +1195,8 @@ func largeAlloc(size uintptr, needzero bool, noscan bool) *mspan {
 	deductSweepCredit(npages*_PageSize, npages)
 
 	spc := makeSpanClass(0, noscan)
+
+	/// 从堆上分配
 	s := mheap_.alloc(npages, spc, needzero)
 	if s == nil {
 		throw("out of memory")
@@ -1191,6 +1214,9 @@ func largeAlloc(size uintptr, needzero bool, noscan bool) *mspan {
 // implementation of new builtin
 // compiler (both frontend and SSA backend) knows the signature
 // of this function
+///
+/// 实现了内建指令 new
+/// 编译器(both frontend and SSA backend)知道其含义
 func newobject(typ *_type) unsafe.Pointer {
 	return mallocgc(typ.size, typ, true)
 }

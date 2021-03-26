@@ -427,7 +427,7 @@ type mspan struct {
 	freeindex uintptr
 	// TODO: Look up nelems from sizeclass and remove this field if it
 	// helps performance.
-	nelems uintptr // number of object in the span.
+	nelems uintptr // number of object in the span. /// span中的对象数
 
 	// Cache of the allocBits at freeindex. allocCache is shifted
 	// such that the lowest bit corresponds to the bit freeindex.

@@ -298,7 +298,7 @@ type dbgVar struct {
 // except for "memprofilerate" since there is an
 // existing int var for that value, which may
 // already have an initial value.
-// GO - DEBUG 调试
+// GO - DEBUG 调试;  不同的调试是否开启???
 var debug struct {
 	allocfreetrace     int32 /// 内存分配释放 G相关
 	cgocheck           int32 /// cgo检查
