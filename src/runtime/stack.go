@@ -185,6 +185,9 @@ func stacklog2(n uintptr) int {
 
 // Allocates a stack from the free pool. Must be called with
 // stackpool[order].item.mu held.
+///
+/// 从空闲池中分配一个 stack . 必须持有mu互斥锁,才能调用这个函数
+///
 func stackpoolalloc(order uint8) gclinkptr {
 	list := &stackpool[order].item.span
 	s := list.first
@@ -333,7 +336,7 @@ func stackalloc(n uint32) stack {
 	// Stackalloc must be called on scheduler stack, so that we
 	// never try to grow the stack during the code that stackalloc runs.
 	// Doing so would cause a deadlock (issue 1547).
-	thisg := getg()
+	thisg := getg() /// thisg 是 g0
 	if thisg != thisg.m.g0 {
 		throw("stackalloc not on scheduler stack")
 	}
@@ -357,13 +360,17 @@ func stackalloc(n uint32) stack {
 	// If we need a stack of a bigger size, we fall back on allocating
 	// a dedicated span.
 	var v unsafe.Pointer
-	if n < _FixedStack<<_NumStackOrders && n < _StackCacheSize {
+	if n < _FixedStack<<_NumStackOrders && n < _StackCacheSize { /// 也就是如果申请的栈空间小于 32KB，我们会在全局栈缓存池或者线程的栈缓存中初始化内存
 		order := uint8(0)
 		n2 := n
 		for n2 > _FixedStack {
 			order++
 			n2 >>= 1
 		}
+
+		/// 1. 从 stackpool 中获取
+		/// 2. 从 mcache 中的stackcache中获取
+
 		var x gclinkptr
 		if stackNoCache != 0 || thisg.m.p == 0 || thisg.m.preemptoff != "" {
 			// thisg.m.p == 0 can happen in the guts of exitsyscall
@@ -384,7 +391,12 @@ func stackalloc(n uint32) stack {
 			c.stackcache[order].size -= uintptr(n)
 		}
 		v = unsafe.Pointer(x)
-	} else {
+	} else { /// 栈大于32K的情况
+
+		/// 1. 通过n计算需要几个Page
+		/// 2. 先从 stackLarge中获取
+		/// 3. 从mheap中获取
+
 		var s *mspan
 		npage := uintptr(n) >> _PageShift
 		log2npage := stacklog2(npage)
@@ -420,6 +432,8 @@ func stackalloc(n uint32) stack {
 	if stackDebug >= 1 {
 		print("  allocated ", v, "\n")
 	}
+
+	/// 返回栈内存
 	return stack{uintptr(v), uintptr(v) + uintptr(n)}
 }
 
