@@ -66,6 +66,8 @@ const (
 	// to each stack below the usual guard area for OS-specific
 	// purposes like signal handling. Used on Windows, Plan 9,
 	// and iOS because they do not use a separate stack.
+	/// 特殊系统的特殊处理
+	/// Linux amd64 为 0
 	_StackSystem = sys.GoosWindows*512*sys.PtrSize + sys.GoosPlan9*512 + sys.GoosDarwin*sys.GoarchArm*1024 + sys.GoosDarwin*sys.GoarchArm64*1024
 
 	// The minimum size of stack used by Go code
@@ -73,14 +75,14 @@ const (
 
 	// The minimum stack size to allocate.
 	// The hackery here rounds FixedStack0 up to a power of 2.
-	_FixedStack0 = _StackMin + _StackSystem
-	_FixedStack1 = _FixedStack0 - 1
-	_FixedStack2 = _FixedStack1 | (_FixedStack1 >> 1)
-	_FixedStack3 = _FixedStack2 | (_FixedStack2 >> 2)
-	_FixedStack4 = _FixedStack3 | (_FixedStack3 >> 4)
-	_FixedStack5 = _FixedStack4 | (_FixedStack4 >> 8)
-	_FixedStack6 = _FixedStack5 | (_FixedStack5 >> 16)
-	_FixedStack  = _FixedStack6 + 1
+	_FixedStack0 = _StackMin + _StackSystem                  /// 2048
+	_FixedStack1 = _FixedStack0 - 1                          /// 2047
+	_FixedStack2 = _FixedStack1 | (_FixedStack1 >> 1)        /// 2047
+	_FixedStack3 = _FixedStack2 | (_FixedStack2 >> 2)        /// 2047
+	_FixedStack4 = _FixedStack3 | (_FixedStack3 >> 4)        /// 2047
+	_FixedStack5 = _FixedStack4 | (_FixedStack4 >> 8)        /// 2047
+	_FixedStack6 = _FixedStack5 | (_FixedStack5 >> 16)       /// 2047
+	_FixedStack  = _FixedStack6 + 1                          /// 2048
 
 	// Functions that need frames bigger than this use an extra
 	// instruction to do the stack split check, to avoid overflow
@@ -91,7 +93,7 @@ const (
 
 	// The stack guard is a pointer this many bytes above the
 	// bottom of the stack.
-	_StackGuard = 928*sys.StackGuardMultiplier + _StackSystem
+	_StackGuard = 928*sys.StackGuardMultiplier + _StackSystem /// linux amd64 => 928
 
 	// After a stack split check the SP is allowed to be this
 	// many bytes below the stack guard. This saves an instruction
@@ -100,7 +102,7 @@ const (
 
 	// The maximum number of bytes that a chain of NOSPLIT
 	// functions can use.
-	_StackLimit = _StackGuard - _StackSystem - _StackSmall
+	_StackLimit = _StackGuard - _StackSystem - _StackSmall   /// 800 Bytes
 )
 
 const (
@@ -120,21 +122,21 @@ const (
 )
 
 const (
-	uintptrMask = 1<<(8*sys.PtrSize) - 1
+	uintptrMask = 1<<(8*sys.PtrSize) - 1  /// -1
 
 	// Goroutine preemption request.
 	// Stored into g->stackguard0 to cause split stack check failure.
 	// Must be greater than any real sp.
 	// 0xfffffade in hex.
-	stackPreempt = uintptrMask & -1314
+	stackPreempt = uintptrMask & -1314   /// -1314
 
 	// Thread is forking.
 	// Stored into g->stackguard0 to cause split stack check failure.
 	// Must be greater than any real sp.
-	stackFork = uintptrMask & -1234
+	stackFork = uintptrMask & -1234     /// -1234
 )
 
-/// 一个全局栈池
+/// 全局栈缓存
 // Global pool of spans that have free stacks.
 // Stacks are assigned an order according to size.
 //     order = log_2(size/FixedStack)
@@ -150,10 +152,11 @@ type stackpoolItem struct {
 	span mSpanList
 }
 
+/// 全局大栈缓存
 // Global pool of large stack spans.
 var stackLarge struct {
 	lock mutex
-	free [heapAddrBits - pageShift]mSpanList // free lists by log_2(s.npages)
+	free [heapAddrBits - pageShift]mSpanList // free lists by log_2(s.npages) /// heapAddrBits : 48 ; pageShift : 13 ; 48-13 => 35
 }
 
 func stackinit() {
@@ -162,7 +165,7 @@ func stackinit() {
 	}
 	for i := range stackpool {
 		stackpool[i].item.span.init()
-		lockInit(&stackpool[i].item.mu, lockRankStackpool)
+		lockInit(&stackpool[i].item.mu, lockRankStackpool) /// 初始化锁
 	}
 	for i := range stackLarge.free {
 		stackLarge.free[i].init()

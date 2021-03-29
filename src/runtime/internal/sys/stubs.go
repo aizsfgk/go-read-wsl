@@ -6,11 +6,11 @@ package sys
 
 // Declarations for runtime services implemented in C or assembly.
 
-const PtrSize = 4 << (^uintptr(0) >> 63)           // unsafe.Sizeof(uintptr(0)) but an ideal const
-const RegSize = 4 << (^Uintreg(0) >> 63)           // unsafe.Sizeof(uintreg(0)) but an ideal const
-const SpAlign = 1*(1-GoarchArm64) + 16*GoarchArm64 // SP alignment: 1 normally, 16 for ARM64
+const PtrSize = 4 << (^uintptr(0) >> 63)           // unsafe.Sizeof(uintptr(0)) but an ideal const /// linux amd64 => 8
+const RegSize = 4 << (^Uintreg(0) >> 63)           // unsafe.Sizeof(uintreg(0)) but an ideal const /// linux amd64 => 8
+const SpAlign = 1*(1-GoarchArm64) + 16*GoarchArm64 // SP alignment: 1 normally, 16 for ARM64       /// linux amd64 => 1
 
 var DefaultGoroot string // set at link time
 
 // AIX requires a larger stack for syscalls.
-const StackGuardMultiplier = StackGuardMultiplierDefault*(1-GoosAix) + 2*GoosAix
+const StackGuardMultiplier = StackGuardMultiplierDefault*(1-GoosAix) + 2*GoosAix /// linux amd64 => 1
