@@ -1067,7 +1067,7 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (req *Request, err erro
 	//	Host: www.google.com
 	// and
 	//	GET http://www.google.com/index.html HTTP/1.1
-	//	Host: doesntmatter
+	//	Host: doesn't matter
 	// the same. In the second case, any Host line is ignored.
 	req.Host = req.URL.Host
 	if req.Host == "" {

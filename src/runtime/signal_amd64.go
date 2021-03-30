@@ -11,6 +11,7 @@ import (
 	"runtime/internal/sys"
 	"unsafe"
 )
+/// 打印寄存器
 
 func dumpregs(c *sigctxt) {
 	print("rax    ", hex(c.rax()), "\n")

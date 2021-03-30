@@ -42,7 +42,7 @@ const (
 	opReadRune4 readOp = 4  // Read rune of size 4.
 )
 
-// ErrTooLarge is passed to panic if memory cannot be allocated to store data in a buffer.
+// ErrTooLarge is passed to panic if memory cannot be allocated to store data in an buffer.
 var ErrTooLarge = errors.New("bytes.Buffer: too large")
 var errNegativeRead = errors.New("bytes.Buffer: reader returned negative count from Read")
 

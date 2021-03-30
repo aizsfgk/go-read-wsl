@@ -495,7 +495,7 @@ TEXT runtime·morestack(SB),NOSPLIT,$0-0
 	MOVQ	m_g0(BX), BX
 	MOVQ	BX, g(CX)
 	MOVQ	(g_sched+gobuf_sp)(BX), SP
-	CALL	runtime·newstack(SB)
+	CALL	runtime·newstack(SB)  /// 新增栈
 	CALL	runtime·abort(SB)	// crash if newstack returns
 	RET
 

@@ -164,7 +164,7 @@ func stackinit() {
 		throw("cache size must be a multiple of page size")
 	}
 	for i := range stackpool {
-		stackpool[i].item.span.init()
+		stackpool[i].item.span.init()                      /// spanList 初始化
 		lockInit(&stackpool[i].item.mu, lockRankStackpool) /// 初始化锁
 	}
 	for i := range stackLarge.free {
@@ -311,7 +311,7 @@ func stackcache_clear(c *mcache) {
 	if stackDebug >= 1 {
 		print("stackcache clear\n")
 	}
-	for order := uint8(0); order < _NumStackOrders; order++ {
+	for order := uint8(0); order < _NumStackOrders; order++ { /// _NumStackOrders == 4
 		lock(&stackpool[order].item.mu)
 		x := c.stackcache[order].list
 		for x.ptr() != nil {
@@ -495,7 +495,7 @@ func stackfree(stk stack) {
 			println(hex(s.base()), v)
 			throw("bad span state")
 		}
-		if gcphase == _GCoff {
+		if gcphase == _GCoff { /// GC没有运行
 			// Free the stack immediately if we're
 			// sweeping.
 			osStackFree(s)
@@ -1060,11 +1060,11 @@ func newstack() {
 			// We're at a synchronous safe point now, so
 			// do the pending stack shrink.
 			gp.preemptShrink = false
-			shrinkstack(gp)
+			shrinkstack(gp) /// 抢占收缩栈
 		}
 
 		if gp.preemptStop {
-			preemptPark(gp) // never returns
+			preemptPark(gp) // never returns  /// 抢占暂停这个GP
 		}
 
 		// Act like goroutine called runtime.Gosched.
@@ -1199,7 +1199,7 @@ func shrinkstack(gp *g) {
 		print("shrinking stack ", oldsize, "->", newsize, "\n")
 	}
 
-	copystack(gp, newsize)
+	copystack(gp, newsize) /// 收缩栈
 }
 
 // freeStackSpans frees unused stack spans at the end of GC.

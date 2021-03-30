@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// Make sure open-coded defer exit code is not lost, even when there is an
+// Make sure an open-coded defer exit code is not lost, even when there is an
 // unconditional panic (hence no return from the function)
 func TestUnconditionalPanic(t *testing.T) {
 	defer func() {
@@ -329,7 +329,7 @@ var saveInt uint32
 func recurseFn(level int, maxlevel int) {
 	a := [40]uint32{0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff}
 	if level+1 < maxlevel {
-		// Make sure a array is referenced, so it is not optimized away
+		// Make sure an array is referenced, so it is not optimized away
 		saveInt = a[4]
 		recurseFn(level+1, maxlevel)
 	} else {

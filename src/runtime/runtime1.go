@@ -303,7 +303,7 @@ var debug struct {
 	allocfreetrace     int32 /// 内存分配释放 G相关
 	cgocheck           int32 /// cgo检查
 	clobberfree        int32 ///
-	efence             int32
+	efence             int32 /// 短暂的???
 	gccheckmark        int32 /// gcc检测标记
 	gcpacertrace       int32 /// gc pacer trace; [pacer:步测者，溜蹄的马]
 	gcshrinkstackoff   int32

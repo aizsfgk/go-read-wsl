@@ -810,7 +810,7 @@ func scanstack(gp *g, gcw *gcWork) {
 		throw("can't scan our own stack")
 	}
 
-	if isShrinkStackSafe(gp) {
+	if isShrinkStackSafe(gp) { /// 如果是收缩安全点；则收缩栈
 		// Shrink the stack if not much of it is being used.
 		shrinkstack(gp)
 	} else {

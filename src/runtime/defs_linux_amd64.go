@@ -4,10 +4,10 @@
 package runtime
 
 const (
-	_EINTR  = 0x4
-	_EAGAIN = 0xb
-	_ENOMEM = 0xc
-	_ENOSYS = 0x26
+	_EINTR  = 0x4         // 中断
+	_EAGAIN = 0xb         // 再次
+	_ENOMEM = 0xc         // 内存错误
+	_ENOSYS = 0x26        // 系统不支持
 
 	_PROT_NONE  = 0x0
 	_PROT_READ  = 0x1
@@ -28,7 +28,7 @@ const (
 	_SA_RESTORER = 0x4000000
 	_SA_SIGINFO  = 0x4
 
-	_SIGHUP    = 0x1
+	_SIGHUP    = 0x1              // 信号
 	_SIGINT    = 0x2
 	_SIGQUIT   = 0x3
 	_SIGILL    = 0x4
