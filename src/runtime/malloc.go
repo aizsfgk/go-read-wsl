@@ -108,39 +108,39 @@ import (
 )
 
 const (
-	debugMalloc = false
+	debugMalloc = true
 
-	maxTinySize   = _TinySize
-	tinySizeClass = _TinySizeClass
-	maxSmallSize  = _MaxSmallSize
+	maxTinySize   = _TinySize         // 16字节
+	tinySizeClass = _TinySizeClass    // 2
+	maxSmallSize  = _MaxSmallSize     // 32KB
 
-	pageShift = _PageShift
-	pageSize  = _PageSize
-	pageMask  = _PageMask
+	pageShift = _PageShift     // 13
+	pageSize  = _PageSize      // 8K
+	pageMask  = _PageMask      // 8K-1
 	// By construction, single page spans of the smallest object class
 	// have the most objects per span.
-	maxObjsPerSpan = pageSize / 8
+	maxObjsPerSpan = pageSize / 8    // 1024
 
-	concurrentSweep = _ConcurrentSweep
+	concurrentSweep = _ConcurrentSweep  /// true
 
-	_PageSize = 1 << _PageShift
+	_PageSize = 1 << _PageShift /// 1024 * 8 == 8192
 	_PageMask = _PageSize - 1
 
 	// _64bit = 1 on 64-bit systems, 0 on 32-bit systems
-	_64bit = 1 << (^uintptr(0) >> 63) / 2
+	_64bit = 1 << (^uintptr(0) >> 63) / 2   /// 1
 
 	// Tiny allocator parameters, see "Tiny allocator" comment in malloc.go.
 	_TinySize      = 16
 	_TinySizeClass = int8(2)
 
-	_FixAllocChunk = 16 << 10 // Chunk size for FixAlloc
+	_FixAllocChunk = 16 << 10 // Chunk size for FixAlloc  /// 1024 * 16 ==》 16384 => 16KB
 
 	// Per-P, per order stack segment cache size.
-	_StackCacheSize = 32 * 1024
+	_StackCacheSize = 32 * 1024  /// 32KB
 
 	// Number of orders that get caching. Order 0 is FixedStack
 	// and each successive order is twice as large.
-	// We want to cache 2KB, 4KB, 8KB, and 16KB stacks. Larger stacks
+	// We want to cache 2KB, 4KB, 8KB, and 16KB stacks. Larger stacks  ==> 2KB --> 4 KB --> 8 KB --> 16KB
 	// will be allocated directly.
 	// Since FixedStack is different on different systems, we
 	// must vary NumStackOrders to keep the same maximum cached size.
@@ -150,7 +150,7 @@ const (
 	//   windows/32       | 4KB        | 3
 	//   windows/64       | 8KB        | 2
 	//   plan9            | 4KB        | 3
-	_NumStackOrders = 4 - sys.PtrSize/4*sys.GoosWindows - 1*sys.GoosPlan9
+	_NumStackOrders = 4 - sys.PtrSize/4*sys.GoosWindows - 1*sys.GoosPlan9 /// 4
 
 	// heapAddrBits is the number of bits in a heap address. On
 	// amd64, addresses are sign-extended beyond heapAddrBits. On
@@ -180,7 +180,7 @@ const (
 	//
 	// Architecture  Name              Maximum Value (exclusive)
 	// ---------------------------------------------------------------------
-	// amd64         TASK_SIZE_MAX     0x007ffffffff000 (47 bit addresses)
+	// amd64         TASK_SIZE_MAX     0x007ffffffff000 (47 bit addresses)   *****
 	// arm64         TASK_SIZE_64      0x01000000000000 (48 bit addresses)
 	// ppc64{,le}    TASK_SIZE_USER64  0x00400000000000 (46 bit addresses)
 	// mips64{,le}   TASK_SIZE64       0x00010000000000 (40 bit addresses)
@@ -252,7 +252,7 @@ const (
 	// heapArenaBitmapBytes is the size of each heap arena's bitmap.
 	heapArenaBitmapBytes = heapArenaBytes / (sys.PtrSize * 8 / 2)
 
-	pagesPerArena = heapArenaBytes / pageSize
+	pagesPerArena = heapArenaBytes / pageSize // 64MB / 8 KB ===> 8921
 
 	// arenaL1Bits is the number of bits of the arena number
 	// covered by the first level arena map.
@@ -478,13 +478,14 @@ func mallocinit() {
 
 	// Initialize the heap.
 	mheap_.init()
-	mcache0 = allocmcache()
+	mcache0 = allocmcache() /// 分配mcache0
 	lockInit(&gcBitsArenas.lock, lockRankGcBitsArenas)
 	lockInit(&proflock, lockRankProf)
 	lockInit(&globalAlloc.mutex, lockRankGlobalAlloc)
 
 	// Create initial arena growth hints.
 	if sys.PtrSize == 8 {
+		/// 64位系统
 		// On a 64-bit machine, we pick the following hints
 		// because:
 		//
@@ -543,6 +544,9 @@ func mallocinit() {
 			default:
 				p = uintptr(i)<<40 | uintptrMask&(0x00c0<<32)
 			}
+
+			println("p: ", p)
+
 			hint := (*arenaHint)(mheap_.arenaHintAlloc.alloc())
 			hint.addr = p
 			hint.next, mheap_.arenaHints = mheap_.arenaHints, hint

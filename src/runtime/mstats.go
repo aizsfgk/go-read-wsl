@@ -23,12 +23,12 @@ import (
 // updated when updatememstats is called.
 type mstats struct {
 	// General statistics.
-	alloc       uint64 // bytes allocated and not yet freed
-	total_alloc uint64 // bytes allocated (even if freed)
+	alloc       uint64 // bytes allocated and not yet freed /// 常驻字节数
+	total_alloc uint64 // bytes allocated (even if freed)   /// 累计分配的字节数
 	sys         uint64 // bytes obtained from system (should be sum of xxx_sys below, no locking, approximate)
 	nlookup     uint64 // number of pointer lookups (unused)
-	nmalloc     uint64 // number of mallocs
-	nfree       uint64 // number of frees
+	nmalloc     uint64 // number of mallocs  /// 分配次数
+	nfree       uint64 // number of frees    /// 释放次数
 
 	// Statistics about malloc heap.
 	// Updated atomically, or with the world stopped.
@@ -180,7 +180,7 @@ type MemStats struct {
 
 	// Mallocs is the cumulative count of heap objects allocated.
 	// The number of live objects is Mallocs - Frees.
-	Mallocs uint64
+	Mallocs uint64 /// 累计分配的对象数
 
 	// Frees is the cumulative count of heap objects freed.
 	Frees uint64

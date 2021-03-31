@@ -603,6 +603,7 @@ func schedinit() {
 
 	stackinit()
 
+	// 分配器初始化
 	mallocinit()
 
 	fastrandinit() // must run before mcommoninit

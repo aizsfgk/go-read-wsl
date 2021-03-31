@@ -19,10 +19,10 @@ const (
 	// minPhysPageSize is a lower-bound on the physical page size. The
 	// true physical page size may be larger than this. In contrast,
 	// sys.PhysPageSize is an upper-bound on the physical page size.
-	minPhysPageSize = 4096
+	minPhysPageSize = 4096 /// 4KB
 
 	// maxPhysPageSize is the maximum page size the runtime supports.
-	maxPhysPageSize = 512 << 10
+	maxPhysPageSize = 512 << 10   /// 512KB
 
 	// maxPhysHugePageSize sets an upper-bound on the maximum huge page size
 	// that the runtime supports.
@@ -177,21 +177,22 @@ type mheap struct {
 	// platforms (even 64-bit), arenaL1Bits is 0, making this
 	// effectively a single-level map. In this case, arenas[0]
 	// will never be nil.
-	arenas [1 << arenaL1Bits]*[1 << arenaL2Bits]*heapArena
+	arenas [1 << arenaL1Bits]*[1 << arenaL2Bits]*heapArena ///  arenaL2Bits => 4,194,304, 也就是32MB
 
 	// heapArenaAlloc is pre-reserved space for allocating heapArena
 	// objects. This is only used on 32-bit, where we pre-reserve
-	// this space to avoid interleaving it with the heap itself.
+	// this space to avoid interleaving it with the heap itself. /// 32位使用
 	heapArenaAlloc linearAlloc
 
 	// arenaHints is a list of addresses at which to attempt to
 	// add more heap arenas. This is initially populated with a
 	// set of general hint addresses, and grown with the bounds of
 	// actual heap arena ranges.
+	//// 地址链表
 	arenaHints *arenaHint
 
 	// arena is a pre-reserved space for allocating heap arenas
-	// (the actual arenas). This is only used on 32-bit.
+	// (the actual arenas). This is only used on 32-bit. /// 32位使用
 	arena linearAlloc
 
 	// allArenas is the arenaIndex of every mapped arena. This can
@@ -247,12 +248,14 @@ var mheap_ mheap
 // A heapArena stores metadata for a heap arena. heapArenas are stored
 // outside of the Go heap and accessed via the mheap_.arenas index.
 //
+/// 每个heapArena 管理 64MB
+//
 //go:notinheap
 type heapArena struct {
 	// bitmap stores the pointer/scalar bitmap for the words in
 	// this arena. See mbitmap.go for a description. Use the
 	// heapBits type to access this.
-	bitmap [heapArenaBitmapBytes]byte
+	bitmap [heapArenaBitmapBytes]byte /// 用于标识 arena 区域中的那些地址保存了对象，位图中的每个字节都会表示堆区中的 32 字节是否包含空闲；
 
 	// spans maps from virtual address page ID within this arena to *mspan.
 	// For allocated spans, their pages map to the span itself.
@@ -265,7 +268,7 @@ type heapArena struct {
 	// known to contain in-use or stack spans. This means there
 	// must not be a safe-point between establishing that an
 	// address is live and looking it up in the spans array.
-	spans [pagesPerArena]*mspan
+	spans [pagesPerArena]*mspan  /// 区域存储了指向内存管理单元 runtime.mspan 的指针，每个内存单元会管理几页的内存空间，每页大小为 8KB；
 
 	// pageInUse is a bitmap that indicates which spans are in
 	// state mSpanInUse. This bitmap is indexed by page number,
@@ -273,7 +276,7 @@ type heapArena struct {
 	// span is used.
 	//
 	// Reads and writes are atomic.
-	pageInUse [pagesPerArena / 8]uint8
+	pageInUse [pagesPerArena / 8]uint8  /// 1024
 
 	// pageMarks is a bitmap that indicates which spans have any
 	// marked objects on them. Like pageInUse, only the bit
@@ -310,7 +313,7 @@ type heapArena struct {
 	// address-ordered first-fit policy.
 	//
 	// Read atomically and written with an atomic CAS.
-	zeroedBase uintptr
+	zeroedBase uintptr /// 指向了该结构体管理的内存的基地址
 }
 
 // arenaHint is a hint for where to grow the heap arenas. See
@@ -427,7 +430,7 @@ type mspan struct {
 	freeindex uintptr
 	// TODO: Look up nelems from sizeclass and remove this field if it
 	// helps performance.
-	nelems uintptr // number of object in the span. /// span中的对象数
+	nelems uintptr // number of object in the span. /// span中的对象数 == (npages * pageSize ) / objectSize
 
 	// Cache of the allocBits at freeindex. allocCache is shifted
 	// such that the lowest bit corresponds to the bit freeindex.
@@ -473,7 +476,7 @@ type mspan struct {
 	sweepgen    uint32
 	divMul      uint16        // for divide by elemsize - divMagic.mul
 	baseMask    uint16        // if non-0, elemsize is a power of 2, & this will get object allocation base
-	allocCount  uint16        // number of allocated objects
+	allocCount  uint16        // number of allocated objects /// 已经分配的对象数
 	spanclass   spanClass     // size class and noscan (uint8)
 	state       mSpanStateBox // mSpanInUse etc; accessed atomically (get/set methods)
 	needzero    uint8         // needs to be zeroed before allocation
@@ -1094,11 +1097,13 @@ func (h *mheap) freeMSpanLocked(s *mspan) {
 // allocSpan allocates an mspan which owns npages worth of memory.
 //
 // If manual == false, allocSpan allocates a heap span of class spanclass
-// and updates heap accounting. If manual == true, allocSpan allocates a
+// and updates heap accounting. /// 分配一个堆 span
+//
+// If manual == true, allocSpan allocates a
 // manually-managed span (spanclass is ignored), and the caller is
 // responsible for any accounting related to its use of the span. Either
 // way, allocSpan will atomically add the bytes in the newly allocated
-// span to *sysStat.
+// span to *sysStat. /// 分配一个栈span
 //
 // The returned span is fully initialized.
 //
