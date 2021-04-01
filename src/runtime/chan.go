@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	maxAlign  = 8
+	maxAlign  = 8  /// 最大对其
 	hchanSize = unsafe.Sizeof(hchan{}) + uintptr(-int(unsafe.Sizeof(hchan{}))&(maxAlign-1))
 	debugChan = false
 )
@@ -69,13 +69,14 @@ func makechan64(t *chantype, size int64) *hchan {
 	return makechan(t, int(size))
 }
 
+///
 /// 创建chan
 ///
 func makechan(t *chantype, size int) *hchan {
 	elem := t.elem
 
 	// compiler checks this but be safe.
-	if elem.size >= 1<<16 {
+	if elem.size >= 1<<16 { /// 64KB
 		throw("makechan: invalid channel element type")
 	}
 	if hchanSize%maxAlign != 0 || elem.align > maxAlign {

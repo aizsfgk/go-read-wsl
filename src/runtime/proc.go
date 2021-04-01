@@ -4414,7 +4414,7 @@ func (pp *p) init(id int32) {
 	}
 	pp.wbBuf.reset()
 	if pp.mcache == nil {
-		if id == 0 {
+		if id == 0 {  /// idx == 0 的P 使用 mcache0
 			if mcache0 == nil {
 				throw("missing mcache?")
 			}

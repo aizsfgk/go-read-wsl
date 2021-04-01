@@ -519,7 +519,7 @@ func mallocinit() {
 		//
 		// On AIX, mmaps starts at 0x0A00000000000000 for 64-bit.
 		// processes.
-		for i := 0x7f; i >= 0; i-- {
+		for i := 0x7f; i >= 0; i-- { /// 128次
 			var p uintptr
 			switch {
 			case GOARCH == "arm64" && GOOS == "darwin":
@@ -544,8 +544,6 @@ func mallocinit() {
 			default:
 				p = uintptr(i)<<40 | uintptrMask&(0x00c0<<32)
 			}
-
-			println("p: ", p)
 
 			hint := (*arenaHint)(mheap_.arenaHintAlloc.alloc())
 			hint.addr = p
@@ -914,6 +912,7 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		return unsafe.Pointer(&zerobase)
 	}
 
+	/// debug
 	if debug.sbrk != 0 {
 		align := uintptr(16)
 		if typ != nil {
@@ -936,7 +935,9 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		}
 		return persistentalloc(size, align, &memstats.other_sys)
 	}
-
+	
+	/// 辅助G : 负债还是结语???
+	///
 	// assistG is the G to charge for this allocation, or nil if
 	// GC is not currently active.
 	var assistG *g
@@ -984,11 +985,12 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		}
 	}
 
-	var span *mspan
+	var span *mspan         /// 申明一个span指针
 	var x unsafe.Pointer
-	noscan := typ == nil || typ.ptrdata == 0
+	noscan := typ == nil || typ.ptrdata == 0 /// 不含义指针
+
 	if size <= maxSmallSize {
-		if noscan && size < maxTinySize {
+		if noscan && size < maxTinySize { /// 没有指针并且大小小于16B
 			/// 微对象分配器
 			///
 			// Tiny allocator.
@@ -1031,7 +1033,7 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 			///
 			///
 			///
-			off := c.tinyoffset
+			off := c.tinyoffset //
 			// Align tiny pointer for required (conservative) alignment.
 			if size&7 == 0 {
 				off = alignUp(off, 8)
@@ -1044,13 +1046,13 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 				// The object fits into existing tiny block.
 				x = unsafe.Pointer(c.tiny + off)
 				c.tinyoffset = off + size
-				c.local_tinyallocs++
+				c.local_tinyallocs++ /// 微对象的分配个数
 				mp.mallocing = 0
 				releasem(mp)
-				return x
+				return x /// 返回微对象
 			}
 			// Allocate a new maxTinySize block.
-			span = c.alloc[tinySpanClass]
+			span = c.alloc[tinySpanClass] /// 从mcache里拿一个合适的span
 			v := nextFreeFast(span)
 			if v == 0 {
 				v, span, shouldhelpgc = c.nextFree(tinySpanClass)
@@ -1073,7 +1075,7 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 			} else {
 				sizeclass = size_to_class128[divRoundUp(size-smallSizeMax, largeSizeDiv)]
 			}
-			size = uintptr(class_to_size[sizeclass]) /// 384
+			size = uintptr(class_to_size[sizeclass]) /// 384???
 			spc := makeSpanClass(sizeclass, noscan)
 			span = c.alloc[spc]
 			v := nextFreeFast(span)

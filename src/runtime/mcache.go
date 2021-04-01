@@ -140,7 +140,7 @@ func (c *mcache) refill(spc spanClass) {
 		}
 	}
 
-	// Get a new cached span from the central lists.
+	// Get a new cached span from the central lists. /// 获取一个新的 cached span
 	s = mheap_.central[spc].mcentral.cacheSpan()
 	if s == nil {
 		throw("out of memory")

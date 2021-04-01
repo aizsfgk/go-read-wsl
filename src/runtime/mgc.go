@@ -135,9 +135,9 @@ import (
 )
 
 const (
-	_DebugGC         = 0
-	_ConcurrentSweep = true
-	_FinBlockSize    = 4 * 1024
+	_DebugGC         = 0          /// 开启调试
+	_ConcurrentSweep = true       /// 是否并发清扫???
+	_FinBlockSize    = 4 * 1024   /// 终结块大小
 
 	// debugScanConservative enables debug logging for stack
 	// frames that are scanned conservatively.
@@ -211,11 +211,12 @@ func readgogc() int32 {
 // just before we're about to start letting user code run.
 // It kicks off the background sweeper goroutine, the background
 // scavenger goroutine, and enables GC.
+/// 在 main 函数中开启
 func gcenable() {
 	// Kick off sweeping and scavenging.
 	c := make(chan int, 2)
-	go bgsweep(c)
-	go bgscavenge(c)
+	go bgsweep(c)      /// 后台清扫协程
+	go bgscavenge(c)   /// 后台scavenge
 	<-c
 	<-c
 	memstats.enablegc = true // now that runtime is initialized, GC is okay
