@@ -174,10 +174,10 @@ func gcinit() {
 		throw("size of Workbuf is suboptimal")
 	}
 
-	// No sweep on the first cycle.
+	// No sweep on the first cycle. /// 首次循环没有清理
 	mheap_.sweepdone = 1
 
-	// Set a reasonable initial GC trigger.
+	// Set a reasonable initial GC trigger. /// 设置一个初始化的GC触发比率
 	memstats.triggerRatio = 7 / 8.0
 
 	// Fake a heap_marked value so it looks like a trigger at
@@ -191,6 +191,7 @@ func gcinit() {
 
 	work.startSema = 1
 	work.markDoneSema = 1
+
 	lockInit(&work.sweepWaiters.lock, lockRankSweepWaiters)
 	lockInit(&work.assistQueue.lock, lockRankAssistQueue)
 	lockInit(&work.wbufSpans.lock, lockRankWbufSpans)
@@ -255,6 +256,10 @@ var gcphase uint32
 // If you change it, you must change builtin/runtime.go, too.
 // If you change the first four bytes, you must also change the write
 // barrier insertion code.
+///
+///
+///
+///
 var writeBarrier struct {
 	enabled bool    // compiler emits a check of this before calling write barrier
 	pad     [3]byte // compiler uses 32-bit load for "enabled" field
@@ -1166,7 +1171,7 @@ func gcWaitOnMark(n uint32) {
 type gcMode int
 
 const (
-	gcBackgroundMode gcMode = iota // concurrent GC and sweep
+	gcBackgroundMode gcMode = iota // concurrent GC and sweep   /// 并发GC和清理
 	gcForceMode                    // stop-the-world GC now, concurrent sweep
 	gcForceBlockMode               // stop-the-world GC now and STW sweep (forced by user)
 )
@@ -1225,6 +1230,7 @@ func (t gcTrigger) test() bool {
 	return true
 }
 
+/// 启动一个GC
 // gcStart starts the GC. It transitions from _GCoff to _GCmark (if
 // debug.gcstoptheworld == 0) or performs all of GC (if
 // debug.gcstoptheworld != 0).
@@ -1258,9 +1264,11 @@ func gcStart(trigger gcTrigger) {
 		sweep.nbgsweep++
 	}
 
+	/// 获取信号量
 	// Perform GC initialization and the sweep termination
 	// transition.
 	semacquire(&work.startSema)
+
 	// Re-check transition condition under transition lock.
 	if !trigger.test() {
 		semrelease(&work.startSema)
@@ -1286,7 +1294,7 @@ func gcStart(trigger gcTrigger) {
 	semacquire(&worldsema)
 
 	if trace.enabled {
-		traceGCStart()
+		traceGCStart() /// GC跟踪
 	}
 
 	// Check that all Ps have finished deferred mcache flushes.
@@ -1297,6 +1305,7 @@ func gcStart(trigger gcTrigger) {
 		}
 	}
 
+	/// 后台标记工作启动
 	gcBgMarkStartWorkers()
 
 	systemstack(gcResetMarkState)
@@ -1320,6 +1329,7 @@ func gcStart(trigger gcTrigger) {
 	systemstack(stopTheWorldWithSema)
 	// Finish sweep before we start concurrent scan.
 	systemstack(func() {
+		/// 保证上一个内存单元的正常回收
 		finishsweep_m()
 	})
 
@@ -1631,7 +1641,7 @@ top:
 	nextTriggerRatio := gcController.endCycle()
 
 	// Perform mark termination. This will restart the world.
-	gcMarkTermination(nextTriggerRatio)
+	gcMarkTermination(nextTriggerRatio) /// 进入标记终止阶段
 }
 
 func gcMarkTermination(nextTriggerRatio float64) {
@@ -1863,6 +1873,9 @@ func gcBgMarkPrepare() {
 	work.nwait = ^uint32(0)
 }
 
+///
+/// 后台并发标记工作
+///
 func gcBgMarkWorker(_p_ *p) {
 	gp := getg()
 
@@ -1886,7 +1899,7 @@ func gcBgMarkWorker(_p_ *p) {
 	// and put it on a run queue. Instead, when the preempt flag
 	// is set, this puts itself into _Gwaiting to be woken up by
 	// gcController.findRunnable at the appropriate time.
-	notewakeup(&work.bgMarkReady)
+	notewakeup(&work.bgMarkReady) ///
 
 	for {
 		// Go to sleep until woken by gcController.findRunnable.
