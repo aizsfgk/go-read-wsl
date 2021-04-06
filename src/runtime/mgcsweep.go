@@ -2,15 +2,21 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Garbage collector: sweeping
+// Garbage collector: sweeping /// 清扫器
 
-// The sweeper consists of two different algorithms:
+// The sweeper consists of two different algorithms: /// 2种算法
 //
 // * The object reclaimer finds and frees unmarked slots in spans. It
 //   can free a whole span if none of the objects are marked, but that
 //   isn't its goal. This can be driven either synchronously by
 //   mcentral.cacheSpan for mcentral spans, or asynchronously by
 //   sweepone, which looks at all the mcentral lists.
+///
+/// 对象回收算法：
+/// 回收程序发现和释放未标记的span槽位。
+/// 如果没有对象被标记，则释放整个span。
+/// 同步触发：mcentral.cacheSpan
+/// 异步触发：sweepone
 //
 // * The span reclaimer looks for spans that contain no marked objects
 //   and frees whole spans. This is a separate algorithm because
@@ -18,6 +24,12 @@
 //   but is critical when allocating new spans. The entry point for
 //   this is mheap_.reclaim and it's driven by a sequential scan of
 //   the page marks bitmap in the heap arenas.
+///
+///  内存单元回收算法：
+///  span没有包含标记的对象，释放整个span。
+/// mheap_.reclaim触发
+///
+///
 //
 // Both algorithms ultimately call mspan.sweep, which sweeps a single
 // heap span.
@@ -116,7 +128,7 @@ func (h *mheap) nextSpanForSweep() *mspan {
 	return nil
 }
 
-// finishsweep_m ensures that all spans are swept.
+// finishsweep_m ensures that all spans are swept. /// 确保所有的span被清理
 //
 // The world must be stopped. This ensures there are no sweeps in
 // progress.
@@ -828,6 +840,7 @@ func (s *mspan) reportZombies() {
 	throw("found pointer to free object")
 }
 
+/// 扣除清扫结余
 // deductSweepCredit deducts sweep credit for allocating a span of
 // size spanBytes. This must be performed *before* the span is
 // allocated to ensure the system has enough credit. If necessary, it

@@ -164,7 +164,7 @@ const (
 var heapminimum uint64 = defaultHeapMinimum
 
 // defaultHeapMinimum is the value of heapminimum for GOGC==100.
-const defaultHeapMinimum = 4 << 20
+const defaultHeapMinimum = 4 << 20 /// 4MB
 
 // Initialized from $GOGC.  GOGC=off means no GC.
 var gcpercent int32
