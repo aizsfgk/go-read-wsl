@@ -2,14 +2,22 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Garbage collector: stack objects and stack tracing
+// Garbage collector: stack objects and stack tracing /// 垃圾收集：栈对象和栈跟踪
 // See the design doc at https://docs.google.com/document/d/1un-Jn47yByHL7I0aVIP_uVCMxjdM5mpelJhiKlIqxkE/edit?usp=sharing
 // Also see issue 22350.
 
 // Stack tracing solves the problem of determining which parts of the
 // stack are live and should be scanned. It runs as part of scanning
 // a single goroutine stack.
-//
+///
+/// 栈的哪部分存活，哪部分应该被扫描。
+/// 它运行作为一个Go栈的一部分。
+///
+/// 构建一个二叉树
+///
+///
+///
+///
 // Normally determining which parts of the stack are live is easy to
 // do statically, as user code has explicit references (reads and
 // writes) to stack variables. The compiler can do a simple dataflow
@@ -31,7 +39,7 @@
 // Stack tracing is organized as a mini garbage collection tracing
 // pass. The objects in this garbage collection are all the variables
 // on the stack whose address is taken, and which themselves contain a
-// pointer. We call these variables "stack objects".
+// pointer. We call these variables "stack objects". /// 包含指针的变量，我们称为栈对象
 //
 // We begin by determining all the stack objects on the stack and all
 // the statically live pointers that may point into the stack. We then

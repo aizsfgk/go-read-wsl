@@ -79,7 +79,7 @@ const (
 
 	// maxPagesPerPhysPage is the maximum number of supported runtime pages per
 	// physical page, based on maxPhysPageSize.
-	maxPagesPerPhysPage = maxPhysPageSize / pageSize
+	maxPagesPerPhysPage = maxPhysPageSize / pageSize // 64
 
 	// scavengeCostRatio is the approximate ratio between the costs of using previously
 	// scavenged memory and scavenging memory.
@@ -157,7 +157,7 @@ func gcPaceScavenger() {
 	mheap_.scavengeGoal = retainedGoal
 }
 
-// Sleep/wait state of the background scavenger.
+// Sleep/wait state of the background scavenger. /// 后台清扫工
 var scavenge struct {
 	lock       mutex
 	g          *g

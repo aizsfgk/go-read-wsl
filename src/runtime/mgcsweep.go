@@ -197,6 +197,10 @@ func bgsweep(c chan int) {
 
 // sweepone sweeps some unswept heap span and returns the number of pages returned
 // to the heap, or ^uintptr(0) if there was nothing to sweep.
+///
+/// 清扫一些堆上未清扫的span，返回返回给堆的pages数。
+/// 如果没有清扫则返回 ^uintptr(0)
+///
 func sweepone() uintptr {
 	_g_ := getg()
 	sweepRatio := mheap_.sweepPagesPerByte // For debugging
@@ -206,7 +210,7 @@ func sweepone() uintptr {
 	_g_.m.locks++
 	if atomic.Load(&mheap_.sweepdone) != 0 {
 		_g_.m.locks--
-		return ^uintptr(0)
+		return ^uintptr(0) /// ^按位取反
 	}
 	atomic.Xadd(&mheap_.sweepers, +1)
 
@@ -233,6 +237,8 @@ func sweepone() uintptr {
 			}
 			continue
 		}
+
+		/// 需要清理
 		if s.sweepgen == sg-2 && atomic.Cas(&s.sweepgen, sg-2, sg-1) {
 			break
 		}
@@ -242,7 +248,7 @@ func sweepone() uintptr {
 	npages := ^uintptr(0)
 	if s != nil {
 		npages = s.npages
-		if s.sweep(false) {
+		if s.sweep(false) { /// 清扫span
 			// Whole span was freed. Count it toward the
 			// page reclaimer credit since these pages can
 			// now be used for span allocation.
@@ -274,6 +280,7 @@ func sweepone() uintptr {
 			mheap_.pages.scavengeStartGen()
 			unlock(&mheap_.lock)
 		})
+
 		// Since we might sweep in an allocation path, it's not possible
 		// for us to wake the scavenger directly via wakeScavenger, since
 		// it could allocate. Ask sysmon to do it for us instead.
@@ -283,6 +290,7 @@ func sweepone() uintptr {
 			print("pacer: sweep done at heap size ", memstats.heap_live>>20, "MB; allocated ", (memstats.heap_live-mheap_.sweepHeapLiveBasis)>>20, "MB during sweep; swept ", mheap_.pagesSwept, " pages at ", sweepRatio, " pages/byte\n")
 		}
 	}
+
 	_g_.m.locks--
 	return npages
 }
