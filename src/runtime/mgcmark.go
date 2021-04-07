@@ -1072,7 +1072,7 @@ const (
 // gcDrain will always return if there is a pending STW.
 //
 //go:nowritebarrier
-func gcDrain(gcw *gcWork, flags gcDrainFlags) {
+func gcDrain(gcw *gcWork, flags gcDrainFlags) { /// gc 排出
 	if !writeBarrier.needed {
 		throw("gcDrain phase incorrect")
 	}

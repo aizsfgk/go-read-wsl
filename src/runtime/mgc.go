@@ -21,14 +21,14 @@
 // Hudson, R., and Moss, J.E.B. Copying Garbage Collection without stopping the world.
 // Concurrency and Computation: Practice and Experience 15(3-5), 2003.
 //
-// 1. GC performs sweep termination.
+// 1. GC performs sweep termination.  # 清扫终止阶段
 //
 //    a. Stop the world. This causes all Ps to reach a GC safe-point.
 //
 //    b. Sweep any unswept spans. There will only be unswept spans if
 //    this GC cycle was forced before the expected time.
 //
-// 2. GC performs the mark phase.
+// 2. GC performs the mark phase.     # 标记阶段
 //
 //    a. Prepare for the mark phase by setting gcphase to _GCmark
 //    (from _GCoff), enabling the write barrier, enabling mutator
@@ -58,7 +58,7 @@
 //    more root marking jobs or grey objects (see gcMarkDone). At this
 //    point, GC transitions to mark termination.
 //
-// 3. GC performs mark termination.
+// 3. GC performs mark termination.      # 标记终止
 //
 //    a. Stop the world.
 //
@@ -67,7 +67,7 @@
 //
 //    c. Perform housekeeping like flushing mcaches.
 //
-// 4. GC performs the sweep phase.
+// 4. GC performs the sweep phase.       # 清理阶段
 //
 //    a. Prepare for the sweep phase by setting gcphase to _GCoff,
 //    setting up sweep state and disabling the write barrier.
@@ -88,7 +88,7 @@
 // and concurrently in a background goroutine (this helps programs that are not CPU bound).
 // At the end of STW mark termination all spans are marked as "needs sweeping".
 //
-// The background sweeper goroutine simply sweeps spans one-by-one.
+// The background sweeper goroutine simply sweeps spans one-by-one. /// sweeps spans one-by-one
 //
 // To avoid requesting more OS memory while there are unswept spans, when a
 // goroutine needs another span, it first attempts to reclaim that much memory
@@ -100,6 +100,10 @@
 // nonadjacent one-page spans to the heap, it will allocate a new two-page
 // span, but there can still be other one-page unswept spans which could be
 // combined into a two-page span.
+///
+/// 为了避免请求更多的操作系统内存，当有很多为扫描的spans的时候。当一个Goroutine需要一个span,它首先
+/// 尝试回收再利用通过清扫。
+///
 //
 // It's critical to ensure that no operations proceed on unswept spans (that would corrupt
 // mark bits in GC bitmap). During GC all mcaches are flushed into the central cache,
@@ -108,7 +112,10 @@
 // the span is swept (either by sweeping it, or by waiting for the concurrent sweep to finish).
 // The finalizer goroutine is kicked off only when all spans are swept.
 // When the next GC starts, it sweeps all not-yet-swept spans (if any).
-
+///
+/// 这是严格的。
+/// 在GC期键，mcaches会全部flush into 到 central cache.因此他们是空的。
+///
 // GC rate.
 // Next GC is after we've allocated an extra amount of memory proportional to
 // the amount already in use. The proportion is controlled by GOGC environment variable
@@ -146,7 +153,7 @@ const (
 	// sweepMinHeapDistance is a lower bound on the heap distance
 	// (in bytes) reserved for concurrent sweeping between GC
 	// cycles.
-	sweepMinHeapDistance = 1024 * 1024
+	sweepMinHeapDistance = 1024 * 1024 /// 1MB
 )
 
 // heapminimum is the minimum heap size at which to trigger GC.
@@ -178,7 +185,7 @@ func gcinit() {
 	mheap_.sweepdone = 1
 
 	// Set a reasonable initial GC trigger. /// 设置一个初始化的GC触发比率
-	memstats.triggerRatio = 7 / 8.0
+	memstats.triggerRatio = 7 / 8.0        /// 7/8
 
 	// Fake a heap_marked value so it looks like a trigger at
 	// heapminimum is the appropriate growth from heap_marked.
@@ -192,9 +199,9 @@ func gcinit() {
 	work.startSema = 1
 	work.markDoneSema = 1
 
-	lockInit(&work.sweepWaiters.lock, lockRankSweepWaiters)
-	lockInit(&work.assistQueue.lock, lockRankAssistQueue)
-	lockInit(&work.wbufSpans.lock, lockRankWbufSpans)
+	lockInit(&work.sweepWaiters.lock, lockRankSweepWaiters)  /// 等待清理
+	lockInit(&work.assistQueue.lock, lockRankAssistQueue)    /// 辅助队列
+	lockInit(&work.wbufSpans.lock, lockRankWbufSpans)        /// WbufSpans
 }
 
 func readgogc() int32 {
@@ -205,7 +212,7 @@ func readgogc() int32 {
 	if n, ok := atoi32(p); ok {
 		return n
 	}
-	return 100
+	return 100 /// 默认100
 }
 
 // gcenable is called after the bulk of the runtime initialization,
@@ -290,7 +297,7 @@ func setGCPhase(x uint32) {
 }
 
 // gcMarkWorkerMode represents the mode that a concurrent mark worker
-// should operate in.
+// should operate in. 并发标记的工作模式
 //
 // Concurrent marking happens through four different mechanisms. One
 // is mutator assists, which happen in response to allocations and are
@@ -681,6 +688,8 @@ func (c *gcControllerState) enlistWorker() {
 
 // findRunnableGCWorker returns the background mark worker for _p_ if it
 // should be run. This must only be called when gcBlackenEnabled != 0.
+///
+/// 返回后台标记工作的G,如果它应该运行。这必须被调用，当gcBlackenEnabled != 0
 func (c *gcControllerState) findRunnableGCWorker(_p_ *p) *g {
 	if gcBlackenEnabled == 0 {
 		throw("gcControllerState.findRunnable: blackening not enabled")
@@ -1783,7 +1792,7 @@ func gcMarkTermination(nextTriggerRatio float64) {
 	// mcaches are flushed before we start the next GC cycle.
 	systemstack(func() {
 		forEachP(func(_p_ *p) {
-			_p_.mcache.prepareForSweep()
+			_p_.mcache.prepareForSweep() /// 准备预清扫
 		})
 	})
 
@@ -1899,7 +1908,7 @@ func gcBgMarkWorker(_p_ *p) {
 	// and put it on a run queue. Instead, when the preempt flag
 	// is set, this puts itself into _Gwaiting to be woken up by
 	// gcController.findRunnable at the appropriate time.
-	notewakeup(&work.bgMarkReady) ///
+	notewakeup(&work.bgMarkReady) /// 保证外层的 for 循环继续执行
 
 	for {
 		// Go to sleep until woken by gcController.findRunnable.

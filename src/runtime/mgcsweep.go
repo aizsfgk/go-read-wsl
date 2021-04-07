@@ -223,7 +223,7 @@ func sweepone() uintptr {
 		} else {
 			s = mheap_.sweepSpans[1-sg/2%2].pop()
 		}
-		if s == nil {
+		if s == nil { /// 没有，就表示清扫完成
 			atomic.Store(&mheap_.sweepdone, 1)
 			break
 		}
