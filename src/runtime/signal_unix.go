@@ -128,8 +128,10 @@ func initsig(preinit bool) {
 
 		// We don't need to use atomic operations here because
 		// there shouldn't be any other goroutines running yet.
+		// 此时不需要原子操作，因为此时没有其他运行的 Goroutine
 		fwdSig[i] = getsig(i)
 
+		// 是否需要安装信号处理器
 		if !sigInstallGoHandler(i) {
 			// Even if we are not installing a signal handler,
 			// set SA_ONSTACK if necessary.
@@ -346,6 +348,13 @@ const preemptMSupported = true
 // marked for preemption and the goroutine is at an asynchronous
 // safe-point, it will preempt the goroutine. It always atomically
 // increments mp.preemptGen after handling a preemption request.
+///
+/// 给mp发送一个抢占请求
+///   1. 该请求可能被异步处理
+///   2. 也可能同其他的请求一起被合并处理
+/// 当这个请求被接收后，这个运行着的G或P,将被标记未preeption。
+/// 如果这个G在一个异步安全点，将抢占这个goroutine.
+///
 func preemptM(mp *m) {
 	if GOOS == "darwin" && GOARCH == "arm64" && !iscgo {
 		// On darwin, we use libc calls, and cgo is required on ARM64
@@ -396,6 +405,7 @@ func sigFetchG(c *sigctxt) *g {
 
 // sigtrampgo is called from the signal handler function, sigtramp,
 // written in assembly code.
+/// 被调用在这个信号处理函数
 // This is called by the signal handler, and the world may be stopped.
 //
 // It must be nosplit because getg() is still the G that was running
@@ -406,6 +416,7 @@ func sigFetchG(c *sigctxt) *g {
 //go:nosplit
 //go:nowritebarrierrec
 func sigtrampgo(sig uint32, info *siginfo, ctx unsafe.Pointer) {
+	/// sigfwdgo 用于约定该信号是否应该由 Go 进行处理， 如果不由 Go 进行处理（例如 cgo）则将其转发到 Go 代码之前设置的 handler 上
 	if sigfwdgo(sig, info, ctx) {
 		return
 	}
@@ -523,6 +534,7 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 	_g_ := getg()
 	c := &sigctxt{info, ctxt}
 
+	/// profile 时钟超时
 	if sig == _SIGPROF {
 		sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
 		return
@@ -532,10 +544,14 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 		return
 	}
 
+	/// 用户信号
 	if sig == _SIGUSR1 && testSigusr1 != nil && testSigusr1(gp) {
 		return
 	}
 
+	///
+	/// 异步抢占机制
+	///
 	if sig == sigPreempt && debug.asyncpreemptoff == 0 {
 		// Might be a preemption signal.
 		doSigPreempt(gp, c)
@@ -576,16 +592,19 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 		return
 	}
 
+	/// 对用户注册的信号进行转发
 	if c.sigcode() == _SI_USER || flags&_SigNotify != 0 {
-		if sigsend(sig) {
+		if sigsend(sig) { /// 发送信号
 			return
 		}
 	}
 
+	/// 设置为可忽略的用户信号
 	if c.sigcode() == _SI_USER && signal_ignored(sig) {
 		return
 	}
 
+	/// 处理 KILL 信号
 	if flags&_SigKill != 0 {
 		dieFromSignal(sig)
 	}
@@ -848,6 +867,7 @@ func crash() {
 
 // ensureSigM starts one global, sleeping thread to make sure at least one thread
 // is available to catch signals enabled for os/signal.
+/// 启动一个全局的，睡眠线程，确保至少有一个线程可用，去捕获信号
 func ensureSigM() {
 	if maskUpdatedChan != nil {
 		return
@@ -1059,7 +1079,10 @@ func unblocksig(sig uint32) {
 // minitSignals is called when initializing a new m to set the
 // thread's alternate signal stack and signal mask.
 func minitSignals() {
+	// 初始化信号栈
 	minitSignalStack()
+
+	// 初始化信号屏蔽字
 	minitSignalMask()
 }
 
@@ -1076,11 +1099,17 @@ func minitSignals() {
 func minitSignalStack() {
 	_g_ := getg()
 	var st stackt
-	sigaltstack(nil, &st)
+	// 获取原有的信号栈
+	sigaltstack(nil, &st) // 获取信号栈上下文，到 st 上
+
+	/// 操作系统禁用了信号栈 或者 不是cgo
 	if st.ss_flags&_SS_DISABLE != 0 || !iscgo {
+		// 如果禁用了当前的信号栈
+		// 则将 gsignal 的执行栈设置为备用信号栈
 		signalstack(&_g_.m.gsignal.stack)
 		_g_.m.newSigstack = true
 	} else {
+		// 否则将 m 的 gsignal 栈设置为从 sigaltstack 返回的备用信号栈
 		setGsignalStack(&st, &_g_.m.goSigStack)
 		_g_.m.newSigstack = false
 	}
@@ -1096,7 +1125,10 @@ func minitSignalStack() {
 // After this is called the thread can receive signals.
 func minitSignalMask() {
 	nmask := getg().m.sigmask
+
+	// 遍历整个信号表
 	for i := range sigtable {
+		// 如果是不可阻止的信号，则删除对应的屏蔽字所在位
 		if !blockableSig(uint32(i)) {
 			sigdelset(&nmask, i)
 		}
@@ -1143,7 +1175,7 @@ func blockableSig(sig uint32) bool {
 
 // gsignalStack saves the fields of the gsignal stack changed by
 // setGsignalStack.
-type gsignalStack struct {
+type gsignalStack struct { /// 每个M有一个信号栈
 	stack       stack
 	stackguard0 uintptr
 	stackguard1 uintptr

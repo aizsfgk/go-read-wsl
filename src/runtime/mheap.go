@@ -463,7 +463,7 @@ type mspan struct {
 	// gcmarkBits. The gcmarkBits are replaced with a fresh zeroed
 	// out memory.
 	allocBits  *gcBits
-	gcmarkBits *gcBits
+	gcmarkBits *gcBits /// 标记位
 
 	// sweep generation:
 	// if sweepgen == h->sweepgen - 2, the span needs sweeping

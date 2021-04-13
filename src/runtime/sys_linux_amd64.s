@@ -652,7 +652,7 @@ nog:
 TEXT runtime·sigaltstack(SB),NOSPLIT,$-8
 	MOVQ	new+0(FP), DI
 	MOVQ	old+8(FP), SI
-	MOVQ	$SYS_sigaltstack, AX
+	MOVQ	$SYS_sigaltstack, AX /// https://man7.org/linux/man-pages/man2/sigaltstack.2.html
 	SYSCALL
 	CMPQ	AX, $0xfffffffffffff001
 	JLS	2(PC)

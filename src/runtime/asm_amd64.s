@@ -1437,10 +1437,11 @@ TEXT runtime·addmoduledata(SB),NOSPLIT,$0-0
 // gcWriteBarrier performs a heap pointer write and informs the GC.
 //
 // gcWriteBarrier does NOT follow the Go ABI. It takes two arguments:
-// - DI is the destination of the write
-// - AX is the value being written at DI
+// - DI is the destination of the write  /// 堆内存写入的地址
+// - AX is the value being written at DI /// 赋的值
 // It clobbers FLAGS. It does not clobber any general-purpose registers,
 // but may clobber others (e.g., SSE registers).
+
 TEXT runtime·gcWriteBarrier(SB),NOSPLIT,$120
 	// Save the registers clobbered by the fast path. This is slightly
 	// faster than having the caller spill these.
@@ -1456,6 +1457,8 @@ TEXT runtime·gcWriteBarrier(SB),NOSPLIT,$120
 	// Increment wbBuf.next position.
 	LEAQ	16(R14), R14
 	MOVQ	R14, (p_wbBuf+wbBuf_next)(R13)
+
+	// 检查buffer队列是否已满
 	CMPQ	R14, (p_wbBuf+wbBuf_end)(R13)
 	// Record the write.
 	MOVQ	AX, -16(R14)	// Record value
@@ -1467,9 +1470,13 @@ TEXT runtime·gcWriteBarrier(SB),NOSPLIT,$120
 	// combine the read and the write.
 	MOVQ	(DI), R13
 	MOVQ	R13, -8(R14)	// Record *slot
+
+	// 如果队列满了，就下刷处理
 	// Is the buffer full? (flags set in CMPQ above)
 	JEQ	flush
 ret:
+
+    // 赋值 *slot = val
 	MOVQ	104(SP), R14
 	MOVQ	112(SP), R13
 	// Do the write.

@@ -355,7 +355,7 @@ func gettid() uint32
 // Called to initialize a new m (including the bootstrap m).
 // Called on the new thread, cannot allocate memory.
 func minit() {
-	minitSignals()
+	minitSignals()  /// 信号栈初始化
 
 	// Cgo-created threads and the bootstrap m are missing a
 	// procid. We need this for asynchronous preemption and it's

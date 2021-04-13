@@ -35,7 +35,11 @@ import (
 
 // sig handles communication between the signal handler and os/signal.
 // Other than the inuse and recv fields, the fields are accessed atomically.
-//
+///
+/// sig 处理 signal handler 和 os/signal 之间的交流
+///
+/// 信号队列
+///
 // The wanted and ignored fields are only written by one goroutine at
 // a time; access is controlled by the handlers Mutex in os/signal.
 // The fields are only read by that one goroutine and by the signal handler.
@@ -64,6 +68,10 @@ const (
 // sigsend delivers a signal from sighandler to the internal signal delivery queue.
 // It reports whether the signal was sent. If not, the caller typically crashes the program.
 // It runs from the signal handler, so it's limited in what it can do.
+///
+/// 分发一个信号，从 sighandler 到 内部信号分发队列
+///
+///
 func sigsend(s uint32) bool {
 	bit := uint32(1) << uint(s&31)
 	if !sig.inuse || s >= uint32(32*len(sig.wanted)) {
@@ -119,6 +127,7 @@ Send:
 	return true
 }
 
+///  从信号队列中接受信号
 // Called to receive the next queued signal.
 // Must only be called from a single goroutine at a time.
 //go:linkname signal_recv os/signal.signal_recv
@@ -193,7 +202,7 @@ func signalWaitUntilIdle() {
 func signal_enable(s uint32) {
 	if !sig.inuse {
 		// This is the first call to signal_enable. Initialize.
-		sig.inuse = true // enable reception of signals; cannot disable
+		sig.inuse = true // enable reception of signals; cannot disable /// 激活接收信号
 		if GOOS == "darwin" {
 			sigNoteSetup(&sig.note)
 		} else {

@@ -234,7 +234,7 @@ func markroot(gcw *gcWork, i uint32) {
 			// we scan the stacks we can and ask running
 			// goroutines to scan themselves; and the
 			// second blocks.
-			stopped := suspendG(gp)
+			stopped := suspendG(gp) /// 标记根对象
 			if stopped.dead {
 				gp.gcscandone = true
 				return

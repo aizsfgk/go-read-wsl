@@ -618,8 +618,8 @@ func schedinit() {
 	typelinksinit() // uses maps, activeModules
 	itabsinit()     // uses activeModules
 
-	msigsave(_g_.m)
-	initSigmask = _g_.m.sigmask
+	msigsave(_g_.m)             /// 新的信号屏蔽字设置为nil, 获取旧的信号屏蔽字，存入 _g_.m.sigmask
+	initSigmask = _g_.m.sigmask /// 保存旧的信号屏蔽字
 
 	goargs()
 	goenvs()
@@ -716,9 +716,11 @@ func mcommoninit(mp *m, id int64) {
 	}
 
 	/// 信号相关的初始化
+	/// 初始化 gsignal，用于处理 m 上的信号
 	mpreinit(mp)
+	///
 	if mp.gsignal != nil {
-		mp.gsignal.stackguard1 = mp.gsignal.stack.lo + _StackGuard
+		mp.gsignal.stackguard1 = mp.gsignal.stack.lo + _StackGuard /// It is stack.lo+StackGuard on g0 and gsignal stacks.
 	}
 
 
@@ -5015,6 +5017,8 @@ func retake(now int64) uint32 {
 			if int64(pd.schedtick) != t {
 				pd.schedtick = uint32(t)
 				pd.schedwhen = now
+
+			/// 运行时间过长
 			} else if pd.schedwhen+forcePreemptNS <= now {
 
 				preemptone(_p_) /// 抢占1个P，
@@ -5111,6 +5115,7 @@ func preemptone(_p_ *p) bool {
 		return false
 	}
 
+	/// 当前p相关的m,的curg
 	gp.preempt = true
 
 	// Every call in a go routine checks for stack overflow by
