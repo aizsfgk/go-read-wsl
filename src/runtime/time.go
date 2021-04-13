@@ -23,8 +23,9 @@ type timer struct {
 	// Timer wakes up at when, and then at when+period, ... (period > 0 only)
 	// each time calling f(arg, now) in the timer goroutine, so f must be
 	// a well-behaved function and not block.
-	when   int64
-	period int64
+	when   int64 /// 当前唤醒的时间
+	period int64 /// 两次唤醒的间隔
+
 	f      func(interface{}, uintptr)
 	arg    interface{}
 	seq    uintptr
@@ -38,7 +39,7 @@ type timer struct {
 
 // Code outside this file has to be careful in using a timer value.
 //
-// The pp, status, and nextwhen fields may only be used by code in this file.
+// The pp, status, and nextwhen fields may only be used by code in this file. 仅仅用于这个文件
 //
 // Code that creates a new timer value can set the when, period, f,
 // arg, and seq fields.
@@ -250,17 +251,20 @@ func addtimer(t *timer) {
 	if t.status != timerNoStatus {
 		throw("addtimer called with initialized timer")
 	}
-	t.status = timerWaiting
+	t.status = timerWaiting /// 等待触发
 
 	when := t.when
 
 	pp := getg().m.p.ptr()
 	lock(&pp.timersLock)
+
 	cleantimers(pp)
-	doaddtimer(pp, t)
+
+	doaddtimer(pp, t)   ///
+
 	unlock(&pp.timersLock)
 
-	wakeNetPoller(when)
+	wakeNetPoller(when) /// addtimer - 唤醒网络循环器
 }
 
 // doaddtimer adds t to the current P's heap.
@@ -1047,7 +1051,7 @@ func timeSleepUntil() (int64, *p) {
 	return next, pret
 }
 
-// Heap maintenance algorithms.
+// Heap maintenance algorithms. /// 堆维护算法
 // These algorithms check for slice index errors manually.
 // Slice index error can happen if the program is using racy
 // access to timers. We don't want to panic here, because
@@ -1055,6 +1059,7 @@ func timeSleepUntil() (int64, *p) {
 // "panic holding locks" message. Instead, we panic while not
 // holding a lock.
 
+/// 上移
 func siftupTimer(t []*timer, i int) {
 	if i >= len(t) {
 		badTimer()
@@ -1074,6 +1079,7 @@ func siftupTimer(t []*timer, i int) {
 	}
 }
 
+/// 下移
 func siftdownTimer(t []*timer, i int) {
 	n := len(t)
 	if i >= n {

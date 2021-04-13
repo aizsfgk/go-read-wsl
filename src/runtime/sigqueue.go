@@ -70,7 +70,7 @@ const (
 // It runs from the signal handler, so it's limited in what it can do.
 ///
 /// 分发一个信号，从 sighandler 到 内部信号分发队列
-///
+///  入队一个新信号
 ///
 func sigsend(s uint32) bool {
 	bit := uint32(1) << uint(s&31)

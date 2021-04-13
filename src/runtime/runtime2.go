@@ -521,7 +521,9 @@ type g struct {
 	waiting        *sudog         // sudog structures this g is waiting on (that have a valid elem ptr); in lock order
 	cgoCtxt        []uintptr      // cgo traceback context
 	labels         unsafe.Pointer // profiler labels
+
 	timer          *timer         // cached timer for time.Sleep
+
 	selectDone     uint32         // are we participating in a select and did someone win the race?
 
 	// Per-G GC state
@@ -728,17 +730,18 @@ type p struct {
 
 	runSafePointFn uint32 // if 1, run sched.safePointFn at next safe point
 
+	/// *************** 定时器功能 ****************** ///
 	// Lock for timers. We normally access the timers while running
 	// on this P, but the scheduler can also do it from a different P.
 	timersLock mutex
 
 	// Actions to take at some time. This is used to implement the
 	// standard library's time package.
-	// Must hold timersLock to access.
+	// Must hold timersLock to access.     ///  存储定时器的最小四叉堆
 	timers []*timer
 
 	// Number of timers in P's heap.
-	// Modified using atomic instructions.
+	// Modified using atomic instructions. /// 定时器数量
 	numTimers uint32
 
 	// Number of timerModifiedEarlier timers on P's heap.
@@ -753,10 +756,11 @@ type p struct {
 
 	// Race context used while executing timer functions.
 	timerRaceCtx uintptr
+	/// **************** 定时器功能结束 ******************** ///
 
 	// preempt is set to indicate that this P should be enter the
 	// scheduler ASAP (regardless of what G is running on it).
-	preempt bool
+	preempt bool /// 异步抢占标识
 
 	pad cpu.CacheLinePad
 }
@@ -1042,10 +1046,10 @@ type waitReason uint8
 
 const (
 	waitReasonZero                  waitReason = iota // ""
-	waitReasonGCAssistMarking                         // "GC assist marking"
-	waitReasonIOWait                                  // "IO wait"
-	waitReasonChanReceiveNilChan                      // "chan receive (nil chan)"
-	waitReasonChanSendNilChan                         // "chan send (nil chan)"
+	waitReasonGCAssistMarking                         // "GC assist marking" ; GC辅助标记
+	waitReasonIOWait                                  // "IO wait" ; IO等待, read, write
+	waitReasonChanReceiveNilChan                      // "chan receive (nil chan)" ; nil chan receive
+	waitReasonChanSendNilChan                         // "chan send (nil chan)" ; nil chan send
 	waitReasonDumpingHeap                             // "dumping heap"
 	waitReasonGarbageCollection                       // "garbage collection"
 	waitReasonGarbageCollectionScan                   // "garbage collection scan"
@@ -1066,7 +1070,7 @@ const (
 	waitReasonTraceReaderBlocked                      // "trace reader (blocked)"
 	waitReasonWaitForGCCycle                          // "wait for GC cycle"
 	waitReasonGCWorkerIdle                            // "GC worker (idle)"
-	waitReasonPreempted                               // "preempted"
+	waitReasonPreempted                               // "preempted"    /// 设置G被抢占
 	waitReasonDebugCall                               // "debug call"
 )
 

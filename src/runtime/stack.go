@@ -1020,6 +1020,7 @@ func newstack() {
 	// it needs a lock held by the goroutine), that small preemption turns
 	// into a real deadlock.
 	if preempt {
+		/// 如果不能抢占，则继续调度执行
 		if !canPreemptM(thisg.m) {
 			// Let the goroutine keep running for now.
 			// gp->preempt is set, so it will be preempted next time.
@@ -1048,6 +1049,7 @@ func newstack() {
 	}
 
 	/// 这里做了一些抢占处理
+	/// 如果能够抢占
 	if preempt {
 		if gp == thisg.m.g0 {
 			throw("runtime: preempt g0")
