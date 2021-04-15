@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Malloc profiling.
+// Malloc profiling. /// 内存分配分析
 // Patterned after tcmalloc's algorithms; shorter code.
 
 package runtime
@@ -816,12 +816,14 @@ func Stack(buf []byte, all bool) int {
 			// so that Stack's results are consistent.
 			// GOTRACEBACK is only about crash dumps.
 			g0.m.traceback = 1
+
 			g0.writebuf = buf[0:0:len(buf)]
 			goroutineheader(gp) /// 打印头部信息
 			traceback(pc, sp, 0, gp)
 			if all {
-				tracebackothers(gp)
+				tracebackothers(gp) /// 打印其他消息
 			}
+
 			g0.m.traceback = 0
 			n = len(g0.writebuf)
 			g0.writebuf = nil

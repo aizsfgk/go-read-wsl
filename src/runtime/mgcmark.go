@@ -1055,6 +1055,9 @@ const (
 // GC is done; it's the caller's responsibility to balance work from
 // other Ps.
 //
+/// gcDrain 扫描 work buffers 中的根对象，涂黑灰色的对象，直到灰色对象不能
+/// 获取新的work任务。它可能在 gcdone 前返回。调用者有责任平衡不同P之间的工作。
+//
 // If flags&gcDrainUntilPreempt != 0, gcDrain returns when g.preempt
 // is set.
 //
@@ -1105,7 +1108,7 @@ func gcDrain(gcw *gcWork, flags gcDrainFlags) { /// gc 排出
 			if job >= work.markrootJobs {
 				break
 			}
-			markroot(gcw, job)
+			markroot(gcw, job) /// gcDrain
 			if check != nil && check() {
 				goto done
 			}
@@ -1226,7 +1229,7 @@ func gcDrainN(gcw *gcWork, scanWork int64) int64 {
 			if work.markrootNext < work.markrootJobs {
 				job := atomic.Xadd(&work.markrootNext, +1) - 1
 				if job < work.markrootJobs {
-					markroot(gcw, job)
+					markroot(gcw, job) /// gcDrainN
 					continue
 				}
 			}

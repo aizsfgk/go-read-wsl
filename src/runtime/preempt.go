@@ -214,7 +214,7 @@ func suspendG(gp *g) suspendGState {
 
 			// Request synchronous preemption.
 			gp.preemptStop = true
-			gp.preempt = true
+			gp.preempt = true ///
 			gp.stackguard0 = stackPreempt
 
 			// Prepare for asynchronous preemption.

@@ -961,10 +961,10 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 
 	// Set mp.mallocing to keep from being preempted by GC.
 	mp := acquirem()
-	if mp.mallocing != 0 {
+	if mp.mallocing != 0 {          /// 这个 m 正在分配中,
 		throw("malloc deadlock")
 	}
-	if mp.gsignal == getg() {
+	if mp.gsignal == getg() {       /// 处在信号中
 		throw("malloc during signal")
 	}
 	mp.mallocing = 1 /// 正在分配中

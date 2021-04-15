@@ -235,6 +235,7 @@ func setGCPercent(in int32) (out int32) {
 	// Run on the system stack since we grab the heap lock.
 	systemstack(func() {
 		lock(&mheap_.lock)
+
 		out = gcpercent
 		if in < 0 {
 			in = -1
@@ -243,6 +244,7 @@ func setGCPercent(in int32) (out int32) {
 		heapminimum = defaultHeapMinimum * uint64(gcpercent) / 100
 		// Update pacing in response to gcpercent change.
 		gcSetTriggerRatio(memstats.triggerRatio)
+
 		unlock(&mheap_.lock)
 	})
 
@@ -1239,7 +1241,7 @@ func (t gcTrigger) test() bool {
 	return true
 }
 
-/// 启动一个GC
+/// 启动一次GC
 // gcStart starts the GC. It transitions from _GCoff to _GCmark (if
 // debug.gcstoptheworld == 0) or performs all of GC (if
 // debug.gcstoptheworld != 0).
@@ -1257,9 +1259,10 @@ func gcStart(trigger gcTrigger) {
 		return
 	}
 	releasem(mp)
-	mp = nil
+	mp = nil /// 这个 G 不再持有 M
 
 	// Pick up the remaining unswept/not being swept spans concurrently
+	/// 同时选出还未被清扫的span
 	//
 	// This shouldn't happen if we're being invoked in background
 	// mode since proportional sweep should have just finished
@@ -1335,7 +1338,7 @@ func gcStart(trigger gcTrigger) {
 	if trace.enabled {
 		traceGCSTWStart(1)
 	}
-	systemstack(stopTheWorldWithSema)
+	systemstack(stopTheWorldWithSema) /// **** STW **** ///
 	// Finish sweep before we start concurrent scan.
 	systemstack(func() {
 		/// 保证上一个内存单元的正常回收
@@ -1372,7 +1375,7 @@ func gcStart(trigger gcTrigger) {
 	// allocations are blocked until assists can
 	// happen, we want enable assists as early as
 	// possible.
-	setGCPhase(_GCmark)
+	setGCPhase(_GCmark) /// gcStart 开始GC
 
 	gcBgMarkPrepare() // Must happen before assist enable.
 	gcMarkRootPrepare()
@@ -1567,7 +1570,7 @@ top:
 	if trace.enabled {
 		traceGCSTWStart(0)
 	}
-	systemstack(stopTheWorldWithSema)
+	systemstack(stopTheWorldWithSema) /// MarkDone
 	// The gcphase is _GCmark, it will transition to _GCmarktermination
 	// below. The important thing is that the wb remains active until
 	// all marking is complete. This includes writes made by the GC.
@@ -1657,7 +1660,7 @@ func gcMarkTermination(nextTriggerRatio float64) {
 	// World is stopped.
 	// Start marktermination which includes enabling the write barrier.
 	atomic.Store(&gcBlackenEnabled, 0)
-	setGCPhase(_GCmarktermination)
+	setGCPhase(_GCmarktermination)   /// gcMarkTermination； 标记终止阶段
 
 	work.heap1 = memstats.heap_live
 	startTime := nanotime()
@@ -1703,7 +1706,7 @@ func gcMarkTermination(nextTriggerRatio float64) {
 		}
 
 		// marking is complete so we can turn the write barrier off
-		setGCPhase(_GCoff)
+		setGCPhase(_GCoff)  /// 标记阶段完成；写屏障关闭
 		gcSweep(work.mode)
 	})
 

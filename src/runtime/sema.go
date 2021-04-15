@@ -17,7 +17,7 @@
 // See Mullender and Cox, ``Semaphores in Plan 9,''
 // https://swtch.com/semaphore.pdf
 ///
-/// 信号量Go实现
+/// 信号量Go实现 : 睡眠和唤醒原语
 ///
 
 package runtime

@@ -580,6 +580,7 @@ func deferreturn(arg0 uintptr) {
 // without func main returning. Since func main has not returned,
 // the program continues execution of other goroutines.
 // If all other goroutines exit, the program crashes.
+/// 把一个Go退出
 func Goexit() {
 	// Run all deferred functions for the current goroutine.
 	// This code is similar to gopanic, see that implementation

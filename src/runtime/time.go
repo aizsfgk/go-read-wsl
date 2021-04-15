@@ -1067,7 +1067,7 @@ func siftupTimer(t []*timer, i int) {
 	when := t[i].when
 	tmp := t[i]
 	for i > 0 {
-		p := (i - 1) / 4 // parent
+		p := (i - 1) / 4 // parent /// 这里的 4 表示这是一个4叉树
 		if when >= t[p].when {
 			break
 		}

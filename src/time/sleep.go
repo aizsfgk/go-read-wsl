@@ -81,6 +81,7 @@ func (t *Timer) Stop() bool {
 
 // NewTimer creates a new Timer that will send
 // the current time on its channel after at least duration d.
+/// 新建一个定时器，他将发送当前的时间在这个channel上，至少 d 间隔
 func NewTimer(d Duration) *Timer {
 	c := make(chan Time, 1)
 	t := &Timer{

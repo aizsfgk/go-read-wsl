@@ -397,7 +397,7 @@ func raiseproc(sig uint32)
 
 //go:noescape
 func sched_getaffinity(pid, len uintptr, buf *byte) int32
-func osyield()
+func osyield() /// sched_yield()会让出当前线程的CPU占有权，然后把线程放到静态优先队列的尾端，然后一个新的线程会占用CPU; 没有其他线程，立即返回
 
 func pipe() (r, w int32, errno int32)
 func pipe2(flags int32) (r, w int32, errno int32)

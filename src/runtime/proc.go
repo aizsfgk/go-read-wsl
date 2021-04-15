@@ -987,6 +987,7 @@ func stopTheWorld(reason string) {
 // startTheWorld undoes the effects of stopTheWorld.
 func startTheWorld() {
 	systemstack(func() { startTheWorldWithSema(false) })
+
 	// worldsema must be held over startTheWorldWithSema to ensure
 	// gomaxprocs cannot change while worldsema is held.
 	semrelease(&worldsema)
@@ -1053,9 +1054,11 @@ func stopTheWorldWithSema() {
 	sched.stopwait = gomaxprocs
 	atomic.Store(&sched.gcwaiting, 1)
 	preemptall()
+
 	// stop current P
 	_g_.m.p.ptr().status = _Pgcstop // Pgcstop is only diagnostic. /// stopTheWorldWithSema
 	sched.stopwait--
+
 	// try to retake all P's in Psyscall status
 	for _, p := range allp {
 		s := p.status /// /// stopTheWorldWithSema
@@ -1068,6 +1071,7 @@ func stopTheWorldWithSema() {
 			sched.stopwait--
 		}
 	}
+
 	// stop idle P's
 	for {
 		p := pidleget()
@@ -5096,12 +5100,13 @@ func preemptall() bool {
 }
 
 // Tell the goroutine running on processor P to stop.
+/// 告知运行在P上的G停止
 // This function is purely best-effort. It can incorrectly fail to inform the
 // goroutine. It can send inform the wrong goroutine. Even if it informs the
 // correct goroutine, that goroutine might ignore the request if it is
 // simultaneously executing newstack.
 // No lock needs to be held.
-// Returns true if preemption request was issued.
+// Returns true if preemption request was issued. /// 如果抢占请求被发布，则返回true
 // The actual preemption will happen at some point in the future
 // and will be indicated by the gp->status no longer being
 // Grunning

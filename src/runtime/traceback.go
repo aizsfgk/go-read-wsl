@@ -733,9 +733,11 @@ func traceback1(pc, sp, lr uintptr, gp *g, flags uint) {
 		sp = gp.syscallsp
 		flags &^= _TraceTrap
 	}
+
 	// Print traceback. By default, omits runtime frames.
 	// If that means we print nothing at all, repeat forcing all frames printed.
 	n = gentraceback(pc, sp, lr, gp, 0, nil, _TracebackMaxFrames, nil, nil, flags)
+
 	if n == 0 && (flags&_TraceRuntimeFrames) == 0 {
 		n = gentraceback(pc, sp, lr, gp, 0, nil, _TracebackMaxFrames, nil, nil, flags|_TraceRuntimeFrames)
 	}
@@ -879,7 +881,7 @@ var gStatusStrings = [...]string{
 	_Gpreempted: "preempted",
 }
 
-/// 记录goroutine头
+/// 打印goroutine头信息
 /// goroutine 46 [chan receive, 25 minutes]:
 func goroutineheader(gp *g) {
 	gpstatus := readgstatus(gp)
@@ -897,10 +899,10 @@ func goroutineheader(gp *g) {
 
 	// Override.
 	if gpstatus == _Gwaiting && gp.waitreason != waitReasonZero {
-		status = gp.waitreason.String() /// 获取状态字符串
+		status = gp.waitreason.String() /// 获取状态字符串; 等待状态的G;打印出等待原因
 	}
 
-	// approx time the G is blocked, in minutes
+	// approx time the G is blocked, in minutes;   /// 等待了多久；单位分钟
 	var waitfor int64
 	if (gpstatus == _Gwaiting || gpstatus == _Gsyscall) && gp.waitsince != 0 {
 		waitfor = (nanotime() - gp.waitsince) / 60e9

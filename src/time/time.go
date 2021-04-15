@@ -1064,7 +1064,7 @@ var startNano int64 = runtimeNano() - 1
 
 // Now returns the current local time.
 func Now() Time {
-	sec, nsec, mono := now()
+	sec, nsec, mono := now() // 秒，毫秒，纳秒
 	mono -= startNano
 	sec += unixToInternal - minWall
 	if uint64(sec)>>33 != 0 {
