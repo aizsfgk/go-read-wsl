@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// This implements the write barrier buffer. The write barrier itself
+// This implements the write barrier buffer. The write barrier itself /// 写栅栏缓冲区
 // is gcWriteBarrier and is implemented in assembly.
 //
 // See mbarrier.go for algorithmic details on the write barrier. This

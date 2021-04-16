@@ -143,7 +143,7 @@ import (
 
 const (
 	_DebugGC         = 0          /// 开启调试
-	_ConcurrentSweep = true       /// 是否并发清扫???
+	_ConcurrentSweep = true       /// 是否并发清扫 ?
 	_FinBlockSize    = 4 * 1024   /// 终结块大小
 
 	// debugScanConservative enables debug logging for stack
@@ -311,6 +311,7 @@ const (
 	// gcMarkWorkerDedicatedMode indicates that the P of a mark
 	// worker is dedicated to running that mark worker. The mark
 	// worker should run without preemption.
+	/// mark worker G 相关的 P 专注于 标记工作， 不可被抢占
 	gcMarkWorkerDedicatedMode gcMarkWorkerMode = iota
 
 	// gcMarkWorkerFractionalMode indicates that a P is currently
@@ -319,12 +320,15 @@ const (
 	// an integer. The fractional worker should run until it is
 	// preempted and will be scheduled to pick up the fractional
 	// part of GOMAXPROCS*gcBackgroundUtilization.
+	/// GOMAXPROCS*gcBackgroundUtilization 不是一个整数
+	/// 可以被抢占和调度
 	gcMarkWorkerFractionalMode
 
 	// gcMarkWorkerIdleMode indicates that a P is running the mark
 	// worker because it has nothing else to do. The idle worker
 	// should run until it is preempted and account its time
 	// against gcController.idleMarkTime.
+	/// 当P没有其他任务可以运行，可以进行标记工作。直到其被抢占。。
 	gcMarkWorkerIdleMode
 )
 
@@ -339,6 +343,11 @@ var gcMarkWorkerModeStrings = [...]string{
 // gcController implements the GC pacing controller that determines
 // when to trigger concurrent garbage collection and how much marking
 // work to do in mutator assists and background marking.
+//
+/// gcController 实现了GC调步算法。
+/// 1. 何时触发并发GC?
+/// 2. 在mutator辅助标记中，做多少工作?
+/// 3. 后台标记做多少工作?
 //
 // It uses a feedback control algorithm to adjust the memstats.gc_trigger
 // trigger based on the heap growth and GC CPU utilization each cycle.
@@ -427,7 +436,7 @@ type gcControllerState struct {
 }
 
 // startCycle resets the GC controller's state and computes estimates
-// for a new GC cycle. The caller must hold worldsema.
+// for a new GC cycle. The caller must hold worldsema. /// 必须持有 worldsema
 func (c *gcControllerState) startCycle() {
 	c.scanWork = 0
 	c.bgScanCredit = 0
@@ -1049,6 +1058,7 @@ var work struct {
 	// assistQueue is a queue of assists that are blocked because
 	// there was neither enough credit to steal or enough work to
 	// do.
+	/// credit : 结余
 	assistQueue struct {
 		lock mutex
 		q    gQueue
@@ -1272,7 +1282,7 @@ func gcStart(trigger gcTrigger) {
 	//
 	// We check the transition condition continuously here in case
 	// this G gets delayed in to the next GC cycle.
-	for trigger.test() && sweepone() != ^uintptr(0) {
+	for trigger.test() && sweepone() != ^uintptr(0) { /// 标记开始，一定要保证清扫完成
 		sweep.nbgsweep++
 	}
 
@@ -1320,6 +1330,7 @@ func gcStart(trigger gcTrigger) {
 	/// 后台标记工作启动
 	gcBgMarkStartWorkers()
 
+	/// 重置标记状态
 	systemstack(gcResetMarkState)
 
 	work.stwprocs, work.maxprocs = gomaxprocs, gomaxprocs
@@ -1351,7 +1362,7 @@ func gcStart(trigger gcTrigger) {
 
 	work.cycles++
 
-	gcController.startCycle()
+	gcController.startCycle() /// 只有这里调用了
 	work.heapGoal = memstats.next_gc
 
 	// In STW mode, disable scheduling of user Gs. This may also
@@ -1632,6 +1643,8 @@ top:
 
 	// Disable assists and background workers. We must do
 	// this before waking blocked assists.
+	/// 取消辅助标记和后台工作
+	///
 	atomic.Store(&gcBlackenEnabled, 0)
 
 	// Wake all blocked assists. These will run when we
@@ -1662,7 +1675,7 @@ func gcMarkTermination(nextTriggerRatio float64) {
 	atomic.Store(&gcBlackenEnabled, 0)
 	setGCPhase(_GCmarktermination)   /// gcMarkTermination； 标记终止阶段
 
-	work.heap1 = memstats.heap_live
+	work.heap1 = memstats.heap_live  /// 获取的字节数
 	startTime := nanotime()
 
 	mp := acquirem()
@@ -1717,6 +1730,7 @@ func gcMarkTermination(nextTriggerRatio float64) {
 		traceGCDone()
 	}
 
+	/// 全部完成
 	// all done
 	mp.preemptoff = ""
 
@@ -2075,9 +2089,11 @@ func gcMarkWorkAvailable(p *p) bool {
 }
 
 // gcMark runs the mark (or, for concurrent GC, mark termination)
+///
 // All gcWork caches must be empty.
 // STW is in effect at this point.
 func gcMark(start_time int64) {
+	// 分配释放跟踪
 	if debug.allocfreetrace > 0 {
 		tracegc()
 	}
@@ -2085,8 +2101,10 @@ func gcMark(start_time int64) {
 	if gcphase != _GCmarktermination {
 		throw("in gcMark expecting to see gcphase as _GCmarktermination")
 	}
+	// 任务启动时间
 	work.tstart = start_time
 
+	/// 没有保留的标记任务
 	// Check that there's no marking work remaining.
 	if work.full != 0 || work.markrootNext < work.markrootJobs {
 		print("runtime: full=", hex(work.full), " next=", work.markrootNext, " jobs=", work.markrootJobs, " nDataRoots=", work.nDataRoots, " nBSSRoots=", work.nBSSRoots, " nSpanRoots=", work.nSpanRoots, " nStackRoots=", work.nStackRoots, "\n")
@@ -2119,6 +2137,8 @@ func gcMark(start_time int64) {
 			// sure it really was all marked.
 			wbBufFlush1(p)
 		} else {
+
+			/// 清空 P 上的缓冲
 			p.wbBuf.reset()
 		}
 
@@ -2139,6 +2159,7 @@ func gcMark(start_time int64) {
 			print("\n")
 			throw("P has cached GC work at end of mark termination")
 		}
+
 		// There may still be cached empty buffers, which we
 		// need to flush since we're going to free them. Also,
 		// there may be non-zero stats because we allocated

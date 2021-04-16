@@ -150,19 +150,19 @@ var memstats mstats
 type MemStats struct {
 	// General statistics.
 
-	// Alloc is bytes of allocated heap objects.
+	// Alloc is bytes of allocated heap objects.                  /// 堆对象分配的字节数
 	//
 	// This is the same as HeapAlloc (see below).
 	Alloc uint64
 
-	// TotalAlloc is cumulative bytes allocated for heap objects.
+	// TotalAlloc is cumulative bytes allocated for heap objects. /// 从堆对象累计分配的字节数
 	//
 	// TotalAlloc increases as heap objects are allocated, but
 	// unlike Alloc and HeapAlloc, it does not decrease when
 	// objects are freed.
 	TotalAlloc uint64
 
-	// Sys is the total bytes of memory obtained from the OS.
+	// Sys is the total bytes of memory obtained from the OS.     /// 从操作系统获取的内存字节数
 	//
 	// Sys is the sum of the XSys fields below. Sys measures the
 	// virtual address space reserved by the Go runtime for the
@@ -178,11 +178,11 @@ type MemStats struct {
 	// This is primarily useful for debugging runtime internals.
 	Lookups uint64
 
-	// Mallocs is the cumulative count of heap objects allocated.
+	// Mallocs is the cumulative count of heap objects allocated.  /// 累计分配的对象数
 	// The number of live objects is Mallocs - Frees.
-	Mallocs uint64 /// 累计分配的对象数
+	Mallocs uint64
 
-	// Frees is the cumulative count of heap objects freed.
+	// Frees is the cumulative count of heap objects freed.        /// 对象释放数
 	Frees uint64
 
 	// Heap memory statistics.

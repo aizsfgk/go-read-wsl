@@ -1053,12 +1053,15 @@ func stopTheWorldWithSema() {
 	lock(&sched.lock)
 	sched.stopwait = gomaxprocs
 	atomic.Store(&sched.gcwaiting, 1)
-	preemptall()
 
+	preemptall() /// 抢占全部
+
+	/// 1. 停止当前处理器
 	// stop current P
 	_g_.m.p.ptr().status = _Pgcstop // Pgcstop is only diagnostic. /// stopTheWorldWithSema
 	sched.stopwait--
 
+	/// 2. 停止处于系统调用的处理器
 	// try to retake all P's in Psyscall status
 	for _, p := range allp {
 		s := p.status /// /// stopTheWorldWithSema
@@ -1072,6 +1075,7 @@ func stopTheWorldWithSema() {
 		}
 	}
 
+	/// 3. 停止处于空闲状态的处理器
 	// stop idle P's
 	for {
 		p := pidleget()
@@ -2424,6 +2428,7 @@ stop:
 	// We have nothing to do. If we're in the GC mark phase, can
 	// safely scan and blacken objects, and have work to do, run
 	// idle-time marking rather than give up the P.
+	// 空闲标记工作
 	if gcBlackenEnabled != 0 && _p_.gcBgMarkWorker != 0 && gcMarkWorkAvailable(_p_) {
 		_p_.gcMarkWorkerMode = gcMarkWorkerIdleMode
 		gp := _p_.gcBgMarkWorker.ptr()

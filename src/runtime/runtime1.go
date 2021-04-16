@@ -304,8 +304,8 @@ var debug struct {
 	cgocheck           int32 /// cgo检查
 	clobberfree        int32 ///
 	efence             int32 /// 短暂的???
-	gccheckmark        int32 /// gcc检测标记
-	gcpacertrace       int32 /// gc pacer trace; [pacer:步测者，溜蹄的马]
+	gccheckmark        int32 /// gc 检测标记
+	gcpacertrace       int32 /// gc 调步算法跟踪
 	gcshrinkstackoff   int32
 	gcstoptheworld     int32
 	gctrace            int32
