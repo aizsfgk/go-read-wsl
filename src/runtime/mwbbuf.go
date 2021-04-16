@@ -158,6 +158,10 @@ func (b *wbBuf) putFast(old, new uintptr) bool {
 // wbBufFlush flushes the current P's write barrier buffer to the GC
 // workbufs. It is passed the slot and value of the write barrier that
 // caused the flush so that it can implement cgocheck.
+///
+/// 将当前P的写栅栏冲刷到GC的workbufs
+///
+///
 //
 // This must not have write barriers because it is part of the write
 // barrier implementation.
@@ -311,7 +315,7 @@ func wbBufFlush1(_p_ *p) {
 		pos++
 	}
 
-	// Enqueue the greyed objects.
+	// Enqueue the greyed objects. /// 置灰对象
 	gcw.putBatch(ptrs[:pos])
 
 	_p_.wbBuf.reset()

@@ -314,7 +314,7 @@ func (s *stackScanState) addObject(addr uintptr, typ *_type) {
 // It should be called after all addObject calls but before
 // any call of findObject.
 func (s *stackScanState) buildIndex() {
-	s.root, _, _ = binarySearchTree(s.head, 0, s.nobjs)
+	s.root, _, _ = binarySearchTree(s.head, 0, s.nobjs) /// 二叉搜索树
 }
 
 // Build a binary search tree with the n objects in the list

@@ -215,6 +215,8 @@ func markroot(gcw *gcWork, i uint32) {
 
 		// scanstack must be done on the system stack in case
 		// we're trying to scan our own stack.
+
+		/// 尝试扫描栈
 		systemstack(func() {
 			// If this is a self-scan, put the user G in
 			// _Gwaiting to prevent self-deadlock. It may
@@ -242,7 +244,9 @@ func markroot(gcw *gcWork, i uint32) {
 			if gp.gcscandone {
 				throw("g already scanned")
 			}
-			scanstack(gp, gcw)
+
+			scanstack(gp, gcw) /// 扫描栈
+
 			gp.gcscandone = true
 			resumeG(stopped)
 
@@ -802,7 +806,7 @@ func scanstack(gp *g, gcw *gcWork) {
 	case _Grunning:
 		print("runtime: gp=", gp, ", goid=", gp.goid, ", gp->atomicstatus=", readgstatus(gp), "\n")
 		throw("scanstack: goroutine not stopped")
-	case _Grunnable, _Gsyscall, _Gwaiting:
+	case _Grunnable, _Gsyscall, _Gwaiting: /// 3种方式都是OK
 		// ok
 	}
 
@@ -948,6 +952,7 @@ func scanstack(gp *g, gcw *gcWork) {
 		x.nobj = 0
 		putempty((*workbuf)(unsafe.Pointer(x)))
 	}
+
 	if state.buf != nil || state.cbuf != nil || state.freeBuf != nil {
 		throw("remaining pointer buffers")
 	}
