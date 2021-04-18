@@ -484,6 +484,7 @@ func mallocinit() {
 	lockInit(&globalAlloc.mutex, lockRankGlobalAlloc)
 
 	// Create initial arena growth hints.
+	/// 64位系统
 	if sys.PtrSize == 8 {
 		/// 64位系统
 		// On a 64-bit machine, we pick the following hints

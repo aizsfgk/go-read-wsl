@@ -4,6 +4,7 @@
 
 // Page allocator.
 //
+/// pageSize : 8K
 // The page allocator manages mapped pages (defined by pageSize, NOT
 // physPageSize) for allocation and re-use. It is embedded into mheap.
 //
@@ -261,7 +262,9 @@ type pageAlloc struct {
 	inUse addrRanges
 
 	// scav stores the scavenger state.
-	//
+	///
+	/// 存储着清扫器的状态
+	///
 	// All fields are protected by mheapLock.
 	scav struct {
 		// inUse is a slice of ranges of address space which have not

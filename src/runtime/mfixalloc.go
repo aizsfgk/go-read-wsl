@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // Fixed-size object allocator. Returned memory is not zeroed.
-//
+// 固定大小对象分配器
 // See malloc.go for overview.
 
 package runtime
@@ -28,11 +28,13 @@ type fixalloc struct {
 	size   uintptr
 	first  func(arg, p unsafe.Pointer) // called first time p is returned
 	arg    unsafe.Pointer
-	list   *mlink
+	list   *mlink // 单向链表
+
 	chunk  uintptr // use uintptr instead of unsafe.Pointer to avoid write barriers
 	nchunk uint32
 	inuse  uintptr // in-use bytes now
 	stat   *uint64
+
 	zero   bool // zero allocations
 }
 
@@ -48,7 +50,7 @@ type mlink struct {
 }
 
 // Initialize f to allocate objects of the given size,
-// using the allocator to obtain chunks of memory.
+// using the allocator to obtain chunks of memory. /// 获取内存块
 func (f *fixalloc) init(size uintptr, first func(arg, p unsafe.Pointer), arg unsafe.Pointer, stat *uint64) {
 	f.size = size
 	f.first = first
@@ -61,6 +63,7 @@ func (f *fixalloc) init(size uintptr, first func(arg, p unsafe.Pointer), arg uns
 	f.zero = true
 }
 
+/// 分配内存
 func (f *fixalloc) alloc() unsafe.Pointer {
 	if f.size == 0 {
 		print("runtime: use of FixAlloc_Alloc before FixAlloc_Init\n")
@@ -77,7 +80,7 @@ func (f *fixalloc) alloc() unsafe.Pointer {
 		return v
 	}
 	if uintptr(f.nchunk) < f.size {
-		f.chunk = uintptr(persistentalloc(_FixAllocChunk, 0, f.stat))
+		f.chunk = uintptr(persistentalloc(_FixAllocChunk, 0, f.stat)) // 16kb
 		f.nchunk = _FixAllocChunk
 	}
 
@@ -91,6 +94,7 @@ func (f *fixalloc) alloc() unsafe.Pointer {
 	return v
 }
 
+/// 释放内存
 func (f *fixalloc) free(p unsafe.Pointer) {
 	f.inuse -= f.size
 	v := (*mlink)(p)
