@@ -250,7 +250,7 @@ const (
 	logHeapArenaBytes = (6+20)*(_64bit*(1-sys.GoosWindows)*(1-sys.GoarchWasm)) + (2+20)*(_64bit*sys.GoosWindows) + (2+20)*(1-_64bit) + (2+20)*sys.GoarchWasm
 
 	// heapArenaBitmapBytes is the size of each heap arena's bitmap.
-	heapArenaBitmapBytes = heapArenaBytes / (sys.PtrSize * 8 / 2)
+	heapArenaBitmapBytes = heapArenaBytes / (sys.PtrSize * 8 / 2) /// 2MB ???
 
 	pagesPerArena = heapArenaBytes / pageSize // 64MB / 8 KB ===> 8921
 
@@ -421,6 +421,20 @@ func mallocinit() {
 
 	testdefersizes()
 
+	if SFDEBUG {
+		// println
+		println("------ mallocinit() ------")
+		println("arenaL2Bits: ", arenaL2Bits) // 22
+		println("1 << arenaL2Bits: ", 1 << arenaL2Bits) // 4MB
+		println("heapArenaBytes: ", heapArenaBytes) // 64MB
+		println("heapArenaBitmapBytes: ", heapArenaBitmapBytes) // 2097152 => 2MB
+		println("pagesPerArena: ", pagesPerArena) // 8192
+		println("pageSize: ", pageSize) // 8192
+
+	}
+
+	//println("heapArenaBitmapBytes: ", heapArenaBitmapBytes)
+	/// 2MB
 	if heapArenaBitmapBytes&(heapArenaBitmapBytes-1) != 0 {
 		// heapBits expects modular arithmetic on bitmap
 		// addresses to work.
@@ -432,6 +446,7 @@ func mallocinit() {
 		memstats.by_size[i].size = uint32(class_to_size[i])
 	}
 
+	//println("physPageSize: ", physPageSize) /// 4096
 	// Check physPageSize.
 	if physPageSize == 0 {
 		// The OS init code failed to fetch the physical page size.
@@ -453,6 +468,8 @@ func mallocinit() {
 		print("system huge page size (", physHugePageSize, ") must be a power of 2\n")
 		throw("bad system huge page size")
 	}
+
+	//println("physHugePageSize: ", physHugePageSize)
 	if physHugePageSize > maxPhysHugePageSize {
 		// physHugePageSize is greater than the maximum supported huge page size.
 		// Don't throw here, like in the other cases, since a system configured
@@ -478,7 +495,9 @@ func mallocinit() {
 
 	// Initialize the heap.
 	mheap_.init()
+
 	mcache0 = allocmcache() /// 分配mcache0
+
 	lockInit(&gcBitsArenas.lock, lockRankGcBitsArenas)
 	lockInit(&proflock, lockRankProf)
 	lockInit(&globalAlloc.mutex, lockRankGlobalAlloc)
@@ -520,6 +539,10 @@ func mallocinit() {
 		//
 		// On AIX, mmaps starts at 0x0A00000000000000 for 64-bit.
 		// processes.
+		///
+
+		/// 初始化时，遍历128次，生成 128个 arenaHint
+		/// 第一个地址从 0xc000000000 开始
 		for i := 0x7f; i >= 0; i-- { /// 128次
 			var p uintptr
 			switch {
@@ -544,6 +567,7 @@ func mallocinit() {
 				}
 			default:
 				p = uintptr(i)<<40 | uintptrMask&(0x00c0<<32)
+				//println("p: ", hex(p))
 			}
 
 			hint := (*arenaHint)(mheap_.arenaHintAlloc.alloc())
@@ -730,6 +754,7 @@ func (h *mheap) sysAlloc(n uintptr) (v unsafe.Pointer, size uintptr) {
 	sysMap(v, size, &memstats.heap_sys)
 
 mapped:
+
 	// Create arena metadata.
 	for ri := arenaIndex(uintptr(v)); ri <= arenaIndex(uintptr(v)+size-1); ri++ {
 		l2 := h.arenas[ri.l1()]

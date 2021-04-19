@@ -62,6 +62,10 @@ functions to make sure that this limit cannot be violated.
 */
 
 const (
+	SFDEBUG = true
+)
+
+const (
 	// StackSystem is a number of additional bytes to add
 	// to each stack below the usual guard area for OS-specific
 	// purposes like signal handling. Used on Windows, Plan 9,
@@ -170,6 +174,17 @@ func stackinit() {
 	for i := range stackLarge.free {
 		stackLarge.free[i].init()
 		lockInit(&stackLarge.lock, lockRankStackLarge)
+	}
+
+	if SFDEBUG {
+		println("------ stack ------")
+		println("_StackSystem: ", _StackSystem) // 0
+		println("_StackGuard: ", _StackGuard) // 928
+		println("_StackLimit: ", _StackLimit) // 800
+		println("heapAddrBits - pageShift: ", heapAddrBits - pageShift) // 35
+		println("_NumStackOrders: ", _NumStackOrders) // 4
+		println("_FixedStack<<_NumStackOrders: ", _FixedStack<<_NumStackOrders) // 32KB
+		println("_StackCacheSize: ", _StackCacheSize) /// 32768 => 32 KB
 	}
 }
 
@@ -347,6 +362,7 @@ func stackalloc(n uint32) stack {
 		print("stackalloc ", n, "\n")
 	}
 
+	/// 直接从系统上获取内存
 	if debug.efence != 0 || stackFromSystem != 0 {
 		n = uint32(alignUp(uintptr(n), physPageSize))
 		v := sysAlloc(uintptr(n), &memstats.stacks_sys)

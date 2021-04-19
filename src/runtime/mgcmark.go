@@ -152,7 +152,7 @@ var oneptrmask = [...]uint8{1}
 
 // markroot scans the i'th root.
 //
-// Preemption must be disabled (because this uses a gcWork).
+// Preemption must be disabled (because this uses a gcWork). /// 不可被抢占
 //
 // nowritebarrier is only advisory here.
 //
@@ -160,10 +160,11 @@ var oneptrmask = [...]uint8{1}
 func markroot(gcw *gcWork, i uint32) {
 	// TODO(austin): This is a bit ridiculous. Compute and store
 	// the bases in gcMarkRootPrepare instead of the counts.
-	baseFlushCache := uint32(fixedRootCount)
+	baseFlushCache := uint32(fixedRootCount) /// baseFlushCache == 2
 	baseData := baseFlushCache + uint32(work.nFlushCacheRoots)
 	baseBSS := baseData + uint32(work.nDataRoots)
 	baseSpans := baseBSS + uint32(work.nBSSRoots)
+
 	baseStacks := baseSpans + uint32(work.nSpanRoots)
 	end := baseStacks + uint32(work.nStackRoots)
 

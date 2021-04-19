@@ -68,6 +68,7 @@ type mheap struct {
 	// could self-deadlock if its stack grows with the lock held.
 	lock      mutex
 	pages     pageAlloc // page allocation data structure
+
 	sweepgen  uint32    // sweep generation, see comment in mspan; written during STW
 	sweepdone uint32    // all spans are swept
 	sweepers  uint32    // number of active sweepone calls
@@ -95,12 +96,14 @@ type mheap struct {
 	// swept stack. Likewise, allocating an in-use span pushes it
 	// on the swept stack.
 	//
+	/// 包含2个mspan栈
+	///
 	// For !go115NewMCentralImpl.
 	sweepSpans [2]gcSweepBuf
 
 	_ uint32 // align uint64 fields on 32-bit for atomics
 
-	// Proportional sweep
+	// Proportional sweep    /// 比例清扫
 	//
 	// These parameters represent a linear function from heap_live
 	// to page sweep count. The proportional sweep system works to
@@ -129,6 +132,7 @@ type mheap struct {
 	// scavengeGoal is the amount of total retained heap memory (measured by
 	// heapRetained) that the runtime will try to maintain by returning memory
 	// to the OS.
+	/// 堆内存保留的总量，运行时将通过返回给操作系通的内存进行维护
 	scavengeGoal uint64
 
 	// Page reclaimer state
@@ -177,7 +181,9 @@ type mheap struct {
 	// platforms (even 64-bit), arenaL1Bits is 0, making this
 	// effectively a single-level map. In this case, arenas[0]
 	// will never be nil.
-	arenas [1 << arenaL1Bits]*[1 << arenaL2Bits]*heapArena ///  arenaL2Bits => 4,194,304, 也就是32MB
+	arenas [1 << arenaL1Bits]*[1 << arenaL2Bits]*heapArena ///  arenaL2Bits => 4,194,304 => 4MB
+	/// arenas[1][4MB]*heapArena
+	/// 4MB * 64 MB == 256 TB
 
 	// heapArenaAlloc is pre-reserved space for allocating heapArena
 	// objects. This is only used on 32-bit, where we pre-reserve
@@ -238,7 +244,7 @@ type mheap struct {
 	specialfinalizeralloc fixalloc // allocator for specialfinalizer*
 	specialprofilealloc   fixalloc // allocator for specialprofile*
 	speciallock           mutex    // lock for special record allocators.
-	arenaHintAlloc        fixalloc // allocator for arenaHints
+	arenaHintAlloc        fixalloc // allocator for arenaHints /// 地址范围
 
 	unused *specialfinalizer // never set, just here to force the specialfinalizer type into DWARF
 }
@@ -255,7 +261,10 @@ type heapArena struct {
 	// bitmap stores the pointer/scalar bitmap for the words in
 	// this arena. See mbitmap.go for a description. Use the
 	// heapBits type to access this.
-	bitmap [heapArenaBitmapBytes]byte /// 用于标识 arena 区域中的那些地址保存了对象，位图中的每个字节都会表示堆区中的 32 字节是否包含空闲；
+	/// 用于标识 arena 区域中的那些地址保存了对象，位图中的每个字节都会表示堆区中的 32 字节是否包含空闲；
+	/// heapArenaBitmapBytes 2MB
+	/// 2MB * 32 ==> 64MB; 可以用来表示64MB大小的内存
+	bitmap [heapArenaBitmapBytes]byte
 
 	// spans maps from virtual address page ID within this arena to *mspan.
 	// For allocated spans, their pages map to the span itself.
@@ -268,7 +277,10 @@ type heapArena struct {
 	// known to contain in-use or stack spans. This means there
 	// must not be a safe-point between establishing that an
 	// address is live and looking it up in the spans array.
-	spans [pagesPerArena]*mspan  /// 区域存储了指向内存管理单元 runtime.mspan 的指针，每个内存单元会管理几页的内存空间，每页大小为 8KB；
+	/// 区域存储了指向内存管理单元 runtime.mspan 的指针，每个内存单元会管理几页的内存空间，每页大小为 8KB；
+	/// pagesPerArena == 8192
+	///
+	spans [pagesPerArena]*mspan
 
 	// pageInUse is a bitmap that indicates which spans are in
 	// state mSpanInUse. This bitmap is indexed by page number,
@@ -291,7 +303,7 @@ type heapArena struct {
 	// TODO(austin): It would be nice if this was uint64 for
 	// faster scanning, but we don't have 64-bit atomic bit
 	// operations.
-	pageMarks [pagesPerArena / 8]uint8
+	pageMarks [pagesPerArena / 8]uint8 /// 1024
 
 	// pageSpecials is a bitmap that indicates which spans have
 	// specials (finalizers or other). Like pageInUse, only the bit
@@ -462,7 +474,7 @@ type mspan struct {
 	// The sweep will free the old allocBits and set allocBits to the
 	// gcmarkBits. The gcmarkBits are replaced with a fresh zeroed
 	// out memory.
-	allocBits  *gcBits
+	allocBits  *gcBits /// 分配位
 	gcmarkBits *gcBits /// 标记位
 
 	// sweep generation:
@@ -722,10 +734,16 @@ func (h *mheap) init() {
 	lockInit(&h.sweepSpans[1].spineLock, lockRankSpine)
 	lockInit(&h.speciallock, lockRankMheapSpecial)
 
+	// mspan 初始化
 	h.spanalloc.init(unsafe.Sizeof(mspan{}), recordspan, unsafe.Pointer(h), &memstats.mspan_sys)
+
+	// mcache 初始化
 	h.cachealloc.init(unsafe.Sizeof(mcache{}), nil, nil, &memstats.mcache_sys)
+
 	h.specialfinalizeralloc.init(unsafe.Sizeof(specialfinalizer{}), nil, nil, &memstats.other_sys)
 	h.specialprofilealloc.init(unsafe.Sizeof(specialprofile{}), nil, nil, &memstats.other_sys)
+
+
 	h.arenaHintAlloc.init(unsafe.Sizeof(arenaHint{}), nil, nil, &memstats.other_sys)
 
 	// Don't zero mspan allocations. Background sweeping can
@@ -1162,7 +1180,7 @@ func (h *mheap) allocSpan(npages uintptr, manual bool, spanclass spanClass, sysS
 		// Try to acquire a base address.
 		base, scav = h.pages.alloc(npages)
 		if base == 0 {
-			if !h.grow(npages) {
+			if !h.grow(npages) { /// 这里会增长heap
 				unlock(&h.lock)
 				return nil
 			}
