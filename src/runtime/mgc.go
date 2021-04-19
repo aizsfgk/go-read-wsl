@@ -1801,6 +1801,10 @@ func gcMarkTermination(nextTriggerRatio float64) {
 	prepareFreeWorkbufs()
 
 	// Free stack spans. This must be done between GC cycles.
+	/// 释放栈的span
+	/// goroutine 栈
+	/// 函数调用栈帧
+	///
 	systemstack(freeStackSpans)
 
 	// Ensure all mcaches are flushed. Each P will flush its own

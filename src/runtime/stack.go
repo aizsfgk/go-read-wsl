@@ -62,7 +62,7 @@ functions to make sure that this limit cannot be violated.
 */
 
 const (
-	SFDEBUG = true
+	SFDEBUG = false
 )
 
 const (

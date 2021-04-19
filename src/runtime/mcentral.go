@@ -58,6 +58,7 @@ func (c *mcentral) init(spc spanClass) {
 	if go115NewMCentralImpl {
 		lockInit(&c.partial[0].spineLock, lockRankSpanSetSpine)
 		lockInit(&c.partial[1].spineLock, lockRankSpanSetSpine)
+
 		lockInit(&c.full[0].spineLock, lockRankSpanSetSpine)
 		lockInit(&c.full[1].spineLock, lockRankSpanSetSpine)
 	} else {

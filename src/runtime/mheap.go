@@ -770,6 +770,9 @@ func (h *mheap) init() {
 // reclaim implements the page-reclaimer half of the sweeper.
 //
 // h must NOT be locked.
+///
+/// 回收内存
+///
 func (h *mheap) reclaim(npage uintptr) {
 	// TODO(austin): Half of the time spent freeing spans is in
 	// locking/unlocking the heap (even with low contention). We

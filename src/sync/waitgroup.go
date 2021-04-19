@@ -30,7 +30,7 @@ type WaitGroup struct {
 
 // state returns pointers to the state and sema fields stored within wg.state1.
 func (wg *WaitGroup) state() (statep *uint64, semap *uint32) {
-	if uintptr(unsafe.Pointer(&wg.state1))%8 == 0 {
+	if uintptr(unsafe.Pointer(&wg.state1))%8 == 0 { // 64位
 		return (*uint64)(unsafe.Pointer(&wg.state1)), &wg.state1[2]
 	} else {
 		return (*uint64)(unsafe.Pointer(&wg.state1[1])), &wg.state1[0]
