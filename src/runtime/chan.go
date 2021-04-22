@@ -26,14 +26,17 @@ import (
 
 const (
 	maxAlign  = 8  /// 最大对其
+	// amd64 96字节
 	hchanSize = unsafe.Sizeof(hchan{}) + uintptr(-int(unsafe.Sizeof(hchan{}))&(maxAlign-1))
 	debugChan = false
 )
 
 type hchan struct {
 	qcount   uint           // total data in the queue                 /// 数据总个数
+
 	dataqsiz uint           // size of the circular queue              /// 循环对列大小
-	buf      unsafe.Pointer // points to an array of dataqsiz elements /// 指向dataqsize元素的数组的指针
+	buf      unsafe.Pointer // points to an array of dataqsiz elements /// 指向dataqsiz元素的数组的指针
+
 	elemsize uint16 					     /// 元素大小
 	closed   uint32                          /// 是否关闭
 	elemtype *_type // element type          /// 元素类型
@@ -81,6 +84,10 @@ func makechan(t *chantype, size int) *hchan {
 	}
 	if hchanSize%maxAlign != 0 || elem.align > maxAlign {
 		throw("makechan: bad alignment")
+	}
+
+	if debugChan {
+		println("hchanSize: ", hchanSize)
 	}
 
 	mem, overflow := math.MulUintptr(elem.size, uintptr(size))
