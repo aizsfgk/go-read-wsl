@@ -16,6 +16,7 @@ import (
 	"unsafe"
 )
 
+// 抛出异常
 func throw(string) // provided by runtime
 
 // A Mutex is a mutual exclusion lock.
@@ -35,9 +36,9 @@ type Locker interface {
 
 const (
 	mutexLocked = 1 << iota // mutex is locked
-	mutexWoken
-	mutexStarving
-	mutexWaiterShift = iota
+	mutexWoken              // 2
+	mutexStarving           // 3 饥饿中
+	mutexWaiterShift = iota // 4
 
 	// Mutex fairness.
 	//
@@ -63,7 +64,7 @@ const (
 	// Normal mode has considerably better performance as a goroutine can acquire
 	// a mutex several times in a row even if there are blocked waiters.
 	// Starvation mode is important to prevent pathological cases of tail latency.
-	starvationThresholdNs = 1e6
+	starvationThresholdNs = 1e6 /// 1ms
 )
 
 // Lock locks m.
@@ -82,10 +83,15 @@ func (m *Mutex) Lock() {
 }
 
 func (m *Mutex) lockSlow() {
+	/// 等待启动时间
 	var waitStartTime int64
+	/// 是饥饿模式
 	starving := false
+	/// 是否唤醒
 	awoke := false
+	/// 迭代次数
 	iter := 0
+	/// 旧状态
 	old := m.state
 	for {
 		// Don't spin in starvation mode, ownership is handed off to waiters

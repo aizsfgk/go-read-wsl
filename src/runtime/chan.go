@@ -199,7 +199,7 @@ func chansend(c *hchan, ep unsafe.Pointer, block bool, callerpc uintptr) bool {
 	// and not ready for sending. We behave as if we observed the channel at that moment,
 	// and report that the send cannot proceed.
 	///
-	/// 在观察到这个channel没有被关系后，我们察觉到这个channel没有准备好sending, 每一个观察者都是单字节大小读。
+	/// 在观察到这个channel没有被关闭后，我们察觉到这个channel没有准备好sending, 每一个观察者都是单字节大小读。
 	/// 因为一个已经关闭的channel不能从'ready for send'转换到'to not ready for sending',尽管
 	/// 这个通道被关闭在这两个observations之间。
 	///
