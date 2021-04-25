@@ -102,6 +102,9 @@ func selparkcommit(gp *g, _ unsafe.Pointer) bool {
 	return true
 }
 
+/*
+	select {} 会变成这个代码
+ */
 func block() {
 	gopark(nil, nil, waitReasonSelectNoCases, traceEvGoStop, 1) // forever
 }
