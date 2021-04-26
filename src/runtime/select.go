@@ -122,6 +122,9 @@ func block() {
 // ordinal position of its respective select{recv,send,default} call.
 // Also, if the chosen scase was a receive operation, it reports whether
 // a value was received.
+/// 返回值：
+///   int 表示返回的分支索引
+///   bool 如果是一个接收操作，表明是否一个值已经被接收了
 func selectgo(cas0 *scase, order0 *uint16, ncases int) (int, bool) {
 	if debugSelect {
 		print("select: cas0=", cas0, "\n")
@@ -172,7 +175,8 @@ func selectgo(cas0 *scase, order0 *uint16, ncases int) (int, bool) {
 
 	// sort the cases by Hchan address to get the locking order.
 	// simple heap sort, to guarantee n log n time and constant stack footprint.
-	///  根据 channel 的地址进行堆排序，决定加锁的顺序，避免死锁
+	/// 根据chan的地址对cases进行排序，进而获取枷锁的顺序
+	/// 堆排序：确保log(n)的时间复杂度 和 常量栈footprint
 	for i := 0; i < ncases; i++ {
 		j := i
 		// Start with the pollorder to permute cases on the same channel.
@@ -184,6 +188,7 @@ func selectgo(cas0 *scase, order0 *uint16, ncases int) (int, bool) {
 		}
 		lockorder[j] = pollorder[i]
 	}
+
 	for i := ncases - 1; i >= 0; i-- {
 		o := lockorder[i]
 		c := scases[o].c
@@ -239,16 +244,20 @@ loop:
 	var casi int
 	var cas *scase
 	var recvOK bool
+
+	///
+	/// 依次遍历
+	///
 	for i := 0; i < ncases; i++ {
 		casi = int(pollorder[i])
 		cas = &scases[casi]
 		c = cas.c
 
 		switch cas.kind {
-		case caseNil:
+		case caseNil: /// 不含chan，直接跳过
 			continue
 
-		case caseRecv:
+		case caseRecv: /// 会从chan中接收数据
 			sg = c.sendq.dequeue()
 			if sg != nil {
 				goto recv
@@ -260,7 +269,7 @@ loop:
 				goto rclose
 			}
 
-		case caseSend:
+		case caseSend: /// 向chan发送数据
 			if raceenabled {
 				racereadpc(c.raceaddr(), cas.pc, chansendpc)
 			}
@@ -289,6 +298,7 @@ loop:
 	}
 
 	// pass 2 - enqueue on all chans
+	/// 入队在全部的chan上
 	gp = getg()
 	if gp.waiting != nil {
 		throw("gp.waiting != nil")
@@ -325,6 +335,7 @@ loop:
 		}
 	}
 
+	/// 等待唤醒
 	// wait for someone to wake us up
 	gp.param = nil
 	gopark(selparkcommit, nil, waitReasonSelect, traceEvGoBlockSelect, 1)
@@ -454,6 +465,7 @@ bufsend:
 	if msanenabled {
 		msanread(cas.elem, c.elemtype.size)
 	}
+	/// 将元素拷贝到chan的buf中
 	typedmemmove(c.elemtype, chanbuf(c, c.sendx), cas.elem)
 	c.sendx++
 	if c.sendx == c.dataqsiz {
