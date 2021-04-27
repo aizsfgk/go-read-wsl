@@ -7,6 +7,10 @@
 // with static type interface{} and extract its dynamic type information by
 // calling TypeOf, which returns a Type.
 //
+///
+/// 实现了运行时反射，允许一个程序管理一个强类型的对象。
+/// 典型使用：通过静态类型interface{}，导出它的动态类型信息。
+///
 // A call to ValueOf returns a Value representing the run-time data.
 // Zero takes a Type and returns a Value representing a zero value
 // for that type.
