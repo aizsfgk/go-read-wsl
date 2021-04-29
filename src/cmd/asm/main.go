@@ -25,7 +25,7 @@ func main() {
 	log.SetFlags(0)
 	log.SetPrefix("asm: ")
 
-	GOARCH := objabi.GOARCH
+	GOARCH := objabi.GOARCH // amd64
 
 	architecture := arch.Set(GOARCH)
 	if architecture == nil {

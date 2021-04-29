@@ -25,7 +25,7 @@ import (
 /// 不同架构的初始化
 var archInits = map[string]func(*gc.Arch){
 	"386":      x86.Init,
-	"amd64":    amd64.Init,
+	"amd64":    amd64.Init, // me
 	"arm":      arm.Init,
 	"arm64":    arm64.Init,
 	"mips":     mips.Init,
@@ -44,12 +44,13 @@ func main() {
 	log.SetFlags(0)
 	log.SetPrefix("compile: ")
 
-	archInit, ok := archInits[objabi.GOARCH]
+	archInit, ok := archInits[objabi.GOARCH] // "amd64":    amd64.Init,
 	if !ok {
 		fmt.Fprintf(os.Stderr, "compile: unknown architecture %q\n", objabi.GOARCH)
 		os.Exit(2)
 	}
 
+	// 执行main函数
 	gc.Main(archInit)
 	gc.Exit(0)
 }

@@ -40,9 +40,13 @@ import (
 )
 
 func init() {
+
 	base.Go.Commands = []*base.Command{
+		// go bug
 		bug.CmdBug,
+		// go build
 		work.CmdBuild,
+		// go clean
 		clean.CmdClean,
 		doc.CmdDoc,
 		envcmd.CmdEnv,

@@ -192,6 +192,7 @@ func (s *ssafn) AllocFrame(f *ssa.Func) {
 	s.stkptrsize = Rnd(s.stkptrsize, int64(Widthreg))
 }
 
+// 中间代码生成
 func funccompile(fn *Node) {
 	if Curfn != nil {
 		Fatalf("funccompile %v inside %v", fn.Func.Nname.Sym, Curfn.Func.Nname.Sym)
@@ -217,7 +218,7 @@ func funccompile(fn *Node) {
 	dclcontext = PAUTO
 	Curfn = fn
 
-	compile(fn)
+	compile(fn) // funccompile -> comile -> walk
 
 	Curfn = nil
 	dclcontext = PEXTERN
@@ -314,7 +315,7 @@ const maxStackSize = 1 << 30
 // and flushes that plist to machine code.
 // worker indicates which of the backend workers is doing the processing.
 func compileSSA(fn *Node, worker int) {
-	f := buildssa(fn, worker)
+	f := buildssa(fn, worker) // 生成具有ssa特性的中间代码
 	// Note: check arg size to fix issue 25507.
 	if f.Frontend().(*ssafn).stksize >= maxStackSize || fn.Type.ArgWidth() >= maxStackSize {
 		largeStackFramesMu.Lock()
@@ -339,7 +340,7 @@ func compileSSA(fn *Node, worker int) {
 		return
 	}
 
-	pp.Flush() // assemble, fill in boilerplate, etc.
+	pp.Flush() // assemble, fill in boilerplate, etc. /// 进行汇编
 	// fieldtrack must be called after pp.Flush. See issue 20014.
 	fieldtrack(pp.Text.From.Sym, fn.Func.FieldTrack)
 }
@@ -354,6 +355,7 @@ func init() {
 // It fans out nBackendWorkers to do the work
 // and waits for them to complete.
 func compileFunctions() {
+
 	if len(compilequeue) != 0 {
 		sizeCalculationDisabled = true // not safe to calculate sizes concurrently
 		if race.Enabled {
