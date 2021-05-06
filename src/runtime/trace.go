@@ -41,6 +41,7 @@ const (
 	traceEvGCSTWDone         = 10 // GC STW done [timestamp]
 	traceEvGCSweepStart      = 11 // GC sweep start [timestamp, stack id]
 	traceEvGCSweepDone       = 12 // GC sweep done [timestamp, swept, reclaimed]
+
 	traceEvGoCreate          = 13 // goroutine creation [timestamp, new goroutine id, new stack id, stack id]
 	traceEvGoStart           = 14 // goroutine starts running [timestamp, goroutine id, seq]
 	traceEvGoEnd             = 15 // goroutine ends [timestamp]
@@ -56,13 +57,17 @@ const (
 	traceEvGoBlockSync       = 25 // goroutine blocks on Mutex/RWMutex [timestamp, stack]
 	traceEvGoBlockCond       = 26 // goroutine blocks on Cond [timestamp, stack]
 	traceEvGoBlockNet        = 27 // goroutine blocks on network [timestamp, stack]
+
 	traceEvGoSysCall         = 28 // syscall enter [timestamp, stack]
 	traceEvGoSysExit         = 29 // syscall exit [timestamp, goroutine id, seq, real timestamp]
 	traceEvGoSysBlock        = 30 // syscall blocks [timestamp]
+
 	traceEvGoWaiting         = 31 // denotes that goroutine is blocked when tracing starts [timestamp, goroutine id]
 	traceEvGoInSyscall       = 32 // denotes that goroutine is in syscall when tracing starts [timestamp, goroutine id]
+
 	traceEvHeapAlloc         = 33 // memstats.heap_live change [timestamp, heap_alloc]
 	traceEvNextGC            = 34 // memstats.next_gc change [timestamp, next_gc]
+
 	traceEvTimerGoroutine    = 35 // not currently used; previously denoted timer goroutine [timer goroutine id]
 	traceEvFutileWakeup      = 36 // denotes that the previous wakeup of this goroutine was futile [timestamp]
 	traceEvString            = 37 // string dictionary entry [ID, length, string]
@@ -227,9 +232,10 @@ func StartTrace() error {
 	// Obtain current stack ID to use in all traceEvGoCreate events below.
 	mp := acquirem()
 	stkBuf := make([]uintptr, traceStackSize)
-	stackID := traceStackID(mp, stkBuf, 2)
+	stackID := traceStackID(mp, stkBuf, 2) /// 获取函数调用栈ID
 	releasem(mp)
 
+	/// 遍历全部的goroutine
 	for _, gp := range allgs {
 		status := readgstatus(gp)
 		if status != _Gdead {
@@ -251,7 +257,11 @@ func StartTrace() error {
 			gp.sysblocktraced = false
 		}
 	}
+
+	/// 启动P
 	traceProcStart()
+
+	/// goroutine启动
 	traceGoStart()
 	// Note: ticksStart needs to be set after we emit traceEvGoInSyscall events.
 	// If we do it the other way around, it is possible that exitsyscall will
@@ -412,7 +422,7 @@ func ReadTrace() []byte {
 		trace.headerWritten = true
 		trace.lockOwner = nil
 		unlock(&trace.lock)
-		return []byte("go 1.11 trace\x00\x00\x00")
+		return []byte("go 1.11 trace\x00\x00\x00") /// 返回头信息
 	}
 	// Wait for new data.
 	if trace.fullHead == 0 && !trace.shutdown {
@@ -601,6 +611,8 @@ func traceStackID(mp *m, buf []uintptr, skip int) uint64 {
 	_g_ := getg()
 	gp := mp.curg
 	var nstk int
+
+	/// 同一个goroutine
 	if gp == _g_ {
 		nstk = callers(skip+1, buf)
 	} else if gp != nil {

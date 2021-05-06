@@ -14,6 +14,8 @@ import (
 // The writer may be a signal handler running without a user g.
 // The reader is assumed to be a user g.
 //
+/// profBuf 是一个无锁缓冲，为profiling events
+//
 // Each logged event corresponds to a fixed size header, a list of
 // uintptrs (typically a stack), and exactly one unsafe.Pointer tag.
 // The header and uintptrs are stored in the circular buffer data and the

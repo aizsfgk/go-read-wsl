@@ -506,7 +506,9 @@ type g struct {
 	activeStackChans bool
 
 	raceignore     int8     // ignore race detection events
+
 	sysblocktraced bool     // StartTrace has emitted EvGoInSyscall about this goroutine
+
 	sysexitticks   int64    // cputicks when syscall has returned (for tracing)
 	traceseq       uint64   // trace event sequencer
 	tracelastp     puintptr // last P emitted an event for this goroutine
@@ -602,7 +604,7 @@ type m struct {
 	waitlock      unsafe.Pointer /// 在什么上等待
 	waittraceev   byte
 	waittraceskip int
-	startingtrace bool
+	startingtrace bool /// 是否启动trace
 	syscalltick   uint32
 	freelink      *m // on sched.freem
 

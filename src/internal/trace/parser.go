@@ -270,6 +270,7 @@ func readTrace(r io.Reader) (ver int, events []rawEvent, strings map[uint64]stri
 	return
 }
 
+/// 读取字符串
 func readStr(r io.Reader, off0 int) (s string, off int, err error) {
 	var sz uint64
 	sz, off, err = readVal(r, off0)

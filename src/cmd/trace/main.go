@@ -110,6 +110,8 @@ func main() {
 	}
 
 	log.Print("Parsing trace...")
+
+	/// 解析trace文件
 	res, err := parseTrace()
 	if err != nil {
 		dief("%v\n", err)
@@ -122,6 +124,7 @@ func main() {
 	reportMemoryUsage("after parsing trace")
 	debug.FreeOSMemory()
 
+	/// 切割trace文件
 	log.Print("Splitting trace...")
 	ranges = splitTrace(res)
 	reportMemoryUsage("after spliting trace")
