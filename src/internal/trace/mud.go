@@ -10,6 +10,7 @@ import (
 )
 
 // mud is an updatable mutator utilization distribution.
+/// mud 是一个可更新的互斥锁利用率分布
 //
 // This is a continuous distribution of duration over mutator
 // utilization. For example, the integral from mutator utilization a

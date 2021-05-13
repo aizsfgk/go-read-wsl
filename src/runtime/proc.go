@@ -4866,7 +4866,7 @@ var forcegcperiod int64 = 2 * 60 * 1e9
 //go:nowritebarrierrec
 func sysmon() {
 	lock(&sched.lock)
-	sched.nmsys++
+	sched.nmsys++ // 运行次数+1
 	checkdead() /// sysmon; 1. 检查死锁
 	unlock(&sched.lock)
 
@@ -4882,7 +4882,8 @@ func sysmon() {
 		if delay > 10*1000 { // up to 10ms
 			delay = 10 * 1000
 		}
-		usleep(delay)
+		usleep(delay) // 睡一会
+
 		now := nanotime()
 		next, _ := timeSleepUntil()
 		if debug.schedtrace <= 0 && (sched.gcwaiting != 0 || atomic.Load(&sched.npidle) == uint32(gomaxprocs)) {

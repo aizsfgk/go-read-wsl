@@ -12,6 +12,7 @@ package utf8
 // Defining them locally avoids this package depending on package unicode.
 
 // Numbers fundamental to the encoding.
+/// RuneError 会显示成 � 字符
 const (
 	RuneError = '\uFFFD'     // the "error" Rune or "Unicode replacement character"
 	RuneSelf  = 0x80         // characters below RuneSelf are represented as themselves in a single byte.
