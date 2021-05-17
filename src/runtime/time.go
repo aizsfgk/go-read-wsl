@@ -121,40 +121,49 @@ const (
 
 	// Waiting for timer to fire.
 	// The timer is in some P's heap.
+	/// 等待状态
 	timerWaiting
 
 	// Running the timer function.
 	// A timer will only have this status briefly.
+	/// 正在运行
 	timerRunning
 
 	// The timer is deleted and should be removed.
 	// It should not be run, but it is still in some P's heap.
+	/// 被删除
 	timerDeleted
 
 	// The timer is being removed.
 	// The timer will only have this status briefly.
+	/// 移除中，很短暂的状态
 	timerRemoving
 
 	// The timer has been stopped.
 	// It is not in any P's heap.
+	/// 被移除
 	timerRemoved
 
 	// The timer is being modified.
 	// The timer will only have this status briefly.
+	/// 被修改中
 	timerModifying
 
 	// The timer has been modified to an earlier time.
 	// The new when value is in the nextwhen field.
 	// The timer is in some P's heap, possibly in the wrong place.
+	/// 修改为一个更早的定时器
 	timerModifiedEarlier
 
 	// The timer has been modified to the same or a later time.
 	// The new when value is in the nextwhen field.
 	// The timer is in some P's heap, possibly in the wrong place.
+	/// 修改为一个更晚的定时器
 	timerModifiedLater
 
 	// The timer has been modified and is being moved.
 	// The timer will only have this status briefly.
+	/// 定时器被修改，并且被移动
 	timerMoving
 )
 
@@ -987,9 +996,10 @@ func updateTimer0When(pp *p) {
 // and the P that holds the timer heap that that timer is on.
 // This is only called by sysmon and checkdead.
 ///
-/// timeSleepUntil 返回下次定时器驱动的时间
-/// 并且这个P持有这个定时器所在的定时器堆
-/// This is only called by sysmon and checkdead.
+/// timeSleepUntil
+///   1. 返回下次定时器应该触发的时间
+///   2. 并且这个P持有这个定时器所在的定时器堆(大根堆)
+///   3. 仅仅被 sysmon, checkdead 调用
 func timeSleepUntil() (int64, *p) {
 	next := int64(maxWhen)
 	var pret *p

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Scavenging free pages. /// 清除释放的页(pages) 释放物理页
+// Scavenging free pages. /// 清除空闲(pages) 释放物理页
 //
 // This file implements scavenging (the release of physical pages backing mapped
 // memory) of free and unused pages in the heap as a way to deal with page-level

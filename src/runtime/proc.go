@@ -4875,12 +4875,12 @@ func sysmon() {
 	delay := uint32(0)
 	for {
 		if idle == 0 { // start with 20us sleep...
-			delay = 20
+			delay = 20 /// 20us
 		} else if idle > 50 { // start doubling the sleep after 1ms...
-			delay *= 2
+			delay *= 2 /// 1ms
 		}
 		if delay > 10*1000 { // up to 10ms
-			delay = 10 * 1000
+			delay = 10 * 1000 /// 10ms
 		}
 		usleep(delay) // 睡一会
 
@@ -4902,6 +4902,8 @@ func sysmon() {
 					if shouldRelax {
 						osRelax(true)
 					}
+
+					// 工作线程 睡眠
 					notetsleep(&sched.sysmonnote, sleep)
 					if shouldRelax {
 						osRelax(false)
