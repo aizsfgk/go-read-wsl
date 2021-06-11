@@ -19,12 +19,19 @@ import "unsafe"
 //go:linkname _cgo_yield _cgo_yield
 
 var (
+	// 初始化
 	_cgo_init                     unsafe.Pointer
+	// 工作线程启动
 	_cgo_thread_start             unsafe.Pointer
+	// 系统线程创建
 	_cgo_sys_thread_create        unsafe.Pointer
+	// 通知运行时初始化完成
 	_cgo_notify_runtime_init_done unsafe.Pointer
+	// 调用者们
 	_cgo_callers                  unsafe.Pointer
+	// 设置的上下文函数
 	_cgo_set_context_function     unsafe.Pointer
+	// 主动让出
 	_cgo_yield                    unsafe.Pointer
 )
 

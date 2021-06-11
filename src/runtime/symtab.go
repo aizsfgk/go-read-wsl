@@ -406,7 +406,7 @@ var pinnedTypemaps []map[typeOff]*_type
 
 var firstmoduledata moduledata  // linker symbol /// 连接符号表
 var lastmoduledatap *moduledata // linker symbol
-var modulesSlice *[]*moduledata // see activeModules
+var modulesSlice *[]*moduledata // see activeModules /// 激活的模块
 
 // activeModules returns a slice of active modules.
 //
