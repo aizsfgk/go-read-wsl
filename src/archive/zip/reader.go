@@ -16,8 +16,11 @@ import (
 )
 
 var (
+	// 格式
 	ErrFormat    = errors.New("zip: not a valid zip file")
+	// 算法
 	ErrAlgorithm = errors.New("zip: unsupported compression algorithm")
+	// 校验和
 	ErrChecksum  = errors.New("zip: checksum error")
 )
 

@@ -80,6 +80,7 @@ func (p *poser) As(err interface{}) bool {
 }
 
 func TestAs(t *testing.T) {
+	// 定义一些错误
 	var errT errorT
 	var errP *os.PathError
 	var timeout interface{ Timeout() bool }

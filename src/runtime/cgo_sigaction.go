@@ -40,6 +40,7 @@ func sigaction(sig uint32, new, old *sigactiont) {
 		var ret int32
 
 		var g *g
+		// 主程序Goroutine已经启动
 		if mainStarted {
 			g = getg()
 		}

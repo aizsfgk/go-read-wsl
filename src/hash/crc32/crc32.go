@@ -19,6 +19,7 @@ import (
 )
 
 // The size of a CRC-32 checksum in bytes.
+// 4字节
 const Size = 4
 
 // Predefined polynomials.
@@ -29,13 +30,13 @@ const (
 
 	// Castagnoli's polynomial, used in iSCSI.
 	// Has better error detection characteristics than IEEE.
-	// https://dx.doi.org/10.1109/26.231911
+	// https://dx.doi.org/10.1109/26.231911 /// 优化算法
 	Castagnoli = 0x82f63b78
 
 	// Koopman's polynomial.
 	// Also has better error detection characteristics than IEEE.
 	// https://dx.doi.org/10.1109/DSN.2002.1028931
-	Koopman = 0xeb31d82e
+	Koopman = 0xeb31d82e /// 32-bit cyclic redundancy codes for Internet applications
 )
 
 // Table is a 256-word table representing the polynomial for efficient processing.

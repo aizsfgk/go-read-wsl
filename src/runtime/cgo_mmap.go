@@ -20,6 +20,7 @@ var _cgo_mmap unsafe.Pointer
 //go:linkname _cgo_munmap _cgo_munmap
 var _cgo_munmap unsafe.Pointer
 
+// 分配内存
 // mmap is used to route the mmap system call through C code when using cgo, to
 // support sanitizer interceptors. Don't allow stack splits, since this function
 // (used by sysAlloc) is called in a lot of low-level parts of the runtime and
@@ -44,6 +45,7 @@ func mmap(addr unsafe.Pointer, n uintptr, prot, flags, fd int32, off uint32) (un
 	return sysMmap(addr, n, prot, flags, fd, off)
 }
 
+// 释放内存
 func munmap(addr unsafe.Pointer, n uintptr) {
 	if _cgo_munmap != nil {
 		systemstack(func() { callCgoMunmap(addr, n) })
