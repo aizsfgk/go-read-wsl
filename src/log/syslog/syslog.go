@@ -153,7 +153,7 @@ func (w *Writer) connect() (err error) {
 	}
 
 	if w.network == "" {
-		w.conn, err = unixSyslog()
+		w.conn, err = unixSyslog() /// 新建unix日志连接 Conn
 		if w.hostname == "" {
 			w.hostname = "localhost"
 		}

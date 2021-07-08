@@ -4,8 +4,10 @@
 
 /*
 	Package flag implements command-line flag parsing.
+    # 命令行标签解析
 
 	Usage
+    # 使用方法
 
 	Define flags using flag.String(), Bool(), Int(), etc.
 
@@ -92,6 +94,7 @@ var errParse = errors.New("parse error")
 var errRange = errors.New("value out of range")
 
 func numError(err error) error {
+	// 值， bool
 	ne, ok := err.(*strconv.NumError)
 	if !ok {
 		return err

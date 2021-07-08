@@ -20,6 +20,7 @@ func readAll(r io.Reader, capacity int64) (b []byte, err error) {
 	// If the buffer overflows, we will get bytes.ErrTooLarge.
 	// Return that as an error. Any other panic remains.
 	defer func() {
+		// 恢复
 		e := recover()
 		if e == nil {
 			return

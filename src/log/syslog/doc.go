@@ -5,6 +5,10 @@
 // Package syslog provides a simple interface to the system log
 // service. It can send messages to the syslog daemon using UNIX
 // domain sockets, UDP or TCP.
+///
+/// system log 服务
+/// 通过 Unix Domain Sockets, UDP , TCP 向 syslog daemon 发送日志消息
+///
 //
 // Only one call to Dial is necessary. On write failures,
 // the syslog client will attempt to reconnect to the server

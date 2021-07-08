@@ -18,11 +18,11 @@ import (
 // We generate random temporary file names so that there's a good
 // chance the file doesn't exist yet - keeps the number of tries in
 // TempFile to a minimum.
-var rand uint32
-var randmu sync.Mutex
+var rand uint32 // 随机数
+var randmu sync.Mutex // 互斥锁
 
 func reseed() uint32 {
-	return uint32(time.Now().UnixNano() + int64(os.Getpid()))
+	return uint32(time.Now().UnixNano() + int64(os.Getpid())) // 纳秒 + pid
 }
 
 func nextRandom() string {
