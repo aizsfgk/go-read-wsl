@@ -10,16 +10,23 @@ import (
 )
 
 var handlers struct {
+	/// 互斥锁
 	sync.Mutex
+
 	// Map a channel to the signals that should be sent to it.
+	/// 信号通过这个 channel 发送
 	m map[chan<- os.Signal]*handler
+
 	// Map a signal to the number of channels receiving it.
+	/// 指定的信号的接收数
 	ref [numSig]int64
+
 	// Map channels to signals while the channel is being stopped.
 	// Not a map because entries live here only very briefly.
 	// We need a separate container because we need m to correspond to ref
 	// at all times, and we also need to keep track of the *handler
 	// value for a channel being stopped. See the Stop function.
+	/// 当这个channel停止的时候，通知机制
 	stopping []stopping
 }
 

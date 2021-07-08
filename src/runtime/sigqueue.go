@@ -133,6 +133,7 @@ Send:
 //go:linkname signal_recv os/signal.signal_recv
 func signal_recv() uint32 {
 	for {
+		/// 先从本地复制
 		// Serve any signals from local copy.
 		for i := uint32(0); i < _NSIG; i++ {
 			if sig.recv[i/32]&(1<<(i&31)) != 0 {

@@ -138,6 +138,7 @@ type ProcAttr struct {
 var zeroProcAttr ProcAttr
 var zeroSysProcAttr SysProcAttr
 
+/// 克隆子进程，并执行新的程序
 func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) {
 	var p [2]int
 	var n int
@@ -147,6 +148,7 @@ func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) 
 	if attr == nil {
 		attr = &zeroProcAttr
 	}
+
 	sys := attr.Sys
 	if sys == nil {
 		sys = &zeroSysProcAttr
@@ -155,6 +157,7 @@ func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) 
 	p[0] = -1
 	p[1] = -1
 
+	/// 转换参数为 c 格式
 	// Convert args to C form.
 	argv0p, err := BytePtrFromString(argv0)
 	if err != nil {
@@ -173,6 +176,7 @@ func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) 
 		argvp[0] = argv0p
 	}
 
+	// 根目录
 	var chroot *byte
 	if sys.Chroot != "" {
 		chroot, err = BytePtrFromString(sys.Chroot)
@@ -180,6 +184,8 @@ func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) 
 			return 0, err
 		}
 	}
+
+	// 当前DIR
 	var dir *byte
 	if attr.Dir != "" {
 		dir, err = BytePtrFromString(attr.Dir)

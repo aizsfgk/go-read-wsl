@@ -101,6 +101,8 @@ func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr
 				err2 = err.(Errno)
 			}
 		}
+
+		/// 回传错误数据
 		RawSyscall(SYS_WRITE, uintptr(p[1]), uintptr(unsafe.Pointer(&err2)), unsafe.Sizeof(err2))
 		Close(p[1])
 	}

@@ -20,7 +20,7 @@ func signal_recv() uint32
 
 func loop() {
 	for {
-		process(syscall.Signal(signal_recv()))
+		process(syscall.Signal(signal_recv())) /// 这里用了 signal_recv()
 	}
 }
 
