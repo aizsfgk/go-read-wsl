@@ -50,10 +50,10 @@ import (
 // but atomic instructions should minimize it.
 var sig struct {
 	note       note
-	mask       [(_NSIG + 31) / 32]uint32
-	wanted     [(_NSIG + 31) / 32]uint32
-	ignored    [(_NSIG + 31) / 32]uint32
-	recv       [(_NSIG + 31) / 32]uint32
+	mask       [(_NSIG + 31) / 32]uint32 // mask    [3]uint32
+	wanted     [(_NSIG + 31) / 32]uint32 // wanted  [3]uint32
+	ignored    [(_NSIG + 31) / 32]uint32 // ignored [3]uint32
+	recv       [(_NSIG + 31) / 32]uint32 // recv    [3]uint32
 	state      uint32
 	delivering uint32
 	inuse      bool
@@ -74,25 +74,34 @@ const (
 ///
 func sigsend(s uint32) bool {
 	bit := uint32(1) << uint(s&31)
+
+	/// 无效，直接返回false
 	if !sig.inuse || s >= uint32(32*len(sig.wanted)) {
 		return false
 	}
 
+	/// 表明正在分发中
 	atomic.Xadd(&sig.delivering, 1)
 	// We are running in the signal handler; defer is not available.
 
+	/// 获取标志位，如果标志位为0； 则返回false
 	if w := atomic.Load(&sig.wanted[s/32]); w&bit == 0 {
 		atomic.Xadd(&sig.delivering, -1)
 		return false
 	}
 
 	// Add signal to outgoing queue.
+	/// 添加信号到外部队列
 	for {
 		mask := sig.mask[s/32]
-		if mask&bit != 0 {
+		if mask&bit != 0 { /// 设置了信号遮罩，表示发送成功
 			atomic.Xadd(&sig.delivering, -1)
 			return true // signal already in queue
 		}
+
+		///
+		/// 遮罩增加这个标记位
+		///
 		if atomic.Cas(&sig.mask[s/32], mask, mask|bit) {
 			break
 		}
@@ -101,6 +110,8 @@ func sigsend(s uint32) bool {
 	// Notify receiver that queue has new bit.
 Send:
 	for {
+
+		/// 获取当前的状态
 		switch atomic.Load(&sig.state) {
 		default:
 			throw("sigsend: inconsistent state")
@@ -123,6 +134,7 @@ Send:
 		}
 	}
 
+	/// 结束投递
 	atomic.Xadd(&sig.delivering, -1)
 	return true
 }
@@ -167,12 +179,12 @@ func signal_recv() uint32 {
 
 		// Incorporate updates from sender into local copy.
 		for i := range sig.mask {
-			sig.recv[i] = atomic.Xchg(&sig.mask[i], 0)
+			sig.recv[i] = atomic.Xchg(&sig.mask[i], 0) /// xchg 返回旧值
 		}
 	}
 }
 
-// signalWaitUntilIdle waits until the signal delivery mechanism is idle.
+// signalWaitUntilIdle waits until the signal delivery mechanism is idle. /// 等待，直到投递机制空闲
 // This is used to ensure that we do not drop a signal notification due
 // to a race between disabling a signal and receiving a signal.
 // This assumes that signal delivery has already been disabled for
@@ -199,6 +211,7 @@ func signalWaitUntilIdle() {
 }
 
 // Must only be called from a single goroutine at a time.
+/// 同一时间，只允许在单个goroutine中调用
 //go:linkname signal_enable os/signal.signal_enable
 func signal_enable(s uint32) {
 	if !sig.inuse {
@@ -217,11 +230,11 @@ func signal_enable(s uint32) {
 
 	w := sig.wanted[s/32]
 	w |= 1 << (s & 31)
-	atomic.Store(&sig.wanted[s/32], w)
+	atomic.Store(&sig.wanted[s/32], w) /// 去除这个标识
 
 	i := sig.ignored[s/32]
 	i &^= 1 << (s & 31)
-	atomic.Store(&sig.ignored[s/32], i)
+	atomic.Store(&sig.ignored[s/32], i) /// 去除忽略标识
 
 	sigenable(s)
 }
@@ -236,7 +249,7 @@ func signal_disable(s uint32) {
 
 	w := sig.wanted[s/32]
 	w &^= 1 << (s & 31)
-	atomic.Store(&sig.wanted[s/32], w)
+	atomic.Store(&sig.wanted[s/32], w) /// 去除想要标识
 }
 
 // Must only be called from a single goroutine at a time.
@@ -249,11 +262,11 @@ func signal_ignore(s uint32) {
 
 	w := sig.wanted[s/32]
 	w &^= 1 << (s & 31)
-	atomic.Store(&sig.wanted[s/32], w)
+	atomic.Store(&sig.wanted[s/32], w) /// 去除
 
 	i := sig.ignored[s/32]
 	i |= 1 << (s & 31)
-	atomic.Store(&sig.ignored[s/32], i)
+	atomic.Store(&sig.ignored[s/32], i) /// 增加
 }
 
 // sigInitIgnored marks the signal as already ignored. This is called at
@@ -270,5 +283,5 @@ func sigInitIgnored(s uint32) {
 //go:linkname signal_ignored os/signal.signal_ignored
 func signal_ignored(s uint32) bool {
 	i := atomic.Load(&sig.ignored[s/32])
-	return i&(1<<(s&31)) != 0
+	return i&(1<<(s&31)) != 0   /// 是否忽视
 }

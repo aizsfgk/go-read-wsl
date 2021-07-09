@@ -1369,8 +1369,8 @@ const (
 	SIGTTOU   = Signal(0x16)
 	SIGUNUSED = Signal(0x1f)
 	SIGURG    = Signal(0x17)
-	SIGUSR1   = Signal(0xa)
-	SIGUSR2   = Signal(0xc)
+	SIGUSR1   = Signal(0xa) // 10
+	SIGUSR2   = Signal(0xc) // 12
 	SIGVTALRM = Signal(0x1a)
 	SIGWINCH  = Signal(0x1c)
 	SIGXCPU   = Signal(0x18)

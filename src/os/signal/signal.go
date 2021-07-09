@@ -36,19 +36,22 @@ type stopping struct {
 }
 
 type handler struct {
-	mask [(numSig + 31) / 32]uint32
+	mask [(numSig + 31) / 32]uint32 /// (numSig + 31) / 32 == 3 ///# mask [3]uint32
 }
 
+/// 检测是否存在该信号
 func (h *handler) want(sig int) bool {
-	return (h.mask[sig/32]>>uint(sig&31))&1 != 0
+	return (h.mask[sig/32]>>uint(sig&31))&1 != 0   /// 0-31 == 0; 32-65 == 1 ; 11110 &
 }
 
+/// 设置该信号位
 func (h *handler) set(sig int) {
-	h.mask[sig/32] |= 1 << uint(sig&31)
+	h.mask[sig/32] |= 1 << uint(sig&31)  /// 增加
 }
 
+/// 清除该信号位
 func (h *handler) clear(sig int) {
-	h.mask[sig/32] &^= 1 << uint(sig&31)
+	h.mask[sig/32] &^= 1 << uint(sig&31) /// 减少
 }
 
 // Stop relaying the signals, sigs, to any channels previously registered to
@@ -62,9 +65,14 @@ func cancel(sigs []os.Signal, action func(int)) {
 		var zerohandler handler
 
 		for c, h := range handlers.m {
+			// 是否存在n
 			if h.want(n) {
+				// 存在减少引用数
 				handlers.ref[n]--
+				// 清除标记位
 				h.clear(n)
+
+				// 如果等于空标记位; 则删除
 				if h.mask == zerohandler.mask {
 					delete(handlers.m, c)
 				}
@@ -142,22 +150,34 @@ func Notify(c chan<- os.Signal, sig ...os.Signal) {
 	}
 
 	add := func(n int) {
+		// 信号无效
 		if n < 0 {
 			return
 		}
+
+		// 是否有n;
 		if !h.want(n) {
+			// 如果没有
+			// 设置n
 			h.set(n)
+
+			// 如果信号的引用数是0
 			if handlers.ref[n] == 0 {
+
+				/// 激活信号
 				enableSignal(n)
 
 				// The runtime requires that we enable a
 				// signal before starting the watcher.
+				/// 启动观察器
 				watchSignalLoopOnce.Do(func() {
 					if watchSignalLoop != nil {
 						go watchSignalLoop()
 					}
 				})
 			}
+
+			/// 增加引用数
 			handlers.ref[n]++
 		}
 	}
@@ -194,8 +214,11 @@ func Stop(c chan<- os.Signal) {
 	delete(handlers.m, c)
 
 	for n := 0; n < numSig; n++ {
+		// 存在n
 		if h.want(n) {
 			handlers.ref[n]--
+
+			// n == 0; 取消信号
 			if handlers.ref[n] == 0 {
 				disableSignal(n)
 			}
@@ -217,6 +240,7 @@ func Stop(c chan<- os.Signal) {
 
 	handlers.Unlock()
 
+	/// 等待直到没有更多的信号被交付
 	signalWaitUntilIdle()
 
 	handlers.Lock()
@@ -245,6 +269,7 @@ func process(sig os.Signal) {
 	defer handlers.Unlock()
 
 	for c, h := range handlers.m {
+		/// 想要这个信号; 则发送
 		if h.want(n) {
 			// send but do not block for it
 			select {
@@ -254,11 +279,13 @@ func process(sig os.Signal) {
 		}
 	}
 
+	/// 没有找到; 则说明再停止中，投递过去
+
 	// Avoid the race mentioned in Stop.
 	for _, d := range handlers.stopping {
 		if d.h.want(n) {
 			select {
-			case d.c <- sig:
+			case d.c <- sig: /// 将信号发送到这个管道里
 			default:
 			}
 		}

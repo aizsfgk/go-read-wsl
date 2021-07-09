@@ -53,7 +53,7 @@ const (
 	_SIGXCPU   = 0x18
 	_SIGXFSZ   = 0x19
 	_SIGVTALRM = 0x1a
-	_SIGPROF   = 0x1b
+	_SIGPROF   = 0x1b // 16+11 = 27
 	_SIGWINCH  = 0x1c
 	_SIGIO     = 0x1d
 	_SIGPWR    = 0x1e
@@ -121,10 +121,11 @@ type sigactiont struct {
 	sa_mask     uint64
 }
 
+// 信号信息
 type siginfo struct {
-	si_signo int32
-	si_errno int32
-	si_code  int32
+	si_signo int32  // 信号
+	si_errno int32  // 错误码
+	si_code  int32  //
 	// below here is a union; si_addr is the only field we use
 	si_addr uint64
 }
@@ -205,6 +206,7 @@ type fpreg1 struct {
 	exponent    uint16
 }
 
+// 信号栈
 type stackt struct {
 	ss_sp     *byte
 	ss_flags  int32

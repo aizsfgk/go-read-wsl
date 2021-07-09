@@ -18,7 +18,7 @@ execution: SIGBUS, SIGFPE, and SIGSEGV. These are only considered
 synchronous when caused by program execution, not when sent using
 os.Process.Kill or the kill program or some similar mechanism. In
 general, except as discussed below, Go programs will convert a
-synchronous signal into a run-time panic.
+synchronous signal into a run-time panic. /// 运行时 panic
 
 The remaining signals are asynchronous signals. They are not
 triggered by program errors, but are instead sent from the kernel or
@@ -30,8 +30,8 @@ user at the controlling terminal presses the interrupt character,
 which by default is ^C (Control-C). The SIGQUIT signal is sent when
 the user at the controlling terminal presses the quit character, which
 by default is ^\ (Control-Backslash). In general you can cause a
-program to simply exit by pressing ^C, and you can cause it to exit
-with a stack dump by pressing ^\.
+program to simply exit by pressing ^C <程序退出>, and you can cause it to exit
+with a stack dump by pressing ^\.<程序退出，并打印堆栈>
 
 Default behavior of signals in Go programs
 
@@ -88,6 +88,8 @@ for a blocked signal, it will be unblocked. If, later, Reset is
 called for that signal, or Stop is called on all channels passed to
 Notify for that signal, the signal will once again be blocked.
 
+############################
+
 SIGPIPE
 
 When a Go program writes to a broken pipe, the kernel will raise a
@@ -108,6 +110,8 @@ error.
 This means that, by default, command line programs will behave like
 typical Unix command line programs, while other programs will not
 crash with SIGPIPE when writing to a closed network connection.
+
+### cgo or SWIG
 
 Go programs that use cgo or SWIG
 

@@ -38,7 +38,7 @@ const (
 	_SIG_IGN uintptr = 1
 )
 
-// sigPreempt is the signal used for non-cooperative preemption.
+// sigPreempt is the signal used for non-cooperative preemption. /// 实现非协作式抢占
 //
 // There's no good way to choose this signal, but there are some
 // heuristics:
@@ -75,6 +75,8 @@ const sigPreempt = _SIGURG
 // handle a particular signal (e.g., signal occurred on a non-Go thread).
 // See sigfwdgo for more information on when the signals are forwarded.
 //
+/// 存储Go安装之前的信号句柄
+///
 // This is read by the signal handler; accesses should use
 // atomic.Loaduintptr and atomic.Storeuintptr.
 var fwdSig [_NSIG]uintptr
@@ -82,7 +84,7 @@ var fwdSig [_NSIG]uintptr
 // handlingSig is indexed by signal number and is non-zero if we are
 // currently handling the signal. Or, to put it another way, whether
 // the signal handler is currently set to the Go signal handler or not.
-// This is uint32 rather than bool so that we can use atomic instructions.
+// This is uint32 rather than bool so that we can use atomic instructions. /// 使用原子指令
 var handlingSig [_NSIG]uint32
 
 // channels for synchronizing signal mask updates with the signal mask
@@ -122,6 +124,8 @@ func initsig(preinit bool) {
 
 	for i := uint32(0); i < _NSIG; i++ {
 		t := &sigtable[i]
+
+		/// 无效信号或者有默认行为，则continue
 		if t.flags == 0 || t.flags&_SigDefault != 0 {
 			continue
 		}
@@ -129,7 +133,7 @@ func initsig(preinit bool) {
 		// We don't need to use atomic operations here because
 		// there shouldn't be any other goroutines running yet.
 		// 此时不需要原子操作，因为此时没有其他运行的 Goroutine
-		fwdSig[i] = getsig(i)
+		fwdSig[i] = getsig(i) /// 存储之前的信号句柄
 
 		// 是否需要安装信号处理器
 		if !sigInstallGoHandler(i) {
@@ -172,6 +176,7 @@ func sigInstallGoHandler(sig uint32) bool {
 		return false
 	}
 
+	/// 可以安装
 	return true
 }
 
@@ -184,18 +189,22 @@ func sigenable(sig uint32) {
 	}
 
 	// SIGPROF is handled specially for profiling.
+	/// 特殊的用来进行 profiling
 	if sig == _SIGPROF {
 		return
 	}
 
 	t := &sigtable[sig]
-	if t.flags&_SigNotify != 0 {
+
+	if t.flags&_SigNotify != 0 { /// 可以进行通知的
+
 		ensureSigM()
+
 		enableSigChan <- sig
 		<-maskUpdatedChan
 		if atomic.Cas(&handlingSig[sig], 0, 1) {
-			atomic.Storeuintptr(&fwdSig[sig], getsig(sig))
-			setsig(sig, funcPC(sighandler))
+			atomic.Storeuintptr(&fwdSig[sig], getsig(sig)) /// 保留一个新的信号
+			setsig(sig, funcPC(sighandler)) /// 设置为sighandler
 		}
 	}
 }
@@ -228,6 +237,8 @@ func sigdisable(sig uint32) {
 		}
 	}
 }
+
+// ************************************ //
 
 // sigignore ignores the signal sig.
 // It is only called while holding the os/signal.handlers lock,
@@ -528,6 +539,10 @@ var testSigusr1 func(gp *g) bool
 //
 // The garbage collector may have stopped the world, so write barriers
 // are not allowed.
+///
+/// sighandler 当一个信号发生的时候，被调用
+///
+///
 //
 //go:nowritebarrierrec
 func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
@@ -869,40 +884,49 @@ func crash() {
 // is available to catch signals enabled for os/signal.
 /// 启动一个全局的，睡眠线程，确保至少有一个线程可用，去捕获信号
 func ensureSigM() {
+
+	/// 只要不是nil 就退出
+	/// 表明这个函数只执行一次
 	if maskUpdatedChan != nil {
 		return
 	}
+
 	maskUpdatedChan = make(chan struct{})
 	disableSigChan = make(chan uint32)
 	enableSigChan = make(chan uint32)
+
+	/// 启动一个协程/绑定OSThread
 	go func() {
 		// Signal masks are per-thread, so make sure this goroutine stays on one
 		// thread.
 		LockOSThread()
 		defer UnlockOSThread()
+
 		// The sigBlocked mask contains the signals not active for os/signal,
 		// initially all signals except the essential. When signal.Notify()/Stop is called,
 		// sigenable/sigdisable in turn notify this thread to update its signal
 		// mask accordingly.
 		sigBlocked := sigset_all
 		for i := range sigtable {
-			if !blockableSig(uint32(i)) {
+			if !blockableSig(uint32(i)) { /// 如果不可以阻塞
 				sigdelset(&sigBlocked, i)
 			}
 		}
+
 		sigprocmask(_SIG_SETMASK, &sigBlocked, nil)
+
 		for {
 			select {
 			case sig := <-enableSigChan:
 				if sig > 0 {
-					sigdelset(&sigBlocked, int(sig))
+					sigdelset(&sigBlocked, int(sig)) /// 删除阻塞; mask
 				}
 			case sig := <-disableSigChan:
 				if sig > 0 && blockableSig(sig) {
-					sigaddset(&sigBlocked, int(sig))
+					sigaddset(&sigBlocked, int(sig)) /// 添加阻塞; mask
 				}
 			}
-			sigprocmask(_SIG_SETMASK, &sigBlocked, nil)
+			sigprocmask(_SIG_SETMASK, &sigBlocked, nil) /// 设置mask
 			maskUpdatedChan <- struct{}{}
 		}
 	}()
@@ -969,6 +993,8 @@ func sigfwd(fn uintptr, sig uint32, info *siginfo, ctx unsafe.Pointer)
 //go:nosplit
 //go:nowritebarrierrec
 func sigfwdgo(sig uint32, info *siginfo, ctx unsafe.Pointer) bool {
+
+	/// 无效返回false
 	if sig >= uint32(len(sigtable)) {
 		return false
 	}
@@ -1162,6 +1188,7 @@ func unminitSignals() {
 // for all running threads to block them and delay their delivery until
 // we start a new thread. When linked into a C program we let the C code
 // decide on the disposition of those signals.
+/// 信号是否可以被 signal mask 阻塞
 func blockableSig(sig uint32) bool {
 	flags := sigtable[sig].flags
 	if flags&_SigUnblock != 0 {

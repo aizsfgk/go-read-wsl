@@ -513,7 +513,7 @@ type g struct {
 	traceseq       uint64   // trace event sequencer
 	tracelastp     puintptr // last P emitted an event for this goroutine
 	lockedm        muintptr
-	sig            uint32
+	sig            uint32   /// 存储 goroutine 的信号
 	writebuf       []byte
 	sigcode0       uintptr
 	sigcode1       uintptr
