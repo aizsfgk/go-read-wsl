@@ -18,13 +18,26 @@
 #define SYS_close		3
 #define SYS_mmap		9
 #define SYS_munmap		11
+/// 分配内存
 #define SYS_brk 		12
+/// 改变信号处理的默认行为
 #define SYS_rt_sigaction	13
+/// https://man7.org/linux/man-pages/man2/sigprocmask.2.html
+/// 检查和改变阻塞的信号
 #define SYS_rt_sigprocmask	14
+/// https://man7.org/linux/man-pages/man2/sigreturn.2.html
+/// 从信号处理程序和清理堆栈框架返回
 #define SYS_rt_sigreturn	15
+/// 创建一个pipe
 #define SYS_pipe		22
+/// https://man7.org/linux/man-pages/man2/sched_yield.2.html
+/// 线程让出CPU
 #define SYS_sched_yield 	24
+/// https://man7.org/linux/man-pages/man2/mincore.2.html
+/// 确定页面是否留在内存中
 #define SYS_mincore		27
+/// https://man7.org/linux/man-pages/man2/madvise.2.html
+/// 提供有关使用内存的建议
 #define SYS_madvise		28
 #define SYS_nanosleep		35
 #define SYS_setittimer		38
@@ -36,15 +49,25 @@
 #define SYS_kill		62
 #define SYS_uname		63
 #define SYS_fcntl		72
+/// https://man7.org/linux/man-pages/man2/sigaltstack.2.html
+/// set and/or get signal stack context
 #define SYS_sigaltstack 	131
 #define SYS_mlock		149
+/// https://man7.org/linux/man-pages/man2/arch_prctl.2.html
+/// set architecture-specific thread state
 #define SYS_arch_prctl		158
 #define SYS_gettid		186
+/// https://man7.org/linux/man-pages/man2/futex.2.html
+/// fast user-space locking
 #define SYS_futex		202
 #define SYS_sched_getaffinity	204
 #define SYS_epoll_create	213
+/// https://man7.org/linux/man-pages/man2/exit_group.2.html
+/// exit all threads in a process
 #define SYS_exit_group		231 ///
 #define SYS_epoll_ctl		233
+/// https://man7.org/linux/man-pages/man2/tgkill.2.html
+/// send a signal to a thread
 #define SYS_tgkill		234
 #define SYS_openat		257
 #define SYS_faccessat		269
@@ -54,7 +77,7 @@
 
 TEXT runtime·exit(SB),NOSPLIT,$0-4
 	MOVL	code+0(FP), DI
-	MOVL	$SYS_exit_group, AX  /// 231
+	MOVL	$SYS_exit_group, AX  /// 进程中的线程全部退出
 	SYSCALL
 	RET
 
@@ -152,7 +175,7 @@ TEXT runtime·gettid(SB),NOSPLIT,$0-4
 	MOVL	AX, ret+0(FP)
 	RET
 
-TEXT runtime·raise(SB),NOSPLIT,$0
+TEXT runtime·raise(SB),NOSPLIT,$0 /// send a signal to the caller
 	MOVL	$SYS_getpid, AX
 	SYSCALL
 	MOVL	AX, R12
@@ -165,7 +188,7 @@ TEXT runtime·raise(SB),NOSPLIT,$0
 	SYSCALL
 	RET
 
-TEXT runtime·raiseproc(SB),NOSPLIT,$0
+TEXT runtime·raiseproc(SB),NOSPLIT,$0 /// 获取pid; 然后给其发送信号
 	MOVL	$SYS_getpid, AX
 	SYSCALL
 	MOVL	AX, DI	// arg 1 pid
@@ -174,13 +197,13 @@ TEXT runtime·raiseproc(SB),NOSPLIT,$0
 	SYSCALL
 	RET
 
-TEXT ·getpid(SB),NOSPLIT,$0-8
+TEXT ·getpid(SB),NOSPLIT,$0-8 /// 获取进程的PID
 	MOVL	$SYS_getpid, AX
 	SYSCALL
 	MOVQ	AX, ret+0(FP)
 	RET
 
-TEXT ·tgkill(SB),NOSPLIT,$0
+TEXT ·tgkill(SB),NOSPLIT,$0 /// 给线程发送信号
 	MOVQ	tgid+0(FP), DI
 	MOVQ	tid+8(FP), SI
 	MOVQ	sig+16(FP), DX

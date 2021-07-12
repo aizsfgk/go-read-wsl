@@ -23,13 +23,13 @@ import (
 //		If any procs are sleeping on addr, wake up at most cnt.
 
 const (
-	mutex_unlocked = 0
-	mutex_locked   = 1
-	mutex_sleeping = 2
+	mutex_unlocked = 0  /// 解锁
+	mutex_locked   = 1  /// 加锁
+	mutex_sleeping = 2  /// 睡眠中
 
-	active_spin     = 4
-	active_spin_cnt = 30
-	passive_spin    = 1
+	active_spin     = 4  /// 积极自旋
+	active_spin_cnt = 30 /// 自旋数
+	passive_spin    = 1  /// 消极自选
 )
 
 // Possible lock states are mutex_unlocked, mutex_locked and mutex_sleeping.
@@ -57,7 +57,7 @@ func lock2(l *mutex) {
 
 	// Speculative grab for lock.
 	v := atomic.Xchg(key32(&l.key), mutex_locked)
-	if v == mutex_unlocked {
+	if v == mutex_unlocked { /// 旧值是<释放锁>，则直接返回
 		return
 	}
 
