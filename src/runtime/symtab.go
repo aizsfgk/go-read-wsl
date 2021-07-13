@@ -5,8 +5,11 @@
 package runtime
 
 import (
+	// 原子操作
 	"runtime/internal/atomic"
+	// 内部系统
 	"runtime/internal/sys"
+	// 不安全
 	"unsafe"
 )
 
@@ -51,7 +54,7 @@ type Frame struct {
 	// Entry point program counter for the function; may be zero
 	// if not known. If Func is not nil then Entry ==
 	// Func.Entry().
-	Entry uintptr
+	Entry uintptr /// 入口
 
 	// The runtime's internal view of the function. This field
 	// is set (funcInfo.valid() returns true) only for Go functions,
@@ -71,6 +74,9 @@ func CallersFrames(callers []uintptr) *Frames {
 // Next returns frame information for the next caller.
 // If more is false, there are no more callers (the Frame value is valid).
 func (ci *Frames) Next() (frame Frame, more bool) {
+	///
+	/// 栈帧数小于2
+	///
 	for len(ci.frames) < 2 {
 		// Find the next frame.
 		// We need to look for 2 frames so we know what
@@ -99,6 +105,8 @@ func (ci *Frames) Next() (frame Frame, more bool) {
 			// work correctly for entries in the result of runtime.Callers.
 			pc--
 		}
+
+		/// 获取函数名
 		name := funcname(funcInfo)
 		if inldata := funcdata(funcInfo, _FUNCDATA_InlTree); inldata != nil {
 			inltree := (*[1 << 20]inlinedCall)(inldata)
@@ -145,6 +153,7 @@ func (ci *Frames) Next() (frame Frame, more bool) {
 		file, line := funcline1(frame.funcInfo, frame.PC, false)
 		frame.File, frame.Line = file, int(line)
 	}
+
 	return
 }
 
@@ -339,20 +348,26 @@ const (
 // matched changes to the code in cmd/internal/ld/symtab.go:symtab.
 // moduledata is stored in statically allocated non-pointer memory;
 // none of the pointers here are visible to the garbage collector.
+///
+/// moduledata 记录这可执行文件镜像的布局。它被链接器写入。
+/// moduledata 被存储在静态分配的无指针的内存中。
+/// GC不能看到这里的任何指针
+///
+/// 是一个全局列表
 type moduledata struct {
 	pclntable    []byte
 	ftab         []functab
 	filetab      []uint32
 	findfunctab  uintptr
-	minpc, maxpc uintptr
+	minpc, maxpc uintptr          /// pc的范围
 
-	text, etext           uintptr
-	noptrdata, enoptrdata uintptr
-	data, edata           uintptr
-	bss, ebss             uintptr
-	noptrbss, enoptrbss   uintptr
+	text, etext           uintptr /// 代码段
+	noptrdata, enoptrdata uintptr /// 含有指针的数据段
+	data, edata           uintptr /// 数据段
+	bss, ebss             uintptr /// 未初始化数据段
+	noptrbss, enoptrbss   uintptr /// 含有指针的未初始化数据段
 	end, gcdata, gcbss    uintptr
-	types, etypes         uintptr
+	types, etypes         uintptr /// 类型
 
 	textsectmap []textsect
 	typelinks   []int32 // offsets from types
@@ -360,10 +375,10 @@ type moduledata struct {
 
 	ptab []ptabEntry
 
-	pluginpath string
+	pluginpath string             /// 插件路径
 	pkghashes  []modulehash
 
-	modulename   string
+	modulename   string           /// 模块名
 	modulehashes []modulehash
 
 	hasmain uint8 // 1 if module contains the main function, 0 otherwise
@@ -653,6 +668,7 @@ func (f funcInfo) _Func() *Func {
 }
 
 func findfunc(pc uintptr) funcInfo {
+	/// 通过pc找到funcInfo
 	datap := findmoduledatap(pc)
 	if datap == nil {
 		return funcInfo{}

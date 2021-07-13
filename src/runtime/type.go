@@ -30,13 +30,13 @@ const (
 // ../reflect/type.go:/^type.rtype.
 // ../internal/reflectlite/type.go:/^type.rtype.
 type _type struct {
-	size       uintptr
+	size       uintptr /// 占用内存大小
 	ptrdata    uintptr // size of memory prefix holding all pointers
-	hash       uint32
-	tflag      tflag
-	align      uint8
-	fieldAlign uint8
-	kind       uint8
+	hash       uint32  /// hash值
+	tflag      tflag   ///
+	align      uint8   ///
+	fieldAlign uint8   ///
+	kind       uint8   /// 类型???
 	// function for comparing objects of this type
 	// (ptr to object A, ptr to object B) -> ==?
 	equal func(unsafe.Pointer, unsafe.Pointer) bool
@@ -183,6 +183,7 @@ func reflectOffsUnlock() {
 	unlock(&reflectOffs.lock)
 }
 
+/// 解析名字
 func resolveNameOff(ptrInModule unsafe.Pointer, off nameOff) name {
 	if off == 0 {
 		return name{}
@@ -217,6 +218,7 @@ func (t *_type) nameOff(off nameOff) name {
 	return resolveNameOff(unsafe.Pointer(t), off)
 }
 
+/// 解析类型
 func resolveTypeOff(ptrInModule unsafe.Pointer, off typeOff) *_type {
 	if off == 0 {
 		return nil
