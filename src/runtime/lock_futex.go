@@ -141,15 +141,17 @@ func notewakeup(n *note) {
 		print("notewakeup - double wakeup (", old, ")\n")
 		throw("notewakeup - double wakeup")
 	}
+
+	/// old 此时为 0
 	futexwakeup(key32(&n.key), 1)
 }
 
 func notesleep(n *note) {
 	gp := getg()
 	if gp != gp.m.g0 {
-		throw("notesleep not on g0")
+		throw("notesleep not on g0") /// notesleep 必须在 g0 上
 	}
-	ns := int64(-1)
+	ns := int64(-1) /// 默认为永久阻塞
 	if *cgo_yield != nil {
 		// Sleep for an arbitrary-but-moderate interval to poll libc interceptors.
 		ns = 10e6
@@ -172,6 +174,7 @@ func notesleep(n *note) {
 func notetsleep_internal(n *note, ns int64) bool {
 	gp := getg()
 
+	// 永久等待
 	if ns < 0 {
 		if *cgo_yield != nil {
 			// Sleep for an arbitrary-but-moderate interval to poll libc interceptors.
@@ -188,6 +191,7 @@ func notetsleep_internal(n *note, ns int64) bool {
 		return true
 	}
 
+	// 刚唤醒，直接返回???
 	if atomic.Load(key32(&n.key)) != 0 {
 		return true
 	}
@@ -217,7 +221,7 @@ func notetsleep_internal(n *note, ns int64) bool {
 
 func notetsleep(n *note, ns int64) bool {
 	gp := getg()
-	if gp != gp.m.g0 && gp.m.preemptoff != "" {
+	if gp != gp.m.g0 && gp.m.preemptoff != "" { /// notetsleep 必须在g0
 		throw("notetsleep not on g0")
 	}
 
@@ -226,14 +230,16 @@ func notetsleep(n *note, ns int64) bool {
 
 // same as runtime·notetsleep, but called on user g (not g0)
 // calls only nosplit functions between entersyscallblock/exitsyscall
-func notetsleepg(n *note, ns int64) bool {
+func notetsleepg(n *note, ns int64) bool { /// 在用户goroutine上睡眠
 	gp := getg()
 	if gp == gp.m.g0 {
 		throw("notetsleepg on g0")
 	}
 
+	/// 进入系统调用阻塞
 	entersyscallblock()
 	ok := notetsleep_internal(n, ns)
+	/// 退出系统嗲用
 	exitsyscall()
 	return ok
 }

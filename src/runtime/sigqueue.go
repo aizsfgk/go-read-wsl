@@ -85,7 +85,7 @@ func sigsend(s uint32) bool {
 	// We are running in the signal handler; defer is not available.
 
 	/// 获取标志位，如果标志位为0； 则返回false
-	if w := atomic.Load(&sig.wanted[s/32]); w&bit == 0 {
+	if w := atomic.Load(&sig.wanted[s/32]); w&bit == 0 { /// 不想关注这个信号
 		atomic.Xadd(&sig.delivering, -1)
 		return false
 	}
