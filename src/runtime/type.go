@@ -523,6 +523,7 @@ func typelinksinit() {
 	if firstmoduledata.next == nil {
 		return
 	}
+	/// 类型hash值
 	typehash := make(map[uint32][]*_type, len(firstmoduledata.typelinks))
 
 	modules := activeModules()
@@ -537,6 +538,7 @@ func typelinksinit() {
 			} else {
 				t = prev.typemap[typeOff(tl)]
 			}
+
 			// Add to typehash if not seen before.
 			tlist := typehash[t.hash]
 			for _, tcur := range tlist {

@@ -614,8 +614,10 @@ func schedinit() {
 	cpuinit()       // must run before alginit
 	alginit()       // maps must not be used before this call
 
+	/// has use
 	modulesinit()   // provides activeModules
 	typelinksinit() // uses maps, activeModules
+
 	itabsinit()     // uses activeModules
 
 	msigsave(_g_.m)             /// 新的信号屏蔽字设置为nil, 获取旧的信号屏蔽字，存入 _g_.m.sigmask

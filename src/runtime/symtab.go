@@ -442,6 +442,9 @@ func activeModules() []*moduledata {
 
 // modulesinit creates the active modules slice out of all loaded modules.
 //
+///
+/// 创建激活的模块切片 除了全部加载的模块
+///
 // When a module is first loaded by the dynamic linker, an .init_array
 // function (written by cmd/link) is invoked to call addmoduledata,
 // appending to the module to the linked list that starts with
@@ -461,7 +464,7 @@ func activeModules() []*moduledata {
 func modulesinit() {
 	modules := new([]*moduledata)
 	for md := &firstmoduledata; md != nil; md = md.next {
-		if md.bad {
+		if md.bad { /// 毁坏的模块跳过
 			continue
 		}
 		*modules = append(*modules, md)
@@ -488,6 +491,7 @@ func modulesinit() {
 		}
 	}
 
+	/// 原子性存储
 	atomicstorep(unsafe.Pointer(&modulesSlice), unsafe.Pointer(modules))
 }
 
