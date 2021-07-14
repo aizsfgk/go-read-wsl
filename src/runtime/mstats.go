@@ -3,6 +3,12 @@
 // license that can be found in the LICENSE file.
 
 // Memory statistics
+/// 内存统计
+/// 1. 如何阅读源码?
+/// 	1. 通过 structure 查看大概结构
+///     2. 抓住一个主题
+/// 2. 如何将源码转换为文章?
+///
 
 package runtime
 
@@ -35,11 +41,11 @@ type mstats struct {
 	//
 	// Like MemStats, heap_sys and heap_inuse do not count memory
 	// in manually-managed spans.
-	heap_alloc    uint64 // bytes allocated and not yet freed (same as alloc above)
-	heap_sys      uint64 // virtual address space obtained from system for GC'd heap
-	heap_idle     uint64 // bytes in idle spans
-	heap_inuse    uint64 // bytes in mSpanInUse spans
-	heap_released uint64 // bytes released to the os
+	heap_alloc    uint64 // bytes allocated and not yet freed (same as alloc above)  /// 分配的字节和没有释放的
+	heap_sys      uint64 // virtual address space obtained from system for GC'd heap /// 从系统获取的虚拟地址空间，为了GCheap使用
+	heap_idle     uint64 // bytes in idle spans         /// 在空闲的span的字节数
+	heap_inuse    uint64 // bytes in mSpanInUse spans   /// 使用的span的字节数
+	heap_released uint64 // bytes released to the os    /// 释放内存给os的字节数
 
 	// heap_objects is not used by the runtime directly and instead
 	// computed on the fly by updatememstats.
@@ -47,6 +53,7 @@ type mstats struct {
 
 	// Statistics about allocation of low-level fixed-size structures.
 	// Protected by FixAlloc locks.
+	/// stack 就是 manually-managed
 	stacks_inuse uint64 // bytes in manually-managed stack spans; updated atomically or during STW
 	stacks_sys   uint64 // only counts newosproc0 stack in mstats; differs from MemStats.StackSys
 	mspan_inuse  uint64 // mspan structures
@@ -657,6 +664,7 @@ func purgecachedstats(c *mcache) {
 //
 // A side-effect of using xadduintptr() is that we need to check for
 // overflow errors.
+/// 增加
 //go:nosplit
 func mSysStatInc(sysStat *uint64, n uintptr) {
 	if sysStat == nil {
@@ -674,6 +682,7 @@ func mSysStatInc(sysStat *uint64, n uintptr) {
 
 // Atomically decreases a given *system* memory stat. Same comments as
 // mSysStatInc apply.
+/// 减少
 //go:nosplit
 func mSysStatDec(sysStat *uint64, n uintptr) {
 	if sysStat == nil {

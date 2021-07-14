@@ -30,6 +30,7 @@ import (
 
 // testSmallBuf forces a small write barrier buffer to stress write
 // barrier flushing.
+/// 强制 flushing; 测试使用
 const testSmallBuf = false
 
 // wbBuf is a per-P buffer of pointers queued by the write barrier.
