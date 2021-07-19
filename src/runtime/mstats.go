@@ -667,13 +667,17 @@ func purgecachedstats(c *mcache) {
 /// 增加
 //go:nosplit
 func mSysStatInc(sysStat *uint64, n uintptr) {
+	/// 为空直接返回
 	if sysStat == nil {
 		return
 	}
+
+	/// 如果是大端模式；直接加
 	if sys.BigEndian {
 		atomic.Xadd64(sysStat, int64(n))
 		return
 	}
+	/// 否则使用指针+
 	if val := atomic.Xadduintptr((*uintptr)(unsafe.Pointer(sysStat)), n); val < n {
 		print("runtime: stat overflow: val ", val, ", n ", n, "\n")
 		exit(2)

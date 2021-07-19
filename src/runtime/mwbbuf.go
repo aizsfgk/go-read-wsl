@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // This implements the write barrier buffer. The write barrier itself /// 写栅栏缓冲区
-// is gcWriteBarrier and is implemented in assembly.
+// is gcWriteBarrier and is implemented in assembly. /// 写栅栏本身通过汇编实现
 //
 // See mbarrier.go for algorithmic details on the write barrier. This
 // file deals only with the buffer.

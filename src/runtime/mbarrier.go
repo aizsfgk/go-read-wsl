@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Garbage collector: write barriers.
+// Garbage collector: write barriers. /// 垃圾回收写栅栏
 //
 // For the concurrent garbage collector, the Go compiler implements
 // updates to pointer-valued fields that may be in heap objects by
@@ -10,6 +10,12 @@
 // individual pointer writes is gcWriteBarrier and is implemented in
 // assembly. This file contains write barrier entry points for bulk
 // operations. See also mwbbuf.go.
+///
+///
+/// 当更新堆上的指针的时候，垃圾收集会触发写栅栏
+///
+///
+///
 
 package runtime
 
