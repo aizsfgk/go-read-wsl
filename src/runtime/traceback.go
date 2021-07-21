@@ -1208,6 +1208,7 @@ func isSystemGoroutine(gp *g, fixed bool) bool {
 //
 // SetCgoTraceback should be called only once, ideally from an init function.
 func SetCgoTraceback(version int, traceback, context, symbolizer unsafe.Pointer) {
+	/// 不支持的版本号
 	if version != 0 {
 		panic("unsupported version")
 	}

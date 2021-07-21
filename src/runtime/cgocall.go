@@ -2,18 +2,18 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Cgo call and callback support.
+// Cgo call and callback support. /// 调用和回调支持
 //
 // To call into the C function f from Go, the cgo-generated code calls
 // runtime.cgocall(_cgo_Cfunc_f, frame), where _cgo_Cfunc_f is a
 // gcc-compiled function written by cgo.
 //
-// runtime.cgocall (below) calls entersyscall so as not to block
+// runtime.cgocall (below) calls entersyscall so as not to block /// 进入系统调用，然后和工作线程M绑定，不会阻塞其他的G和GC
 // other goroutines or the garbage collector, and then calls
 // runtime.asmcgocall(_cgo_Cfunc_f, frame).
 //
-// runtime.asmcgocall (in asm_$GOARCH.s) switches to the m->g0 stack
-// (assumed to be an operating system-allocated stack, so safe to run
+// runtime.asmcgocall (in asm_$GOARCH.s) switches to the m->g0 stack  /// 转换到G0栈
+// (assumed to be an operating system-allocated stack, so safe to run /// 可以安全地调用gcc-compiled的代码
 // gcc-compiled code on) and calls _cgo_Cfunc_f(frame).
 //
 // _cgo_Cfunc_f invokes the actual C function f with arguments
@@ -631,6 +631,9 @@ func cgoCheckUnknownPointer(p unsafe.Pointer, msg string) (base, i uintptr) {
 	return
 }
 
+///
+/// 指针是否是一个Go指针
+///
 // cgoIsGoPointer reports whether the pointer is a Go pointer--a
 // pointer to Go memory. We only care about Go memory that might
 // contain pointers.

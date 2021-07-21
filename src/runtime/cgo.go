@@ -10,6 +10,8 @@ import "unsafe"
 
 // Filled in by runtime/cgo when linked into binary.
 
+/// 定义链接的名字
+
 //go:linkname _cgo_init _cgo_init
 //go:linkname _cgo_thread_start _cgo_thread_start
 //go:linkname _cgo_sys_thread_create _cgo_sys_thread_create
