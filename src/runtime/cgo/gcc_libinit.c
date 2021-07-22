@@ -64,10 +64,10 @@ _cgo_wait_runtime_init_done(void) {
 
 void
 x_cgo_notify_runtime_init_done(void* dummy __attribute__ ((unused))) {
-	pthread_mutex_lock(&runtime_init_mu);
-	runtime_init_done = 1;
-	pthread_cond_broadcast(&runtime_init_cond);
-	pthread_mutex_unlock(&runtime_init_mu);
+	pthread_mutex_lock(&runtime_init_mu); // *** 互斥锁枷锁 *** //
+	runtime_init_done = 1;                // 初始化完成； 简单赋值
+	pthread_cond_broadcast(&runtime_init_cond); /// 互斥条件
+	pthread_mutex_unlock(&runtime_init_mu); // *** 解锁 *** //
 }
 
 // Sets the context function to call to record the traceback context

@@ -255,6 +255,7 @@ func efaceOf(ep *interface{}) *eface {
 ///
 ///
 // The guintptr, muintptr, and puintptr are all used to bypass write barriers. /// 用来绕过写屏障
+/// 也就是 guintptr, muintptr, puintptr不参与垃圾回收???
 // It is particularly important to avoid write barriers when the current P has
 // been released, because the GC thinks the world is stopped, and an
 // unexpected write barrier would not be synchronized with the GC,
@@ -296,7 +297,7 @@ func efaceOf(ep *interface{}) *eface {
 // so I can't see them ever moving. If we did want to start moving data
 // in the GC, we'd need to allocate the goroutine structs from an
 // alternate arena. Using guintptr doesn't make that problem any worse.
-type guintptr uintptr
+type guintptr uintptr /// 协程相关的指针
 
 //go:nosplit
 func (gp guintptr) ptr() *g { return (*g)(unsafe.Pointer(gp)) }
@@ -310,14 +311,14 @@ func (gp *guintptr) cas(old, new guintptr) bool {
 }
 
 // setGNoWB performs *gp = new without a write barrier.
-// For times when it's impractical to use a guintptr.
+// For times when it's impractical to use a guintptr. /// 没有写栅栏
 //go:nosplit
 //go:nowritebarrier
 func setGNoWB(gp **g, new *g) {
 	(*guintptr)(unsafe.Pointer(gp)).set(new)
 }
 
-type puintptr uintptr
+type puintptr uintptr /// P相关指针
 
 //go:nosplit
 func (pp puintptr) ptr() *p { return (*p)(unsafe.Pointer(pp)) }
@@ -330,10 +331,10 @@ func (pp *puintptr) set(p *p) { *pp = puintptr(unsafe.Pointer(p)) }
 // Because we do free Ms, there are some additional constrains on
 // muintptrs:
 //
-// 1. Never hold an muintptr locally across a safe point.
+// 1. Never hold an muintptr locally across a safe point. /// 1. 在安全点，不要持有一个本地的muintptr
 //
-// 2. Any muintptr in the heap must be owned by the M itself so it can
-//    ensure it is not in use when the last true *m is released.
+// 2. Any muintptr in the heap must be owned by the M itself so it can /// 2. 任何在堆上的muintptr的持有者必须是M本身
+//    ensure it is not in use when the last true *m is released.       ///    以确保在最后的有效的*m被释放后，其不再被使用
 type muintptr uintptr
 
 //go:nosplit
@@ -363,8 +364,8 @@ type gobuf struct { /// gobuf结构体用于保存goroutine的调度信息
 	// and restores it doesn't need write barriers. It's still
 	// typed as a pointer so that any other writes from Go get
 	// write barriers.
-	sp   uintptr /// 保存CPU的rsp寄存器的值
-	pc   uintptr ///保存CPU的rip寄存器的值
+	sp   uintptr  /// 保存CPU的rsp寄存器的值
+	pc   uintptr  ///保存CPU的rip寄存器的值
 	g    guintptr /// 记录当前这个gobuf对象属于哪个goroutine
 	ctxt unsafe.Pointer
 	/// 保存系统调用的返回值，因为从系统调用返回之后如果p被其它工作线程抢占，
@@ -377,7 +378,7 @@ type gobuf struct { /// gobuf结构体用于保存goroutine的调度信息
 // sudog represents a g in a wait list, such as for sending/receiving
 // on a channel.
 //
-/// sudog 代表一个g在一个等待列表中，列入 sending/receiving在一个channel上
+/// sudog 代表一个g在一个等待列表中，例如： sending/receiving在一个channel上
 ///
 // sudog is necessary because the g ↔ synchronization object relation
 // is many-to-many. A g can be on many wait lists, so there may be
@@ -1120,11 +1121,11 @@ var (
 	allm       *m      /// 全部的m
 	allp       []*p  // len(allp) == gomaxprocs; may change at safe points, otherwise immutable /// 全部的p
 	allpLock   mutex // Protects P-less reads of allp and all writes
-	gomaxprocs int32
+	gomaxprocs int32  /// 允许的最大P数
 	ncpu       int32  /// cpu个数
 	forcegc    forcegcstate  /// 强制GC的状态
 	sched      schedt   /// 全局队列结构
-	newprocs   int32
+	newprocs   int32    /// 设置新的最大P数
 
 	// Information about what cpu features are available.
 	// Packages outside the runtime should not use these
