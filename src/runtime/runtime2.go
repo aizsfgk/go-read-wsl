@@ -1118,11 +1118,15 @@ func (w waitReason) String() string {
 }
 
 var (
-	allglen    uintptr /// 全部g的大小???
-	allm       *m      /// 全部的m
+	/// 全部G的个数
+	allglen    uintptr
+	/// 全部M构建成的链表
+	allm       *m
+	/// 全部的P
 	allp       []*p  // len(allp) == gomaxprocs; may change at safe points, otherwise immutable /// 全部的p
 	allpLock   mutex // Protects P-less reads of allp and all writes
 	gomaxprocs int32  /// 允许的最大P数
+
 	ncpu       int32  /// cpu个数
 	forcegc    forcegcstate  /// 强制GC的状态
 	sched      schedt   /// 全局队列结构
