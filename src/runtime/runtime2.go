@@ -597,8 +597,8 @@ type m struct {
 	schedlink     muintptr
 	lockedg       guintptr
 	createstack   [32]uintptr // stack that created this thread.
-	lockedExt     uint32      // tracking for external LockOSThread
-	lockedInt     uint32      // tracking for internal lockOSThread
+	lockedExt     uint32      // tracking for external LockOSThread /// 外部的 LockOSThread
+	lockedInt     uint32      // tracking for internal lockOSThread /// 内部的 LockOSThread
 	nextwaitm     muintptr    // next m waiting for lock
 
 	waitunlockf   func(*g, unsafe.Pointer) bool /// 恢复执行的函数
@@ -773,7 +773,7 @@ type p struct {
 type schedt struct {
 	// accessed atomically. keep at top to ensure alignment on 32-bit systems.
 	goidgen   uint64 /// 用于生成GoID
-	lastpoll  uint64 // time of last network poll, 0 if currently polling  /// 最近的network poll时间，0 表示正在第一次poll
+	lastpoll  uint64 // time of last network poll, 0 if currently polling  /// 最近的network poll时间，[0 表示正在第一次poll; 还是当前正在polling]
 	pollUntil uint64 // time to which current poll is sleeping /// 当前poll正在睡眠的时间
 
 	lock mutex    /// 因为是全局队列，所以需要锁
@@ -786,14 +786,14 @@ type schedt struct {
 	// 空闲的工作线程的数量
 	nmidle       int32    // number of idle m's waiting for work
 
-	nmidlelocked int32    // number of locked m's waiting for work
+	nmidlelocked int32    // number of locked m's waiting for work /// 被锁住的空闲线程的数量
 
 	mnext        int64    // number of m's that have been created and next M ID
 	maxmcount    int32    // maximum number of m's allowed (or die)
-	nmsys        int32    // number of system m's not counted for deadlock
+	nmsys        int32    // number of system m's not counted for deadlock /// 系统m没有被计数为死锁的数量 (死锁检查中使用)
 	nmfreed      int64    // cumulative number of freed m's
 
-	ngsys uint32 // number of system goroutines; updated atomically
+	ngsys uint32 // number of system goroutines; updated atomically   /// 系统G的数量，原子更新
 
 	// 由空闲的p结构体对象组成的链表
 	pidle      puintptr // idle p's
@@ -848,7 +848,7 @@ type schedt struct {
 
 	// safepointFn should be called on each P at the next GC
 	// safepoint if p.runSafePointFn is set.
-	safePointFn   func(*p)
+	safePointFn   func(*p) /// 如果这个安全点函数被设置了，下次GC安全点的时候，调用
 	safePointWait int32
 	safePointNote note
 
@@ -877,6 +877,7 @@ const (
 	_SigIgn                  // _SIG_DFL action is to ignore the signal
 )
 
+/// 在插件中使用
 // Layout of in-memory per-function information prepared by linker
 // See https://golang.org/s/go12symtab.
 // Keep in sync with linker (../cmd/link/internal/ld/pcln.go:/pclntab)
@@ -920,7 +921,7 @@ type itab struct {
 	fun   [1]uintptr // variable sized. fun[0]==0 means _type does not implement inter.
 }
 
-// Lock-free stack node.
+// Lock-free stack node. /// 无锁栈节点
 // Also known to export_test.go.
 type lfnode struct {
 	next    uint64
