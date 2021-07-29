@@ -12,10 +12,10 @@ import (
 
 // GCStats collect information about recent garbage collections.
 type GCStats struct {
-	LastGC         time.Time       // time of last collection
-	NumGC          int64           // number of garbage collections
-	PauseTotal     time.Duration   // total pause for all collections
-	Pause          []time.Duration // pause history, most recent first
+	LastGC         time.Time       // time of last collection       /// 最近一次垃圾收集得时间
+	NumGC          int64           // number of garbage collections /// 垃圾收集数
+	PauseTotal     time.Duration   // total pause for all collections /// 总共暂停的时间
+	Pause          []time.Duration // pause history, most recent first /// 暂停历史记录，最近的第一个
 	PauseEnd       []time.Time     // pause end times history, most recent first
 	PauseQuantiles []time.Duration
 }
@@ -36,7 +36,7 @@ func ReadGCStats(stats *GCStats) {
 	// computing quantiles.
 	const maxPause = len(((*runtime.MemStats)(nil)).PauseNs)
 	if cap(stats.Pause) < 2*maxPause+3 {
-		stats.Pause = make([]time.Duration, 2*maxPause+3)
+		stats.Pause = make([]time.Duration, 2*maxPause+3) /// 扩容
 	}
 
 	// readGCStats fills in the pause and end times histories (up to
@@ -92,6 +92,7 @@ func SetGCPercent(percent int) int {
 	return int(setGCPercent(int32(percent)))
 }
 
+/// 尽可能地将内存返回给操作系通
 // FreeOSMemory forces a garbage collection followed by an
 // attempt to return as much memory to the operating system
 // as possible. (Even if this is not called, the runtime gradually

@@ -1528,9 +1528,13 @@ func (h *mheap) scavengeAll() {
 	}
 }
 
+//
+/// 释放内存给 操作系统
 //go:linkname runtime_debug_freeOSMemory runtime/debug.freeOSMemory
 func runtime_debug_freeOSMemory() {
+	/// 1. 手动调用垃圾回收
 	GC()
+	/// 2. 在系统栈上，执行 mheap_.scavengeAll()
 	systemstack(func() { mheap_.scavengeAll() })
 }
 

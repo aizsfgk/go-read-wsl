@@ -4,13 +4,20 @@
 
 // Scavenging free pages. /// 清除空闲(pages) 释放物理页
 //
+/// 清扫在堆上的且释放后和未使用的pages。这是一种page-level级别的碎片,减少Go程序的物理内存。
 // This file implements scavenging (the release of physical pages backing mapped
 // memory) of free and unused pages in the heap as a way to deal with page-level
 // fragmentation and reduce the RSS of Go applications.
 //
+/// 清扫有2种方式：
+/// 1. 后台异步清扫
+/// 2. heap-growth阶段同步清扫
 // Scavenging in Go happens on two fronts: there's the background
 // (asynchronous) scavenger and the heap-growth (synchronous) scavenger.
 //
+/// 发生的阶段：
+///  1. 发生在后台清扫阶段backgroud-sweeper
+///  2. 同步阶段发生在， head-growth 到指定的大小
 // The former happens on a goroutine much like the background sweeper which is
 // soft-capped at using scavengePercent of the mutator's time, based on
 // order-of-magnitude estimates of the costs of scavenging. The background
@@ -24,7 +31,7 @@
 // the heap goal is defined in terms of bytes of objects, rather than pages like
 // RSS. As a result, we need to take into account for fragmentation internal to
 // spans. next_gc / last_next_gc defines the ratio between the current heap goal
-// and the last heap goal, which tells us by how much the heap is growing and
+// and the last heap goal, which tells us by how much the heap is growing and     /// 多少内存增长和收缩
 // shrinking. We estimate what the heap will grow to in terms of pages by taking
 // this ratio and multiplying it by heap_inuse at the end of the last GC, which
 // allows us to account for this additional fragmentation. Note that this
