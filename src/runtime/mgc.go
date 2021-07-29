@@ -224,7 +224,7 @@ func gcenable() {
 	// Kick off sweeping and scavenging.
 	c := make(chan int, 2)
 	go bgsweep(c)      /// 后台清扫协程
-	go bgscavenge(c)   /// 后台scavenge
+	go bgscavenge(c)   /// 后台scavenge; 将内存还给操作系统
 	<-c
 	<-c
 	memstats.enablegc = true // now that runtime is initialized, GC is okay

@@ -69,6 +69,7 @@ import (
 )
 
 const (
+	/// 调步算法中的一个因子
 	// The background scavenger is paced according to these parameters.
 	//
 	// scavengePercent represents the portion of mutator time we're willing
@@ -219,7 +220,7 @@ func wakeScavenger() {
 		// too much.
 		var list gList
 		list.push(scavenge.g)
-		injectglist(&list)
+		injectglist(&list) /// 注入G队列
 	}
 	unlock(&scavenge.lock)
 }
@@ -257,19 +258,29 @@ func scavengeSleep(ns int64) int64 {
 // the line described by the proportional scavenging statistics in
 // the mheap struct.
 func bgscavenge(c chan int) {
+	// 获取当前Goroutine
 	scavenge.g = getg()
 
+	// lockRank init
 	lockInit(&scavenge.lock, lockRankScavenge)
+	// 获取清扫锁
 	lock(&scavenge.lock)
+
+	// 暂停为true
 	scavenge.parked = true
 
+	// 新建定时器/设置定时器函数：唤醒清扫
 	scavenge.timer = new(timer)
 	scavenge.timer.f = func(_ interface{}, _ uintptr) {
 		wakeScavenger()
 	}
 
+	// 父Goroutine不阻塞
 	c <- 1
+	// 暂停，也就是park住
 	goparkunlock(&scavenge.lock, waitReasonGCScavengeWait, traceEvGoBlock, 1)
+
+	/// 等返回，继续从这里执行
 
 	// Exponentially-weighted moving average of the fraction of time this
 	// goroutine spends scavenging (that is, percent of a single CPU).
@@ -285,6 +296,8 @@ func bgscavenge(c chan int) {
 	// it makes sense to also make the scavenger scale with it; if you're
 	// allocating more frequently, then presumably you're also generating
 	// more work for the scavenger.
+
+	/// 计算因子
 	const idealFraction = scavengePercent / 100.0
 	scavengeEWMA := float64(idealFraction)
 
@@ -296,25 +309,32 @@ func bgscavenge(c chan int) {
 
 		// Run on the system stack since we grab the heap lock,
 		// and a stack growth with the heap lock means a deadlock.
+		/// 在系统栈上跑
 		systemstack(func() {
 			lock(&mheap_.lock)
 
 			// If background scavenging is disabled or if there's no work to do just park.
+			/// heapRetained 返回物理RSS的预估值
 			retained, goal := heapRetained(), mheap_.scavengeGoal
+			/// 小于目标值，直接返回
 			if retained <= goal {
 				unlock(&mheap_.lock)
 				return
 			}
 
 			// Scavenge one page, and measure the amount of time spent scavenging.
+			/// 开始时间
 			start := nanotime()
+			/// 被释放的内存数
 			released = mheap_.pages.scavenge(physPageSize, true)
 			mheap_.pages.scav.released += released
+			/// 消耗的时间
 			crit = float64(nanotime() - start)
 
 			unlock(&mheap_.lock)
 		})
 
+		/// 如果释放为0；则暂停
 		if released == 0 {
 			lock(&scavenge.lock)
 			scavenge.parked = true
@@ -322,6 +342,7 @@ func bgscavenge(c chan int) {
 			continue
 		}
 
+		/// 小于单个页大小，报错
 		if released < physPageSize {
 			// If this happens, it means that we may have attempted to release part
 			// of a physical page, but the likely effect of that is that it released
@@ -330,6 +351,7 @@ func bgscavenge(c chan int) {
 			throw("released less than one physical page of memory")
 		}
 
+		/// 调整消耗时间的值
 		// On some platforms we may see crit as zero if the time it takes to scavenge
 		// memory is less than the minimum granularity of its clock (e.g. Windows).
 		// In this case, just assume scavenging takes 10 µs per regular physical page
@@ -369,6 +391,8 @@ func bgscavenge(c chan int) {
 		adjust := scavengeEWMA / idealFraction
 		sleepTime := int64(adjust * crit / (scavengePercent / 100.0))
 
+		/// 确定了睡眠的时间
+		/// 之后进行继续的清扫
 		// Go to sleep.
 		slept := scavengeSleep(sleepTime)
 
@@ -384,18 +408,20 @@ func bgscavenge(c chan int) {
 			fraction = minFraction
 		}
 
+		//// 调整 scavengeEWMA 的值
 		// Update scavengeEWMA by merging in the new crit/slept ratio.
 		const alpha = 0.5
 		scavengeEWMA = alpha*fraction + (1-alpha)*scavengeEWMA
 	}
 }
 
+/// 清除 nbytes足额的pages, 从最高地址开始。
 // scavenge scavenges nbytes worth of free pages, starting with the
 // highest address first. Successive calls continue from where it left
 // off until the heap is exhausted. Call scavengeStartGen to bring it
 // back to the top of the heap.
 //
-// Returns the amount of memory scavenged in bytes.
+// Returns the amount of memory scavenged in bytes. /// 返回足额的bytes内存数
 //
 // s.mheapLock must be held, but may be temporarily released if
 // mayUnlock == true.
@@ -523,6 +549,7 @@ func (s *pageAlloc) scavengeReserve() (addrRange, uint32) {
 	return r, s.scav.gen
 }
 
+/// 返回一个范围中（这个范围之前通过 scavengeReserve 保留）未被清理的部分。
 // scavengeUnreserve returns an unscavenged portion of a range that was
 // previously reserved with scavengeReserve.
 //
@@ -541,6 +568,8 @@ func (s *pageAlloc) scavengeUnreserve(r addrRange, gen uint32) {
 	s.scav.inUse.add(r)
 }
 
+///
+///
 // scavengeOne walks over address range work until it finds
 // a contiguous run of pages to scavenge. It will try to scavenge
 // at most max bytes at once, but may scavenge more to avoid
@@ -566,7 +595,7 @@ func (s *pageAlloc) scavengeOne(work addrRange, max uintptr, mayUnlock bool) (ui
 		return 0, work
 	}
 	// Check the prerequisites of work.
-	if work.base.addr()%pallocChunkBytes != 0 {
+	if work.base.addr()%pallocChunkBytes != 0 { /// 必须是pallocChunkBytes倍数
 		throw("scavengeOne called with unaligned work region")
 	}
 	// Calculate the maximum number of pages to scavenge.

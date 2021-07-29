@@ -14,6 +14,7 @@ import (
 	"unsafe"
 )
 
+/// 代表一个地址空间区域
 // addrRange represents a region of address space.
 //
 // An addrRange must never span a gap in the address space.
@@ -26,6 +27,7 @@ type addrRange struct {
 	base, limit offAddr
 }
 
+/// 从2个虚拟地址空间地址，创建一个地址范围
 // makeAddrRange creates a new address range from two virtual addresses.
 //
 // Throws if the base and limit are not in the same memory segment.
@@ -37,6 +39,7 @@ func makeAddrRange(base, limit uintptr) addrRange {
 	return r
 }
 
+/// 返回范围大小
 // size returns the size of the range represented in bytes.
 func (a addrRange) size() uintptr {
 	if !a.base.lessThan(a.limit) {
@@ -47,11 +50,13 @@ func (a addrRange) size() uintptr {
 	return a.limit.diff(a.base)
 }
 
+/// 是否包含一个地址空间
 // contains returns whether or not the range contains a given address.
 func (a addrRange) contains(addr uintptr) bool {
 	return a.base.lessEqual(offAddr{addr}) && (offAddr{addr}).lessThan(a.limit)
 }
 
+/// 做减法操作
 // subtract takes the addrRange toPrune and cuts out any overlap with
 // from, then returns the new range. subtract assumes that a and b
 // either don't overlap at all, only overlap on one side, or are equal.
@@ -141,6 +146,8 @@ func (l offAddr) addr() uintptr {
 	return l.a
 }
 
+///
+/// 持有一个地址空间范围
 // addrRanges is a data structure holding a collection of ranges of
 // address space.
 //
@@ -163,6 +170,7 @@ type addrRanges struct {
 	sysStat *uint64
 }
 
+/// 初始化操作
 func (a *addrRanges) init(sysStat *uint64) {
 	ranges := (*notInHeapSlice)(unsafe.Pointer(&a.ranges))
 	ranges.len = 0
@@ -324,6 +332,7 @@ func (a *addrRanges) removeGreaterEqual(addr uintptr) {
 	a.totalBytes -= removed
 }
 
+/// 深克隆一个a的状态到b; 重复使用b如果可能
 // cloneInto makes a deep clone of a's state into b, re-using
 // b's ranges if able.
 func (a *addrRanges) cloneInto(b *addrRanges) {

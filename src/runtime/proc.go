@@ -2999,6 +2999,8 @@ func park_m(gp *g) {
 			execute(gp, true) // Schedule it back, never returns. /// 调度回来
 		}
 	}
+
+	/// 执行调度
 	schedule() /// in park_m; 在g0栈上
 }
 
@@ -4963,6 +4965,7 @@ func sysmon() {
 			startm(nil, false)
 		}
 
+		/// 清扫标识==1，则唤醒清扫
 		if atomic.Load(&scavenge.sysmonWake) != 0 {
 			// Kick the scavenger awake if someone requested it.
 			wakeScavenger()

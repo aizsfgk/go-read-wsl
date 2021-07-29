@@ -132,7 +132,7 @@ type mheap struct {
 	// scavengeGoal is the amount of total retained heap memory (measured by
 	// heapRetained) that the runtime will try to maintain by returning memory
 	// to the OS.
-	/// 堆内存保留的总量，运行时将通过返回给操作系通的内存进行维护
+	/// 堆内存保留的总量，运行时将通过返回给操作系统的内存进行维护
 	scavengeGoal uint64
 
 	// Page reclaimer state
