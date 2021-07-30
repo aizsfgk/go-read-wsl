@@ -26,6 +26,6 @@ func addMaxRSS(w io.Writer) {
 	}
 
 	var rusage syscall.Rusage
-	syscall.Getrusage(0, &rusage)
+	syscall.Getrusage(0, &rusage) /// 获取内存使用
 	fmt.Fprintf(w, "# MaxRSS = %d\n", uintptr(rusage.Maxrss)*rssToBytes)
 }

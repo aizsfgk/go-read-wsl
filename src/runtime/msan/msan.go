@@ -5,6 +5,9 @@
 // +build msan,linux
 // +build amd64 arm64
 
+/// m san 用于进行内存检测
+/// 相关文档：https://clang.llvm.org/docs/MemorySanitizer.html
+///
 package msan
 
 /*

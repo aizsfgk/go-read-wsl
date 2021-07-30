@@ -7,6 +7,8 @@ import (
 	_ "unsafe"
 )
 
+/// 这个文件具体有何用处???
+
 type traceContextKey struct{}
 
 // NewTask creates a task instance with the type taskType and returns

@@ -9,7 +9,7 @@ import _ "unsafe" // for go:linkname
 //go:linkname setMaxStack runtime/debug.setMaxStack
 func setMaxStack(in int) (out int) {
 	out = int(maxstacksize)
-	maxstacksize = uintptr(in)
+	maxstacksize = uintptr(in) /// 设置栈的最大值
 	return out
 }
 

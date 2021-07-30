@@ -1583,6 +1583,8 @@ TEXT runtime·gcWriteBarrierR9(SB),NOSPLIT,$0
 DATA	debugCallFrameTooLarge<>+0x00(SB)/20, $"call frame too large"
 GLOBL	debugCallFrameTooLarge<>(SB), RODATA, $20	// Size duplicated below
 
+
+/// 在运行的Goroutine上调用 debug注入函数
 // debugCallV1 is the entry point for debugger-injected function
 // calls on running goroutines. It informs the runtime that a
 // debug call has been injected and creates a call frame for the

@@ -751,6 +751,8 @@ func (s *pageAlloc) scavengeRangeLocked(ci chunkIdx, base, npages uint) uintptr 
 	return addr
 }
 
+///
+///
 // fillAligned returns x but with all zeroes in m-aligned
 // groups of m bits set to 1 if any bit in the group is non-zero.
 //
@@ -760,6 +762,7 @@ func (s *pageAlloc) scavengeRangeLocked(ci chunkIdx, base, npages uint) uintptr 
 //
 // m must be a power of 2 <= maxPagesPerPhysPage.
 func fillAligned(x uint64, m uint) uint64 {
+	/// 函数内部定义一个函数，然后后边使用
 	apply := func(x uint64, c uint64) uint64 {
 		// The technique used it here is derived from
 		// https://graphics.stanford.edu/~seander/bithacks.html#ZeroInWord
@@ -776,6 +779,7 @@ func fillAligned(x uint64, m uint) uint64 {
 		// byte was set. Finally, we determine if any of these high
 		// bits are zero by ORing with ones everywhere except the
 		// high bits and inverting the result."
+
 		return ^((((x & c) + c) | x) | c)
 	}
 	// Transform x to contain a 1 bit at the top of each m-aligned
@@ -810,6 +814,7 @@ func fillAligned(x uint64, m uint) uint64 {
 	return ^((x - (x >> (m - 1))) | x)
 }
 
+/// 是否有清扫候选人???
 // hasScavengeCandidate returns true if there's any min-page-aligned groups of
 // min pages of free-and-unscavenged memory in the region represented by this
 // pallocData.
@@ -842,6 +847,9 @@ func (m *pallocData) hasScavengeCandidate(min uintptr) bool {
 	return false
 }
 
+/// 解释各个参数的含义:
+/// findScavengeCandidate 返回一个起始索引indx和一个size大小,相对于pallocData, 它
+/// 代表了一个释放且未清除的连续区域
 // findScavengeCandidate returns a start index and a size for this pallocData
 // segment which represents a contiguous region of free and unscavenged memory.
 //
@@ -870,6 +878,7 @@ func (m *pallocData) findScavengeCandidate(searchIdx uint, min, max uintptr) (ui
 		print("runtime: min = ", min, "\n")
 		throw("min too large")
 	}
+
 	// max may not be min-aligned, so we might accidentally truncate to
 	// a max value which causes us to return a non-min-aligned value.
 	// To prevent this, align max up to a multiple of min (which is always

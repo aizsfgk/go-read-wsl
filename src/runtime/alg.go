@@ -150,6 +150,7 @@ func nilinterhash(p unsafe.Pointer, h uintptr) uintptr {
 	}
 }
 
+/// 计算对象类型hash
 // typehash computes the hash of the object of type t at address p.
 // h is the seed.
 // This function is seldom used. Most maps use for hashing either

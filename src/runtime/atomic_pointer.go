@@ -19,7 +19,9 @@ import (
 //
 //go:nosplit
 func atomicwb(ptr *unsafe.Pointer, new unsafe.Pointer) {
+	/// 转换为一个槽指针
 	slot := (*uintptr)(unsafe.Pointer(ptr))
+	/// 涂灰，然后放入写栅栏缓冲区
 	if !getg().m.p.ptr().wbBuf.putFast(*slot, uintptr(new)) {
 		wbBufFlush(slot, uintptr(new))
 	}
@@ -34,6 +36,10 @@ func atomicstorep(ptr unsafe.Pointer, new unsafe.Pointer) {
 	}
 	atomic.StorepNoWB(noescape(ptr), new)
 }
+
+///
+/// 原子更新指针，需要过写栅栏操作
+///
 
 // Like above, but implement in terms of sync/atomic's uintptr operations.
 // We cannot just call the runtime routines, because the race detector expects

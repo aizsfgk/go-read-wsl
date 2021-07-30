@@ -12,14 +12,18 @@ import (
 )
 
 var (
+	/// 错误的ELF
 	errBadELF    = errors.New("malformed ELF binary")
+	/// 构建ID
 	errNoBuildID = errors.New("no NT_GNU_BUILD_ID found in ELF binary")
 )
 
 // elfBuildID returns the GNU build ID of the named ELF binary,
 // without introducing a dependency on debug/elf and its dependencies.
 func elfBuildID(file string) (string, error) {
+	/// 256字节
 	buf := make([]byte, 256)
+	/// 打开文件
 	f, err := os.Open(file)
 	if err != nil {
 		return "", err
@@ -45,6 +49,7 @@ func elfBuildID(file string) (string, error) {
 		byteOrder = binary.BigEndian
 	}
 
+	/// 获取这些值
 	var shnum int
 	var shoff, shentsize int64
 	switch buf[4] {

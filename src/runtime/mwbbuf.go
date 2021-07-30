@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // This implements the write barrier buffer. The write barrier itself /// 写栅栏缓冲区
-// is gcWriteBarrier and is implemented in assembly. /// 写栅栏本身通过汇编实现
+// is gcWriteBarrier and is implemented in assembly. /// 写栅栏本身通过汇编实现； 函数hook
 //
 // See mbarrier.go for algorithmic details on the write barrier. This
 // file deals only with the buffer.
@@ -162,7 +162,7 @@ func (b *wbBuf) putFast(old, new uintptr) bool {
 ///
 /// 将当前P的写栅栏冲刷到GC的workbufs
 ///
-///
+/// 写栅栏冲刷
 //
 // This must not have write barriers because it is part of the write
 // barrier implementation.

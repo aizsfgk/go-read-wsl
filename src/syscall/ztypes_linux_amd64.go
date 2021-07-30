@@ -73,22 +73,22 @@ type Utimbuf struct {
 }
 
 type Rusage struct {
-	Utime    Timeval
-	Stime    Timeval
-	Maxrss   int64
-	Ixrss    int64
-	Idrss    int64
-	Isrss    int64
-	Minflt   int64
-	Majflt   int64
-	Nswap    int64
-	Inblock  int64
-	Oublock  int64
-	Msgsnd   int64
-	Msgrcv   int64
-	Nsignals int64
-	Nvcsw    int64
-	Nivcsw   int64
+	Utime    Timeval /// 用户使用时间
+	Stime    Timeval /// 系统使用时间
+	Maxrss   int64   /// 最大常驻内存集大小
+	Ixrss    int64   /// 基本的共享内存大小
+	Idrss    int64   /// 基本的非共享数据大小
+	Isrss    int64   /// 基本的非共享栈大小
+	Minflt   int64   /// 页回收大小
+	Majflt   int64   /// 缺页大小
+	Nswap    int64   /// 交换内存
+	Inblock  int64   /// 阻塞输出操作
+	Oublock  int64   /// 阻塞输出操作
+	Msgsnd   int64   /// 消息发送数
+	Msgrcv   int64   /// 消息接收数
+	Nsignals int64   /// 接收的信号
+	Nvcsw    int64   /// 主动上下文切换
+	Nivcsw   int64   /// 被动上下文切换
 }
 
 type Rlimit struct {

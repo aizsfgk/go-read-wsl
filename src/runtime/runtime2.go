@@ -495,6 +495,7 @@ type g struct {
 	// without precise pointer information.
 	asyncSafePoint bool
 
+	/// 在错误的地址上，使用panic代替crash
 	paniconfault bool // panic (instead of crash) on unexpected fault address
 	gcscandone   bool // g has scanned stack; protected by _Gscan bit in status
 	throwsplit   bool // must not split stack
