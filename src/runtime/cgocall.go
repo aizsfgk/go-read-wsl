@@ -640,14 +640,17 @@ func cgoCheckUnknownPointer(p unsafe.Pointer, msg string) (base, i uintptr) {
 //go:nosplit
 //go:nowritebarrierrec
 func cgoIsGoPointer(p unsafe.Pointer) bool {
+	/// 为空，返回false
 	if p == nil {
 		return false
 	}
 
+	/// 在堆或者栈上
 	if inHeapOrStack(uintptr(p)) {
 		return true
 	}
 
+	/// 遍历各个激活的模块；看看是否在cgo范围
 	for _, datap := range activeModules() {
 		if cgoInRange(p, datap.data, datap.edata) || cgoInRange(p, datap.bss, datap.ebss) {
 			return true

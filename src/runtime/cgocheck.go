@@ -5,6 +5,10 @@
 // Code to check that pointer writes follow the cgo rules.
 // These functions are invoked via the write barrier when debug.cgocheck > 1.
 
+///
+/// 检测指针写栅栏，遵守cgo的规则
+/// 这些函数被调用通过写栅栏 当 debug.cgocheck > 1 的时候
+///
 package runtime
 
 import (
@@ -12,6 +16,7 @@ import (
 	"unsafe"
 )
 
+/// Go指针存储到了，非Go的内存，则扔出改异常
 const cgoWriteBarrierFail = "Go pointer stored into non-Go memory"
 
 // cgoCheckWriteBarrier is called whenever a pointer is stored into memory.
@@ -32,6 +37,8 @@ func cgoCheckWriteBarrier(dst *uintptr, src uintptr) {
 
 	// If we are running on the system stack then dst might be an
 	// address on the stack, which is OK.
+
+	/// 在系统栈或者信号栈上；直接返回
 	g := getg()
 	if g == g.m.g0 || g == g.m.gsignal {
 		return

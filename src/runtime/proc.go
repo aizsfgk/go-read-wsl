@@ -181,6 +181,7 @@ func main() {
 
 	main_init_done = make(chan bool)
 	if iscgo {
+		/// 如果线程启动为空，报错
 		if _cgo_thread_start == nil {
 			throw("_cgo_thread_start missing")
 		}
@@ -198,6 +199,7 @@ func main() {
 		// Start the template thread in case we enter Go from
 		// a C-created thread and need to create a new thread.
 		startTemplateThread()
+
 		cgocall(_cgo_notify_runtime_init_done, nil)
 	}
 

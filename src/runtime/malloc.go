@@ -1458,6 +1458,7 @@ func persistentalloc1(size, align uintptr, sysStat *uint64) *notInHeap {
 	return p
 }
 
+/// 检测一个p指针是持久化分配的内存指针
 // inPersistentAlloc reports whether p points to memory allocated by
 // persistentalloc. This must be nosplit because it is called by the
 // cgo checker code, which is called by the write barrier code.

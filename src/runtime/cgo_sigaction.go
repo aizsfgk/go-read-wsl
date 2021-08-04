@@ -28,6 +28,7 @@ func sigaction(sig uint32, new, old *sigactiont) {
 		msanwrite(unsafe.Pointer(new), unsafe.Sizeof(*new))
 	}
 
+	/// 非cgo环境
 	if _cgo_sigaction == nil || inForkedChild {
 		sysSigaction(sig, new, old)
 	} else {

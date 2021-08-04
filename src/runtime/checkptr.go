@@ -6,6 +6,7 @@ package runtime
 
 import "unsafe"
 
+/// 检测指针是否对齐
 func checkptrAlignment(p unsafe.Pointer, elem *_type, n uintptr) {
 	// Check that (*[n]elem)(p) is appropriately aligned.
 	// Note that we allow unaligned pointers if the types they point to contain
@@ -21,6 +22,7 @@ func checkptrAlignment(p unsafe.Pointer, elem *_type, n uintptr) {
 	}
 }
 
+/// 检测指针算术运算
 func checkptrArithmetic(p unsafe.Pointer, originals []unsafe.Pointer) {
 	if 0 < uintptr(p) && uintptr(p) < minLegalPointer {
 		throw("checkptr: pointer arithmetic computed bad pointer value")
@@ -43,6 +45,7 @@ func checkptrArithmetic(p unsafe.Pointer, originals []unsafe.Pointer) {
 	throw("checkptr: pointer arithmetic result points to invalid allocation")
 }
 
+/// 返回包含地址p的内存的基地址
 // checkptrBase returns the base address for the allocation containing
 // the address p.
 //
