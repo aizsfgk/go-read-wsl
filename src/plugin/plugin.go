@@ -17,6 +17,10 @@
 // Please report any issues.
 package plugin
 
+//
+// 插件阅读
+//
+
 // Plugin is a loaded Go plugin.
 type Plugin struct {
 	pluginpath string
