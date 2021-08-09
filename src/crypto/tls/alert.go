@@ -51,10 +51,10 @@ const (
 )
 
 var alertText = map[alert]string{
-	alertCloseNotify:                  "close notify",
-	alertUnexpectedMessage:            "unexpected message",
-	alertBadRecordMAC:                 "bad record MAC",
-	alertDecryptionFailed:             "decryption failed",
+	alertCloseNotify:                  "close notify",       /// 关闭通知
+	alertUnexpectedMessage:            "unexpected message", /// 不期望的消息
+	alertBadRecordMAC:                 "bad record MAC",     /// 错误记录MAC地址
+	alertDecryptionFailed:             "decryption failed",  /// 解密失败
 	alertRecordOverflow:               "record overflow",
 	alertDecompressionFailure:         "decompression failure",
 	alertHandshakeFailure:             "handshake failure",
