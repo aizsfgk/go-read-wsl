@@ -474,6 +474,8 @@ func modulesinit() {
 		}
 	}
 
+	///
+	///
 	// Modules appear in the moduledata linked list in the order they are
 	// loaded by the dynamic loader, with one exception: the
 	// firstmoduledata itself the module that contains the runtime. This
@@ -491,7 +493,8 @@ func modulesinit() {
 		}
 	}
 
-	/// 原子性存储
+	/// 原子性存储,激活的模块
+	///
 	atomicstorep(unsafe.Pointer(&modulesSlice), unsafe.Pointer(modules))
 }
 
@@ -538,6 +541,8 @@ func moduledataverify1(datap *moduledata) {
 	// and a byte giving the pointer width in bytes.
 	pcln := *(**[8]byte)(unsafe.Pointer(&datap.pclntable))
 	pcln32 := *(**[2]uint32)(unsafe.Pointer(&datap.pclntable))
+
+	/// 不符合条件直接扔出异常
 	if pcln32[0] != 0xfffffffb || pcln[4] != 0 || pcln[5] != 0 || pcln[6] != sys.PCQuantum || pcln[7] != sys.PtrSize {
 		println("runtime: function symbol table header:", hex(pcln32[0]), hex(pcln[4]), hex(pcln[5]), hex(pcln[6]), hex(pcln[7]))
 		throw("invalid function symbol table\n")

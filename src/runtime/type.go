@@ -519,6 +519,7 @@ func (n name) isBlank() bool {
 
 // typelinksinit scans the types from extra modules and builds the
 // moduledata typemap used to de-duplicate type pointers.
+/// 从额外的模块中扫描类型，构建模块数据的类型图；被使用在非复制的类型指针。
 func typelinksinit() {
 	if firstmoduledata.next == nil {
 		return

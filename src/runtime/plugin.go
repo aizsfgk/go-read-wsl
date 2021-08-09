@@ -8,10 +8,11 @@ import "unsafe"
 
 //go:linkname plugin_lastmoduleinit plugin.lastmoduleinit
 func plugin_lastmoduleinit() (path string, syms map[string]interface{}, errstr string) {
+	/// 模块信息
 	var md *moduledata
 	for pmd := firstmoduledata.next; pmd != nil; pmd = pmd.next {
 		if pmd.bad {
-			md = nil // we only want the last module
+			md = nil // we only want the last module; /// 我们仅仅想要最后一个模块
 			continue
 		}
 		md = pmd
@@ -56,11 +57,11 @@ func plugin_lastmoduleinit() (path string, syms map[string]interface{}, errstr s
 	}
 
 	// Initialize the freshly loaded module.
-	modulesinit()
-	typelinksinit()
+	modulesinit()         /// 模块初始化， 赋值激活的模块
+	typelinksinit()       /// 类型链接初始化
 
-	pluginftabverify(md)
-	moduledataverify1(md)
+	pluginftabverify(md)  /// 插件ftab验证
+	moduledataverify1(md) /// 模块数据验证
 
 	lock(&itabLock)
 	for _, i := range md.itablinks {
@@ -68,6 +69,8 @@ func plugin_lastmoduleinit() (path string, syms map[string]interface{}, errstr s
 	}
 	unlock(&itabLock)
 
+	/// 构建一个符号map称为symbols
+	///
 	// Build a map of symbol names to symbols. Here in the runtime
 	// we fill out the first word of the interface, the type. We
 	// pass these zero value interfaces to the plugin package,
@@ -78,6 +81,8 @@ func plugin_lastmoduleinit() (path string, syms map[string]interface{}, errstr s
 	// a dependency on the reflect package.
 	syms = make(map[string]interface{}, len(md.ptab))
 	for _, ptab := range md.ptab {
+
+		/// 解析名字
 		symName := resolveNameOff(unsafe.Pointer(md.types), ptab.name)
 		t := (*_type)(unsafe.Pointer(md.types)).typeOff(ptab.typ)
 		var val interface{}
@@ -86,7 +91,7 @@ func plugin_lastmoduleinit() (path string, syms map[string]interface{}, errstr s
 
 		name := symName.name()
 		if t.kind&kindMask == kindFunc {
-			name = "." + name
+			name = "." + name /// 含税会加一个.
 		}
 		syms[name] = val
 	}
@@ -94,8 +99,10 @@ func plugin_lastmoduleinit() (path string, syms map[string]interface{}, errstr s
 }
 
 func pluginftabverify(md *moduledata) {
+	/// 默认false
 	badtable := false
-	for i := 0; i < len(md.ftab); i++ {
+
+	for i := 0; i < len(md.ftab); i++ { /// ftab 是一个函数的相关符号???
 		entry := md.ftab[i].entry
 		if md.minpc <= entry && entry <= md.maxpc {
 			continue
@@ -117,6 +124,8 @@ func pluginftabverify(md *moduledata) {
 		badtable = true
 		println("ftab entry outside pc range: ", hex(entry), "/", hex(entry2), ": ", name, "/", name2)
 	}
+
+	/// 如果是损坏的表，则直接报错
 	if badtable {
 		throw("runtime: plugin has bad symbol table")
 	}

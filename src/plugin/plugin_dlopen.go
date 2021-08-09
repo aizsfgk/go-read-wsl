@@ -74,6 +74,8 @@ func open(name string) (*Plugin, error) {
 	if plugins == nil {
 		plugins = make(map[string]*Plugin)
 	}
+
+	/// 最后模块初始化
 	pluginpath, syms, errstr := lastmoduleinit()
 	if errstr != "" {
 		plugins[filepath] = &Plugin{
@@ -92,6 +94,7 @@ func open(name string) (*Plugin, error) {
 	plugins[filepath] = p
 	pluginsMu.Unlock()
 
+	/// 调用初始化任务
 	initStr := make([]byte, len(pluginpath)+len("..inittask")+1) // +1 for terminating NUL
 	copy(initStr, pluginpath)
 	copy(initStr[len(pluginpath):], "..inittask")
@@ -101,6 +104,7 @@ func open(name string) (*Plugin, error) {
 		doInit(initTask)
 	}
 
+	/// 为每个插件填充符号
 	// Fill out the value of each plugin symbol.
 	updatedSyms := map[string]interface{}{}
 	for symName, sym := range syms {
@@ -114,6 +118,7 @@ func open(name string) (*Plugin, error) {
 		cname := make([]byte, len(fullName)+1)
 		copy(cname, fullName)
 
+		/// 查找插件
 		p := C.pluginLookup(h, (*C.char)(unsafe.Pointer(&cname[0])), &cErr)
 		if p == nil {
 			return nil, errors.New(`plugin.Open("` + name + `"): could not find symbol ` + symName + `: ` + C.GoString(cErr))
@@ -124,6 +129,7 @@ func open(name string) (*Plugin, error) {
 		} else {
 			(*valp)[1] = p
 		}
+
 		// we can't add to syms during iteration as we'll end up processing
 		// some symbols twice with the inability to tell if the symbol is a function
 		updatedSyms[symName] = sym
