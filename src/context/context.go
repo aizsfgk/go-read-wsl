@@ -153,21 +153,28 @@ type Context interface {
 	Value(key interface{}) interface{}
 }
 
+/// 当上下文被取消，返回该错误
 // Canceled is the error returned by Context.Err when the context is canceled.
 var Canceled = errors.New("context canceled")
 
+/// 当上下文结束日期到达后，返回该错误
 // DeadlineExceeded is the error returned by Context.Err when the context's
 // deadline passes.
 var DeadlineExceeded error = deadlineExceededError{}
 
 type deadlineExceededError struct{}
 
+/// 错误
 func (deadlineExceededError) Error() string   { return "context deadline exceeded" }
+/// 超时
 func (deadlineExceededError) Timeout() bool   { return true }
+/// 暂时的
 func (deadlineExceededError) Temporary() bool { return true }
 
 // An emptyCtx is never canceled, has no values, and has no deadline. It is not
 // struct{}, since vars of this type must have distinct addresses.
+/// 一个emptyCtx 是一个 从不取消奥/没有值/没有结束时间的上下文。
+/// 这种类型的变量，必须要有不同的地址
 type emptyCtx int
 
 func (*emptyCtx) Deadline() (deadline time.Time, ok bool) {
@@ -186,6 +193,7 @@ func (*emptyCtx) Value(key interface{}) interface{} {
 	return nil
 }
 
+/// 空上下文转为字符串
 func (e *emptyCtx) String() string {
 	switch e {
 	case background:
@@ -217,11 +225,19 @@ func TODO() Context {
 	return todo
 }
 
+/// 一个取消的Func告诉一个操作放弃其工作。
+/// CancelFunc不等待工作停止。
+/// 一个CancelFunc可以被多个基本程序同时调用。
+/// 在第一次调用之后，随后对CancelFunc的调用什么也不做。
+
 // A CancelFunc tells an operation to abandon its work.
 // A CancelFunc does not wait for the work to stop.
 // A CancelFunc may be called by multiple goroutines simultaneously.
 // After the first call, subsequent calls to a CancelFunc do nothing.
 type CancelFunc func()
+
+
+/// ***************** 主函数 ****************** ///
 
 // WithCancel returns a copy of parent with a new Done channel. The returned
 // context's Done channel is closed when the returned cancel function is called
@@ -230,11 +246,15 @@ type CancelFunc func()
 // Canceling this context releases resources associated with it, so code should
 // call cancel as soon as the operations running in this Context complete.
 func WithCancel(parent Context) (ctx Context, cancel CancelFunc) {
+	/// 父级上下文不能是nil
 	if parent == nil {
 		panic("cannot create context from nil parent")
 	}
+	/// 新建一个上下文
 	c := newCancelCtx(parent)
+	/// 繁殖取消函数
 	propagateCancel(parent, &c)
+	/// 返回
 	return &c, func() { c.cancel(true, Canceled) }
 }
 
@@ -328,26 +348,29 @@ func removeChild(parent Context, child canceler) {
 // A canceler is a context type that can be canceled directly. The
 // implementations are *cancelCtx and *timerCtx.
 type canceler interface {
-	cancel(removeFromParent bool, err error)
-	Done() <-chan struct{}
+	cancel(removeFromParent bool, err error) /// 取消函数
+	Done() <-chan struct{}                   /// Done函数
 }
 
+/// 一个重复使用的被关闭的通道
 // closedchan is a reusable closed channel.
 var closedchan = make(chan struct{})
 
+/// 关闭这个通道
 func init() {
 	close(closedchan)
 }
 
+/// 一个取消上下文，可以被取消
 // A cancelCtx can be canceled. When canceled, it also cancels any children
 // that implement canceler.
 type cancelCtx struct {
 	Context
 
-	mu       sync.Mutex            // protects following fields
-	done     chan struct{}         // created lazily, closed by first cancel call
-	children map[canceler]struct{} // set to nil by the first cancel call
-	err      error                 // set to non-nil by the first cancel call
+	mu       sync.Mutex            // protects following fields; 保护下边的字段
+	done     chan struct{}         // created lazily, closed by first cancel call; 惰性创建，第一个取消函数调用，则关闭
+	children map[canceler]struct{} // set to nil by the first cancel call； 被设置为nil, 当第一个取消函数被调用
+	err      error                 // set to non-nil by the first cancel call； 当第一个取消函数被调用，设置为非空
 }
 
 func (c *cancelCtx) Value(key interface{}) interface{} {
