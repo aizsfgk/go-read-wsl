@@ -270,12 +270,12 @@ var goroutines int32
 func propagateCancel(parent Context, child canceler) {
 	done := parent.Done()
 	if done == nil {
-		return // parent is never canceled
+		return // parent is never canceled /// 父上下文不会触发取消信号
 	}
 
 	select {
 	case <-done:
-		// parent is already canceled
+		// parent is already canceled /// 父上下文已经被取消
 		child.cancel(false, parent.Err())
 		return
 	default:
@@ -415,6 +415,7 @@ func (c *cancelCtx) String() string {
 // cancel closes c.done, cancels each of c's children, and, if
 // removeFromParent is true, removes c from its parent's children.
 func (c *cancelCtx) cancel(removeFromParent bool, err error) {
+	/// 错误为空；panic
 	if err == nil {
 		panic("context: internal error: missing cancel error")
 	}
@@ -455,6 +456,7 @@ func WithDeadline(parent Context, d time.Time) (Context, CancelFunc) {
 		panic("cannot create context from nil parent")
 	}
 	if cur, ok := parent.Deadline(); ok && cur.Before(d) {
+		/// 父上下文的deadline 早于 新的 d
 		// The current deadline is already sooner than the new one.
 		return WithCancel(parent)
 	}
@@ -478,6 +480,7 @@ func WithDeadline(parent Context, d time.Time) (Context, CancelFunc) {
 	return c, func() { c.cancel(true, Canceled) }
 }
 
+/// 定时器上下文
 // A timerCtx carries a timer and a deadline. It embeds a cancelCtx to
 // implement Done and Err. It implements cancel by stopping its timer then
 // delegating to cancelCtx.cancel.
@@ -523,6 +526,7 @@ func (c *timerCtx) cancel(removeFromParent bool, err error) {
 // 		return slowOperation(ctx)
 // 	}
 func WithTimeout(parent Context, timeout time.Duration) (Context, CancelFunc) {
+	/// WithTimeout 就是 WithDeadline
 	return WithDeadline(parent, time.Now().Add(timeout))
 }
 
