@@ -25,31 +25,40 @@ import (
 type Conn struct {
 	// constant
 	conn        net.Conn
+
+	/// 是否是客户端
 	isClient    bool
+	/// 握手函数
 	handshakeFn func() error // (*Conn).clientHandshake or serverHandshake
 
 	// handshakeStatus is 1 if the connection is currently transferring
 	// application data (i.e. is not currently processing a handshake).
 	// This field is only to be accessed with sync/atomic.
+	/// 如果握手完成，则设置为1
 	handshakeStatus uint32
 	// constant after handshake; protected by handshakeMutex
 	handshakeMutex sync.Mutex
 	handshakeErr   error   // error resulting from handshake
-	vers           uint16  // TLS version
-	haveVers       bool    // version has been negotiated
-	config         *Config // configuration passed to constructor
+	vers           uint16  // TLS version /// TLS版本 1.0/1.1/1.2/1.3
+	haveVers       bool    // version has been negotiated； /// 版本协商
+
+	config         *Config // configuration passed to constructor； /// 配置
 	// handshakes counts the number of handshakes performed on the
 	// connection so far. If renegotiation is disabled then this is either
 	// zero or one.
-	handshakes       int
-	didResume        bool // whether this connection was a session resumption
-	cipherSuite      uint16
+	handshakes       int /// 握手数???
+	didResume        bool // whether this connection was a session resumption; /// 连接被重新开始???
+	cipherSuite      uint16 /// 密码套件
+
 	ocspResponse     []byte   // stapled OCSP response
 	scts             [][]byte // signed certificate timestamps from server
+
+	/// x509 证书
 	peerCertificates []*x509.Certificate
 	// verifiedChains contains the certificate chains that we built, as
 	// opposed to the ones presented by the server.
 	verifiedChains [][]*x509.Certificate
+
 	// serverName contains the server name indicated by the client, if any.
 	serverName string
 	// secureRenegotiation is true if the server echoed the secure
@@ -150,6 +159,7 @@ func (c *Conn) SetWriteDeadline(t time.Time) error {
 	return c.conn.SetWriteDeadline(t)
 }
 
+/// halfConn 代表一个连接的一个方向
 // A halfConn represents one direction of the record layer
 // connection, either sending or receiving.
 type halfConn struct {
@@ -1346,6 +1356,7 @@ func (c *Conn) closeNotify() error {
 // For control over canceling or setting a timeout on a handshake, use
 // the Dialer's DialContext method.
 func (c *Conn) Handshake() error {
+	/// 互斥锁锁住
 	c.handshakeMutex.Lock()
 	defer c.handshakeMutex.Unlock()
 

@@ -32,12 +32,13 @@ import (
 // using conn as the underlying transport.
 // The configuration config must be non-nil and must include
 // at least one certificate or else set GetCertificate.
+/// 返回一个TLS服务器，配置不可为空；且至少含有一个证书
 func Server(conn net.Conn, config *Config) *Conn {
 	c := &Conn{
 		conn:   conn,
 		config: config,
 	}
-	c.handshakeFn = c.serverHandshake
+	c.handshakeFn = c.serverHandshake /// 设置握手函数
 	return c
 }
 
@@ -45,17 +46,19 @@ func Server(conn net.Conn, config *Config) *Conn {
 // using conn as the underlying transport.
 // The config cannot be nil: users must set either ServerName or
 // InsecureSkipVerify in the config.
+/// 返回一个TLS客户端；配置不可为空；用户必须设置 ServerName 或 InsecureSkipVerify
 func Client(conn net.Conn, config *Config) *Conn {
 	c := &Conn{
 		conn:     conn,
 		config:   config,
 		isClient: true,
 	}
-	c.handshakeFn = c.clientHandshake
+	c.handshakeFn = c.clientHandshake /// 客户端握手函数
 	return c
 }
 
 // A listener implements a network listener (net.Listener) for TLS connections.
+/// 实现了 net.Listener
 type listener struct {
 	net.Listener
 	config *Config
@@ -367,6 +370,9 @@ func X509KeyPair(certPEMBlock, keyPEMBlock []byte) (Certificate, error) {
 // Attempt to parse the given private key DER block. OpenSSL 0.9.8 generates
 // PKCS #1 private keys by default, while OpenSSL 1.0.0 generates PKCS #8 keys.
 // OpenSSL ecparam generates SEC1 EC private keys for ECDSA. We try all three.
+///
+/// 我们尝试3种方式
+///
 func parsePrivateKey(der []byte) (crypto.PrivateKey, error) {
 	if key, err := x509.ParsePKCS1PrivateKey(der); err == nil {
 		return key, nil
