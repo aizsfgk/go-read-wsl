@@ -359,6 +359,8 @@ func removeChild(parent Context, child canceler) {
 
 // A canceler is a context type that can be canceled directly. The
 // implementations are *cancelCtx and *timerCtx.
+/// canceler 是一个 context包类型，其可以直接被取消。
+/// 其被 *cancelCtx 和 *timerCtx 实现。
 type canceler interface {
 	cancel(removeFromParent bool, err error) /// 取消函数
 	Done() <-chan struct{}                   /// Done函数
@@ -370,7 +372,7 @@ var closedchan = make(chan struct{})
 
 /// 关闭这个通道
 func init() {
-	close(closedchan)
+	close(closedchan) /// 初始化，首先关闭这个管道
 }
 
 /// 一个取消上下文，可以被取消
@@ -444,7 +446,7 @@ func (c *cancelCtx) cancel(removeFromParent bool, err error) {
 	/// 设置错误
 	c.err = err
 	if c.done == nil {
-		c.done = closedchan
+		c.done = closedchan ///是一个已经关闭的channel
 	} else {
 		close(c.done)  /// 关闭这个管道
 	}
@@ -477,16 +479,19 @@ func WithDeadline(parent Context, d time.Time) (Context, CancelFunc) {
 		panic("cannot create context from nil parent")
 	}
 
-
+	/// 获取父上下文的截至时间，如果已经到期，直接返回WithCancel()
 	if cur, ok := parent.Deadline(); ok && cur.Before(d) {
 		/// 父上下文的deadline 早于 新的 d
 		// The current deadline is already sooner than the new one.
 		return WithCancel(parent)
 	}
+
+	/// 构建一个定时器上下文
 	c := &timerCtx{
 		cancelCtx: newCancelCtx(parent),
 		deadline:  d,
 	}
+	/// 绑定父上下文和子c关系
 	propagateCancel(parent, c)
 
 	/// 直到d
