@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+/// TLS: Transport Layer Security Protocol; 传输层安全协议
+/// https://www.rfc-editor.org/rfc/rfc5246.html
+///
 // Package tls partially implements TLS 1.2, as specified in RFC 5246,
 // and TLS 1.3, as specified in RFC 8446.
 package tls
