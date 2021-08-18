@@ -22,9 +22,10 @@ import (
 
 // A Conn represents a secured connection.
 // It implements the net.Conn interface.
+/// 实现了 net.Conn 接口
 type Conn struct {
 	// constant
-	conn        net.Conn
+	conn        net.Conn /// 包含网络连接
 
 	/// 是否是客户端
 	isClient    bool
@@ -330,6 +331,7 @@ type cbcMode interface {
 
 // decrypt authenticates and decrypts the record if protection is active at
 // this stage. The returned plaintext might overlap with the input.
+/// 解密验证 和解密记录
 func (hc *halfConn) decrypt(record []byte) ([]byte, recordType, error) {
 	var plaintext []byte
 	typ := recordType(record[0])
@@ -628,7 +630,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 		return err
 	}
 	hdr := c.rawInput.Bytes()[:recordHeaderLen]
-	typ := recordType(hdr[0])
+	typ := recordType(hdr[0]) /// 类型
 
 	// No valid TLS record has a type of 0x80, however SSLv2 handshakes
 	// start with a uint16 length where the MSB is set and the first record
@@ -639,6 +641,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 		return c.in.setErrorLocked(c.newRecordHeaderError(nil, "unsupported SSLv2 handshake received"))
 	}
 
+	/// 版本号
 	vers := uint16(hdr[1])<<8 | uint16(hdr[2])
 	n := int(hdr[3])<<8 | int(hdr[4])
 	if c.haveVers && c.vers != VersionTLS13 && vers != c.vers {
@@ -669,7 +672,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 
 	// Process message.
 	record := c.rawInput.Next(recordHeaderLen + n)
-	data, typ, err := c.in.decrypt(record)
+	data, typ, err := c.in.decrypt(record) /// 解密这个record
 	if err != nil {
 		return c.in.setErrorLocked(c.sendAlert(err.(alert)))
 	}
@@ -753,7 +756,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 		// not read from or written to until c.input is drained.
 		c.input.Reset(data)
 
-	case recordTypeHandshake:
+	case recordTypeHandshake: /// 握手
 		if len(data) == 0 || expectChangeCipherSpec {
 			return c.in.setErrorLocked(c.sendAlert(alertUnexpectedMessage))
 		}
@@ -799,6 +802,7 @@ func (r *atLeastReader) Read(p []byte) (int, error) {
 
 // readFromUntil reads from r into c.rawInput until c.rawInput contains
 // at least n bytes or else returns an error.
+/// 至少读取 n 字节的内容
 func (c *Conn) readFromUntil(r io.Reader, n int) error {
 	if c.rawInput.Len() >= n {
 		return nil
@@ -997,15 +1001,18 @@ func (c *Conn) writeRecord(typ recordType, data []byte) (int, error) {
 
 // readHandshake reads the next handshake message from
 // the record layer.
+/// 读取下一个握手信息从记录层
 func (c *Conn) readHandshake() (interface{}, error) {
+
+	/// 数据内容不够；则再读取数据
 	for c.hand.Len() < 4 {
 		if err := c.readRecord(); err != nil {
 			return nil, err
 		}
 	}
 
-	data := c.hand.Bytes()
-	n := int(data[1])<<16 | int(data[2])<<8 | int(data[3])
+	data := c.hand.Bytes() /// 获取握手的数据
+	n := int(data[1])<<16 | int(data[2])<<8 | int(data[3]) /// 握手的次数
 	if n > maxHandshake {
 		c.sendAlertLocked(alertInternalError)
 		return nil, c.in.setErrorLocked(fmt.Errorf("tls: handshake message of length %d bytes exceeds maximum of %d bytes", n, maxHandshake))
@@ -1017,7 +1024,7 @@ func (c *Conn) readHandshake() (interface{}, error) {
 	}
 	data = c.hand.Next(4 + n)
 	var m handshakeMessage
-	switch data[0] {
+	switch data[0] { /// 查看第一个字节
 	case typeHelloRequest:
 		m = new(helloRequestMsg)
 	case typeClientHello:

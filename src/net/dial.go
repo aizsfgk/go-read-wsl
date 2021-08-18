@@ -14,9 +14,10 @@ import (
 // defaultTCPKeepAlive is a default constant value for TCPKeepAlive times
 // See golang.org/issue/31510
 const (
-	defaultTCPKeepAlive = 15 * time.Second
+	defaultTCPKeepAlive = 15 * time.Second /// 默认保持15秒
 )
 
+/// Dialer 拨号器
 // A Dialer contains options for connecting to an address.
 // 一个Dialer包含选项为 connnect 一个地址
 // The zero value for each field is equivalent to dialing

@@ -26,10 +26,10 @@ import (
 )
 
 const (
-	VersionTLS10 = 0x0301
-	VersionTLS11 = 0x0302
-	VersionTLS12 = 0x0303
-	VersionTLS13 = 0x0304
+	VersionTLS10 = 0x0301 // 1.0
+	VersionTLS11 = 0x0302 // 1.1
+	VersionTLS12 = 0x0303 // 1.2
+	VersionTLS13 = 0x0304 // 1.3
 
 	// Deprecated: SSLv3 is cryptographically broken, and is no longer
 	// supported by this package. See golang.org/issue/32716.
@@ -40,7 +40,7 @@ const (
 	maxPlaintext       = 16384        // maximum plaintext payload length
 	maxCiphertext      = 16384 + 2048 // maximum ciphertext payload length
 	maxCiphertextTLS13 = 16384 + 256  // maximum ciphertext length in TLS 1.3
-	recordHeaderLen    = 5            // record header length
+	recordHeaderLen    = 5            // record header length; ///
 	maxHandshake       = 65536        // maximum handshake we support (protocol max is 16 MB)
 	maxUselessRecords  = 16           // maximum number of consecutive non-advancing records
 )
@@ -49,15 +49,16 @@ const (
 type recordType uint8
 
 const (
-	recordTypeChangeCipherSpec recordType = 20
-	recordTypeAlert            recordType = 21
-	recordTypeHandshake        recordType = 22
-	recordTypeApplicationData  recordType = 23
+	/// 4种类型
+	recordTypeChangeCipherSpec recordType = 20 /// 改变密码
+	recordTypeAlert            recordType = 21 /// Alert
+	recordTypeHandshake        recordType = 22 /// 握手
+	recordTypeApplicationData  recordType = 23 /// 应用数据
 )
 
 // TLS handshake message types.
 const (
-	typeHelloRequest        uint8 = 0
+	typeHelloRequest        uint8 = 0 /// 请求
 	typeClientHello         uint8 = 1
 	typeServerHello         uint8 = 2
 	typeNewSessionTicket    uint8 = 4

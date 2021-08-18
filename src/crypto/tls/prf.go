@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+/// PRF : pseudorandom function 伪随机函数
+/// cipher-suite-specified PRFs
+/// https://www.rfc-editor.org/rfc/rfc5246.html#page-4
 package tls
 
 import (
@@ -16,6 +19,7 @@ import (
 	"hash"
 )
 
+///
 // Split a premaster secret in two as specified in RFC 4346, Section 5.
 func splitPreMasterSecret(secret []byte) (s1, s2 []byte) {
 	s1 = secret[0 : (len(secret)+1)/2]
@@ -44,6 +48,7 @@ func pHash(result, secret, seed []byte, hash func() hash.Hash) {
 	}
 }
 
+/// 1.0 伪随机函数
 // prf10 implements the TLS 1.0 pseudo-random function, as defined in RFC 2246, Section 5.
 func prf10(result, secret, label, seed []byte) {
 	hashSHA1 := sha1.New
@@ -250,6 +255,11 @@ func noExportedKeyingMaterial(label string, context []byte, length int) ([]byte,
 	return nil, errors.New("crypto/tls: ExportKeyingMaterial is unavailable when renegotiation is enabled")
 }
 
+///
+///
+///
+///
+///
 // ekmFromMasterSecret generates exported keying material as defined in RFC 5705.
 func ekmFromMasterSecret(version uint16, suite *cipherSuite, masterSecret, clientRandom, serverRandom []byte) func(string, []byte, int) ([]byte, error) {
 	return func(label string, context []byte, length int) ([]byte, error) {

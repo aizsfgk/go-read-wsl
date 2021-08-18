@@ -20,10 +20,10 @@ import (
 
 // serverHandshakeState contains details of a server handshake in progress.
 // It's discarded once the handshake has completed.
-type serverHandshakeState struct {
+type serverHandshakeState struct { /// 服务器握手状态
 	c            *Conn
 	clientHello  *clientHelloMsg
-	hello        *serverHelloMsg
+	hello        *serverHelloMsg ///
 	suite        *cipherSuite
 	ecdheOk      bool
 	ecSignOk     bool
@@ -60,6 +60,7 @@ func (c *Conn) serverHandshake() error {
 func (hs *serverHandshakeState) handshake() error {
 	c := hs.c
 
+	/// 处理客户端HELLO
 	if err := hs.processClientHello(); err != nil {
 		return err
 	}
@@ -124,6 +125,8 @@ func (hs *serverHandshakeState) handshake() error {
 
 // readClientHello reads a ClientHello message and selects the protocol version.
 func (c *Conn) readClientHello() (*clientHelloMsg, error) {
+
+	/// 获取消息；msg是一个接口
 	msg, err := c.readHandshake()
 	if err != nil {
 		return nil, err
@@ -134,6 +137,7 @@ func (c *Conn) readClientHello() (*clientHelloMsg, error) {
 		return nil, unexpectedMessageError(clientHello, msg)
 	}
 
+	/// 配置
 	var configForClient *Config
 	originalConfig := c.config
 	if c.config.GetConfigForClient != nil {
