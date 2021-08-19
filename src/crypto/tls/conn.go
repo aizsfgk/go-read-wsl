@@ -584,6 +584,7 @@ func (c *Conn) newRecordHeaderError(conn net.Conn, msg string) (err RecordHeader
 	return err
 }
 
+/// 读取记录
 func (c *Conn) readRecord() error {
 	return c.readRecordOrCCS(false)
 }
@@ -643,6 +644,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 
 	/// 版本号
 	vers := uint16(hdr[1])<<8 | uint16(hdr[2])
+	/// 后边多少个字节
 	n := int(hdr[3])<<8 | int(hdr[4])
 	if c.haveVers && c.vers != VersionTLS13 && vers != c.vers {
 		c.sendAlert(alertProtocolVersion)
@@ -697,7 +699,7 @@ func (c *Conn) readRecordOrCCS(expectChangeCipherSpec bool) error {
 
 	switch typ {
 	default:
-		return c.in.setErrorLocked(c.sendAlert(alertUnexpectedMessage))
+		return c.in.setErrorLocked(c.sendAlert(alertUnexpectedMessage)) /// 不期望的消息
 
 	case recordTypeAlert:
 		if len(data) != 2 {
@@ -970,7 +972,7 @@ func (c *Conn) writeRecordLocked(typ recordType, data []byte) (int, error) {
 		c.outBuf[4] = byte(m)
 
 		var err error
-		c.outBuf, err = c.out.encrypt(c.outBuf, data[:m], c.config.rand())
+		c.outBuf, err = c.out.encrypt(c.outBuf, data[:m], c.config.rand()) /// 加密数据
 		if err != nil {
 			return n, err
 		}
@@ -1012,11 +1014,13 @@ func (c *Conn) readHandshake() (interface{}, error) {
 	}
 
 	data := c.hand.Bytes() /// 获取握手的数据
-	n := int(data[1])<<16 | int(data[2])<<8 | int(data[3]) /// 握手的次数
+	n := int(data[1])<<16 | int(data[2])<<8 | int(data[3]) /// 应该读取的字节数
 	if n > maxHandshake {
 		c.sendAlertLocked(alertInternalError)
 		return nil, c.in.setErrorLocked(fmt.Errorf("tls: handshake message of length %d bytes exceeds maximum of %d bytes", n, maxHandshake))
 	}
+
+	/// 数据长度不够，接着读取
 	for c.hand.Len() < 4+n {
 		if err := c.readRecord(); err != nil {
 			return nil, err
@@ -1027,7 +1031,7 @@ func (c *Conn) readHandshake() (interface{}, error) {
 	switch data[0] { /// 查看第一个字节
 	case typeHelloRequest:
 		m = new(helloRequestMsg)
-	case typeClientHello:
+	case typeClientHello: /// 是客户端hello
 		m = new(clientHelloMsg)
 	case typeServerHello:
 		m = new(serverHelloMsg)

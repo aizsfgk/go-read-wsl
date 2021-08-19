@@ -83,6 +83,7 @@ const (
 )
 
 // TLS extension numbers
+/// 扩展数据类型
 const (
 	extensionServerName              uint16 = 0
 	extensionStatusRequest           uint16 = 5

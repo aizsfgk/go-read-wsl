@@ -66,13 +66,16 @@ func readUint24LengthPrefixed(s *cryptobyte.String, out *[]byte) bool {
 	return s.ReadUint24LengthPrefixed((*cryptobyte.String)(out))
 }
 
+/// 客户端 Hello 信息
 type clientHelloMsg struct {
+	/// 原始数据
 	raw                              []byte
 	vers                             uint16
 	random                           []byte
 	sessionId                        []byte
 	cipherSuites                     []uint16
 	compressionMethods               []uint8
+	/// 以下都是扩展数据
 	serverName                       string
 	ocspStapling                     bool
 	supportedCurves                  []CurveID
@@ -344,37 +347,46 @@ func (m *clientHelloMsg) updateBinders(pskBinders [][]byte) {
 	}
 }
 
+/// 反序列化信息
 func (m *clientHelloMsg) unmarshal(data []byte) bool {
 	*m = clientHelloMsg{raw: data}
 	s := cryptobyte.String(data)
 
+	/// 跳过类型和长度字段
 	if !s.Skip(4) || // message type and uint24 length field
-		!s.ReadUint16(&m.vers) || !s.ReadBytes(&m.random, 32) ||
-		!readUint8LengthPrefixed(&s, &m.sessionId) {
+		!s.ReadUint16(&m.vers) || /// 2 个字节的版本号
+		!s.ReadBytes(&m.random, 32) || /// 32 字节的随机数
+		!readUint8LengthPrefixed(&s, &m.sessionId) { /// 先读取一个字节长度，确定长度；然后再读取该长度的数据
 		return false
 	}
 
+	/// 加密套件
 	var cipherSuites cryptobyte.String
+	/// 先读取2字节，确定之后读取的长度
+	/// 然后读出 cipherSuites
 	if !s.ReadUint16LengthPrefixed(&cipherSuites) {
 		return false
 	}
 	m.cipherSuites = []uint16{}
 	m.secureRenegotiationSupported = false
+	/// 如果套件数据不为空
 	for !cipherSuites.Empty() {
 		var suite uint16
-		if !cipherSuites.ReadUint16(&suite) {
+		if !cipherSuites.ReadUint16(&suite) { /// 先读出长度
 			return false
 		}
 		if suite == scsvRenegotiation {
-			m.secureRenegotiationSupported = true
+			m.secureRenegotiationSupported = true /// 支持重复谈判
 		}
 		m.cipherSuites = append(m.cipherSuites, suite)
 	}
 
-	if !readUint8LengthPrefixed(&s, &m.compressionMethods) {
+	if !readUint8LengthPrefixed(&s, &m.compressionMethods) { /// 压缩方法
 		return false
 	}
 
+	/// 此时数据空了，表示读取成功
+	/// 但可选的增加扩展数据
 	if s.Empty() {
 		// ClientHello is optionally followed by extension data
 		return true
@@ -385,6 +397,7 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 		return false
 	}
 
+	/// 扩展数据不为空
 	for !extensions.Empty() {
 		var extension uint16
 		var extData cryptobyte.String
@@ -393,6 +406,7 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 			return false
 		}
 
+		/// 扩展数据类型
 		switch extension {
 		case extensionServerName:
 			// RFC 6066, Section 3
@@ -585,7 +599,8 @@ func (m *clientHelloMsg) unmarshal(data []byte) bool {
 			return false
 		}
 	}
-
+	
+	/// 返回成功
 	return true
 }
 

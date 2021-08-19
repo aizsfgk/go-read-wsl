@@ -37,11 +37,12 @@ type serverHandshakeState struct { /// 服务器握手状态
 
 // serverHandshake performs a TLS handshake as a server.
 func (c *Conn) serverHandshake() error {
-	clientHello, err := c.readClientHello()
+	clientHello, err := c.readClientHello() /// 读取客户端的Hello
 	if err != nil {
 		return err
 	}
 
+	/// TLS1.3
 	if c.vers == VersionTLS13 {
 		hs := serverHandshakeStateTLS13{
 			c:           c,
@@ -50,17 +51,21 @@ func (c *Conn) serverHandshake() error {
 		return hs.handshake()
 	}
 
+	/// TLS < 1.3
+	/// 服务器状态
 	hs := serverHandshakeState{
 		c:           c,
 		clientHello: clientHello,
 	}
+
+	/// 握手状态进行握手
 	return hs.handshake()
 }
 
 func (hs *serverHandshakeState) handshake() error {
 	c := hs.c
 
-	/// 处理客户端HELLO
+	/// 处理客户端HELLO;
 	if err := hs.processClientHello(); err != nil {
 		return err
 	}
@@ -90,6 +95,7 @@ func (hs *serverHandshakeState) handshake() error {
 			return err
 		}
 	} else {
+		/// 常规逻辑走这个分支
 		// The client didn't include a session ticket, or it wasn't
 		// valid so we do a full handshake.
 		if err := hs.pickCipherSuite(); err != nil {
@@ -101,14 +107,20 @@ func (hs *serverHandshakeState) handshake() error {
 		if err := hs.establishKeys(); err != nil {
 			return err
 		}
+
+		/// 读取握手结束消息
 		if err := hs.readFinished(c.clientFinished[:]); err != nil {
 			return err
 		}
+
+
 		c.clientFinishedIsFirst = true
 		c.buffering = true
 		if err := hs.sendSessionTicket(); err != nil {
 			return err
 		}
+
+		/// 客户端再发送一个Finished
 		if err := hs.sendFinished(nil); err != nil {
 			return err
 		}
@@ -118,6 +130,7 @@ func (hs *serverHandshakeState) handshake() error {
 	}
 
 	c.ekm = ekmFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.clientHello.random, hs.hello.random)
+	/// 握手状态改为已完成
 	atomic.StoreUint32(&c.handshakeStatus, 1)
 
 	return nil
@@ -126,8 +139,10 @@ func (hs *serverHandshakeState) handshake() error {
 // readClientHello reads a ClientHello message and selects the protocol version.
 func (c *Conn) readClientHello() (*clientHelloMsg, error) {
 
-	/// 获取消息；msg是一个接口
+	/// 获取消息；msg是一个接口;
+	/// 握手阶段第一步是：typeClientHello
 	msg, err := c.readHandshake()
+
 	if err != nil {
 		return nil, err
 	}
@@ -149,6 +164,8 @@ func (c *Conn) readClientHello() (*clientHelloMsg, error) {
 			c.config = configForClient
 		}
 	}
+
+	/// TicketKeys
 	c.ticketKeys = originalConfig.ticketKeys(configForClient)
 
 	clientVersions := clientHello.supportedVersions
@@ -168,11 +185,14 @@ func (c *Conn) readClientHello() (*clientHelloMsg, error) {
 }
 
 func (hs *serverHandshakeState) processClientHello() error {
+	/// 连接
 	c := hs.c
 
+	/// 新建服务器Hello消息
 	hs.hello = new(serverHelloMsg)
 	hs.hello.vers = c.vers
 
+	/// 发现压缩
 	foundCompression := false
 	// We only support null compression, so check that the client offered it.
 	for _, compression := range hs.clientHello.compressionMethods {
@@ -182,11 +202,13 @@ func (hs *serverHandshakeState) processClientHello() error {
 		}
 	}
 
+	/// 未发现压缩，则弹窗
 	if !foundCompression {
 		c.sendAlert(alertHandshakeFailure)
 		return errors.New("tls: client does not support uncompressed connections")
 	}
 
+	/// 生成客户端随机数
 	hs.hello.random = make([]byte, 32)
 	serverRandom := hs.hello.random
 	// Downgrade protection canaries. See RFC 8446, Section 4.1.3.
@@ -205,6 +227,7 @@ func (hs *serverHandshakeState) processClientHello() error {
 		return err
 	}
 
+	/// 错误报错
 	if len(hs.clientHello.secureRenegotiation) != 0 {
 		c.sendAlert(alertHandshakeFailure)
 		return errors.New("tls: initial handshake had non-empty renegotiation extension")
@@ -223,6 +246,7 @@ func (hs *serverHandshakeState) processClientHello() error {
 		}
 	}
 
+	/// 获取证书
 	hs.cert, err = c.config.getCertificate(clientHelloInfo(c, hs.clientHello))
 	if err != nil {
 		if err == errNoCertificates {
@@ -232,6 +256,8 @@ func (hs *serverHandshakeState) processClientHello() error {
 		}
 		return err
 	}
+
+	/// 签名整数时间戳
 	if hs.clientHello.scts {
 		hs.hello.scts = hs.cert.SignedCertificateTimestamps
 	}
@@ -247,6 +273,7 @@ func (hs *serverHandshakeState) processClientHello() error {
 		hs.hello.supportedPoints = []uint8{pointFormatUncompressed}
 	}
 
+	/// 私钥
 	if priv, ok := hs.cert.PrivateKey.(crypto.Signer); ok {
 		switch priv.Public().(type) {
 		case *ecdsa.PublicKey:
@@ -260,6 +287,7 @@ func (hs *serverHandshakeState) processClientHello() error {
 			return fmt.Errorf("tls: unsupported signing key type (%T)", priv.Public())
 		}
 	}
+	///
 	if priv, ok := hs.cert.PrivateKey.(crypto.Decrypter); ok {
 		switch priv.Public().(type) {
 		case *rsa.PublicKey:
@@ -350,6 +378,7 @@ func (hs *serverHandshakeState) cipherSuiteOk(c *cipherSuite) bool {
 }
 
 // checkForResumption reports whether we should perform resumption on this connection.
+/// 检测我们是否继续在这个连接上
 func (hs *serverHandshakeState) checkForResumption() bool {
 	c := hs.c
 
@@ -465,6 +494,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		return err
 	}
 
+	/// certificate
 	certMsg := new(certificateMsg)
 	certMsg.certificates = hs.cert.Certificate
 	hs.finishedHash.Write(certMsg.marshal())
@@ -481,6 +511,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		}
 	}
 
+	/// ServerKeyExchange
 	keyAgreement := hs.suite.ka(c.vers)
 	skx, err := keyAgreement.generateServerKeyExchange(c.config, hs.cert, hs.clientHello, hs.hello)
 	if err != nil {
@@ -521,6 +552,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 		}
 	}
 
+	/// ServerHelloDone
 	helloDone := new(serverHelloDoneMsg)
 	hs.finishedHash.Write(helloDone.marshal())
 	if _, err := c.writeRecord(recordTypeHandshake, helloDone.marshal()); err != nil {
@@ -674,7 +706,7 @@ func (hs *serverHandshakeState) readFinished(out []byte) error {
 	if err != nil {
 		return err
 	}
-	clientFinished, ok := msg.(*finishedMsg)
+	clientFinished, ok := msg.(*finishedMsg) /// 握手结束消息；
 	if !ok {
 		c.sendAlert(alertUnexpectedMessage)
 		return unexpectedMessageError(clientFinished, msg)
@@ -823,6 +855,7 @@ func clientHelloInfo(c *Conn, clientHello *clientHelloMsg) *ClientHelloInfo {
 		supportedVersions = supportedVersionsFromMax(clientHello.vers)
 	}
 
+	/// 客户端Hello信息
 	return &ClientHelloInfo{
 		CipherSuites:      clientHello.cipherSuites,
 		ServerName:        clientHello.serverName,
