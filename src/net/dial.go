@@ -57,7 +57,7 @@ type Dialer struct {
 	// tried soon if IPv6 appears to be misconfigured and
 	// hanging.
 	//
-	// Deprecated: Fast Fallback is enabled by default. To
+	// Deprecated: Fast Fallback is enabled by default. To /// 已经不推荐了
 	// disable, set FallbackDelay to a negative value.
 	DualStack bool
 

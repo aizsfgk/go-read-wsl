@@ -34,23 +34,27 @@ import (
 	"golang.org/x/net/http/httpproxy"
 )
 
+///
+/// 分析这个默传输器是怎么样的???
+///
+/// 默认的传输器
 // DefaultTransport is the default implementation of Transport and is
 // used by DefaultClient. It establishes network connections as needed
 // and caches them for reuse by subsequent calls. It uses HTTP proxies
 // as directed by the $HTTP_PROXY and $NO_PROXY (or $http_proxy and
 // $no_proxy) environment variables.
 var DefaultTransport RoundTripper = &Transport{
-	Proxy: ProxyFromEnvironment,
-	DialContext: (&net.Dialer{
-		Timeout:   30 * time.Second,
-		KeepAlive: 30 * time.Second,
-		DualStack: true,
+	Proxy: ProxyFromEnvironment, /// 代理
+	DialContext: (&net.Dialer{    /// 连接器上下文
+		Timeout:   30 * time.Second,  /// 超时30s
+		KeepAlive: 30 * time.Second,  /// 保活30s
+		DualStack: true,              /// ???
 	}).DialContext,
-	ForceAttemptHTTP2:     true,
-	MaxIdleConns:          100,
-	IdleConnTimeout:       90 * time.Second,
-	TLSHandshakeTimeout:   10 * time.Second,
-	ExpectContinueTimeout: 1 * time.Second,
+	ForceAttemptHTTP2:     true, /// 强制尝试HTTP2
+	MaxIdleConns:          100,  /// 最大空闲连接数
+	IdleConnTimeout:       90 * time.Second,  /// 空闲连接超时
+	TLSHandshakeTimeout:   10 * time.Second,  /// TLS握手超时
+	ExpectContinueTimeout: 1 * time.Second,   /// 期望Continue超时
 }
 
 // DefaultMaxIdleConnsPerHost is the default value of Transport's
@@ -92,7 +96,9 @@ const DefaultMaxIdleConnsPerHost = 2
 // entry. If the idempotency key value is a zero-length slice, the
 // request is treated as idempotent but the header is not sent on the
 // wire.
+/// 一个传输器
 type Transport struct {
+	/// 互斥锁
 	idleMu       sync.Mutex
 	closeIdle    bool                                // user has requested to close all idle conns
 	idleConn     map[connectMethodKey][]*persistConn // most recently used at end

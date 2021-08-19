@@ -173,7 +173,7 @@ func (c *Client) send(req *Request, deadline time.Time) (resp *Response, didTime
 			req.AddCookie(cookie)
 		}
 	}
-	resp, didTimeout, err = send(req, c.transport(), deadline)
+	resp, didTimeout, err = send(req, c.transport(), deadline) /// req, transport, deadline
 	if err != nil {
 		return nil, didTimeout, err
 	}
@@ -247,11 +247,11 @@ func send(ireq *Request, rt RoundTripper, deadline time.Time) (resp *Response, d
 	if !deadline.IsZero() {
 		forkReq()
 	}
-	stopTimer, didTimeout := setRequestCancel(req, rt, deadline)
+	stopTimer, didTimeout := setRequestCancel(req, rt, deadline) /// 设置请求取消函数
 
 	resp, err = rt.RoundTrip(req)
 	if err != nil {
-		stopTimer()
+		stopTimer() /// 停止定时器
 		if resp != nil {
 			log.Printf("RoundTripper returned a response & error; ignoring response")
 		}
@@ -332,6 +332,10 @@ func knownRoundTripperImpl(rt RoundTripper, req *Request) bool {
 	return false
 }
 
+/// 设置请求取消：
+///
+///
+///
 // setRequestCancel sets req.Cancel and adds a deadline context to req
 // if deadline is non-zero. The RoundTripper's type is used to
 // determine whether the legacy CancelRequest behavior should be used.
@@ -631,7 +635,7 @@ func (c *Client) do(req *Request) (retres *Response, reterr error) {
 	for {
 		// For all but the first request, create the next
 		// request hop and replace req.
-		if len(reqs) > 0 {
+		if len(reqs) > 0 { /// 之后这里会append
 			loc := resp.Header.Get("Location")
 			if loc == "" {
 				resp.closeBody()
@@ -715,7 +719,7 @@ func (c *Client) do(req *Request) (retres *Response, reterr error) {
 		reqs = append(reqs, req)
 		var err error
 		var didTimeout func() bool
-		if resp, didTimeout, err = c.send(req, deadline); err != nil {
+		if resp, didTimeout, err = c.send(req, deadline); err != nil { /// 发送请求; deadline 就是你设置的超时时间
 			// c.send() always closes req.Body
 			reqBodyClosed = true
 			if !deadline.IsZero() && didTimeout() {
