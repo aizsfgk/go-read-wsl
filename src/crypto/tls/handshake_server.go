@@ -323,6 +323,7 @@ func supportsECDHE(c *Config, supportedCurves []CurveID, supportedPoints []uint8
 	return supportsCurve && supportsPointFormat
 }
 
+/// 挑选一个密码套件
 func (hs *serverHandshakeState) pickCipherSuite() error {
 	c := hs.c
 
@@ -472,6 +473,7 @@ func (hs *serverHandshakeState) doResumeHandshake() error {
 	return nil
 }
 
+/// 完全的握手过程
 func (hs *serverHandshakeState) doFullHandshake() error {
 	c := hs.c
 
@@ -490,6 +492,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	}
 	hs.finishedHash.Write(hs.clientHello.marshal())
 	hs.finishedHash.Write(hs.hello.marshal())
+	/// 发送 serverHello
 	if _, err := c.writeRecord(recordTypeHandshake, hs.hello.marshal()); err != nil {
 		return err
 	}
@@ -498,6 +501,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	certMsg := new(certificateMsg)
 	certMsg.certificates = hs.cert.Certificate
 	hs.finishedHash.Write(certMsg.marshal())
+	/// 发送Certificate
 	if _, err := c.writeRecord(recordTypeHandshake, certMsg.marshal()); err != nil {
 		return err
 	}
@@ -565,6 +569,8 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 
 	var pub crypto.PublicKey // public key for client auth, if any
 
+
+	/// 第三步：读取client ClientKeyEnchange
 	msg, err := c.readHandshake()
 	if err != nil {
 		return err
@@ -602,6 +608,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	}
 
 	// Get client key exchange
+	/// 这里才获取客户端Key exchange
 	ckx, ok := msg.(*clientKeyExchangeMsg)
 	if !ok {
 		c.sendAlert(alertUnexpectedMessage)

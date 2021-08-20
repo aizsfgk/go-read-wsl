@@ -198,7 +198,7 @@ var cipherSuites = []*cipherSuite{
 func selectCipherSuite(ids, supportedIDs []uint16, ok func(*cipherSuite) bool) *cipherSuite {
 	for _, id := range ids {
 		candidate := cipherSuiteByID(id)
-		if candidate == nil || !ok(candidate) {
+		if candidate == nil || !ok(candidate) { /// 不OK就结束
 			continue
 		}
 
