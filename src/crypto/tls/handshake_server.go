@@ -120,7 +120,7 @@ func (hs *serverHandshakeState) handshake() error {
 			return err
 		}
 
-		/// 客户端再发送一个Finished
+		/// 往客户端再发送一个Finished
 		if err := hs.sendFinished(nil); err != nil {
 			return err
 		}
@@ -129,6 +129,7 @@ func (hs *serverHandshakeState) handshake() error {
 		}
 	}
 
+	///
 	c.ekm = ekmFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.clientHello.random, hs.hello.random)
 	/// 握手状态改为已完成
 	atomic.StoreUint32(&c.handshakeStatus, 1)
@@ -578,6 +579,7 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 
 	// If we requested a client certificate, then the client must send a
 	// certificate message, even if it's empty.
+	/// 如果我们请求一个客户端证书，客户端必须发送一个证书信息，即使它是空的。
 	if c.config.ClientAuth >= RequestClientCert {
 		certMsg, ok := msg.(*certificateMsg)
 		if !ok {
@@ -616,11 +618,14 @@ func (hs *serverHandshakeState) doFullHandshake() error {
 	}
 	hs.finishedHash.Write(ckx.marshal())
 
+	/// pre-master
 	preMasterSecret, err := keyAgreement.processClientKeyExchange(c.config, hs.cert, ckx, c.vers)
 	if err != nil {
 		c.sendAlert(alertHandshakeFailure)
 		return err
 	}
+
+	/// 生成对称密钥
 	hs.masterSecret = masterFromPreMasterSecret(c.vers, hs.suite, preMasterSecret, hs.clientHello.random, hs.hello.random)
 	if err := c.config.writeKeyLog(keyLogLabelTLS12, hs.clientHello.random, hs.masterSecret); err != nil {
 		c.sendAlert(alertInternalError)

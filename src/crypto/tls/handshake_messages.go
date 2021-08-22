@@ -1547,7 +1547,7 @@ func (m *clientKeyExchangeMsg) unmarshal(data []byte) bool {
 	if l != len(data)-4 {
 		return false
 	}
-	m.ciphertext = data[4:]
+	m.ciphertext = data[4:] /// pre-master
 	return true
 }
 

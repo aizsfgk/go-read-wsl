@@ -21,6 +21,7 @@ import (
 	"time"
 )
 
+/// 客户端握手状态
 type clientHandshakeState struct {
 	c            *Conn
 	serverHello  *serverHelloMsg
@@ -31,6 +32,7 @@ type clientHandshakeState struct {
 	session      *ClientSessionState
 }
 
+/// 制作ClientHello
 func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 	config := c.config
 	if len(config.ServerName) == 0 && !config.InsecureSkipVerify {
@@ -133,9 +135,11 @@ func (c *Conn) makeClientHello() (*clientHelloMsg, ecdheParameters, error) {
 	return hello, params, nil
 }
 
+/// 客户端握手
 func (c *Conn) clientHandshake() (err error) {
+	/// 1. 加载默认配置
 	if c.config == nil {
-		c.config = defaultConfig()
+		c.config = defaultConfig() /// 使用默认配置
 	}
 
 	// This may be a renegotiation handshake, in which case some fields
@@ -163,6 +167,7 @@ func (c *Conn) clientHandshake() (err error) {
 		}()
 	}
 
+	/// 一. 客户端发送 ClientHello 信息
 	if _, err := c.writeRecord(recordTypeHandshake, hello.marshal()); err != nil {
 		return err
 	}
@@ -229,6 +234,7 @@ func (c *Conn) clientHandshake() (err error) {
 	return nil
 }
 
+/// 加载会话
 func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 	session *ClientSessionState, earlySecret, binderKey []byte) {
 	if c.config.SessionTicketsDisabled || c.config.ClientSessionCache == nil {
@@ -345,6 +351,7 @@ func (c *Conn) loadSession(hello *clientHelloMsg) (cacheKey string,
 	return
 }
 
+///
 func (c *Conn) pickTLSVersion(serverHello *serverHelloMsg) error {
 	peerVersion := serverHello.vers
 	if serverHello.supportedVersion != 0 {
@@ -367,9 +374,11 @@ func (c *Conn) pickTLSVersion(serverHello *serverHelloMsg) error {
 
 // Does the handshake, either a full one or resumes old session. Requires hs.c,
 // hs.hello, hs.serverHello, and, optionally, hs.session to be set.
+/// 进行握手
 func (hs *clientHandshakeState) handshake() error {
 	c := hs.c
 
+	/// 处理客户端握手信息
 	isResume, err := hs.processServerHello()
 	if err != nil {
 		return err
@@ -417,6 +426,8 @@ func (hs *clientHandshakeState) handshake() error {
 			return err
 		}
 	} else {
+
+		/// 常规走这个步骤
 		if err := hs.doFullHandshake(); err != nil {
 			return err
 		}
@@ -433,11 +444,14 @@ func (hs *clientHandshakeState) handshake() error {
 		if err := hs.readSessionTicket(); err != nil {
 			return err
 		}
+		
+		/// 读取结束
 		if err := hs.readFinished(c.serverFinished[:]); err != nil {
 			return err
 		}
 	}
 
+	/// 握手状态完成
 	c.ekm = ekmFromMasterSecret(c.vers, hs.suite, hs.masterSecret, hs.hello.random, hs.serverHello.random)
 	atomic.StoreUint32(&c.handshakeStatus, 1)
 
@@ -496,6 +510,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		}
 	}
 
+	/// 验证证书
 	if c.handshakes == 0 {
 		// If this is the first handshake on a connection, process and
 		// (optionally) verify the server's certificates.
@@ -570,6 +585,7 @@ func (hs *clientHandshakeState) doFullHandshake() error {
 		}
 	}
 
+	/// 生成客户端KeyExchange
 	preMasterSecret, ckx, err := keyAgreement.generateClientKeyExchange(c.config, hs.hello, c.peerCertificates[0])
 	if err != nil {
 		c.sendAlert(alertInternalError)
@@ -670,6 +686,7 @@ func (hs *clientHandshakeState) serverResumedSession() bool {
 		bytes.Equal(hs.serverHello.sessionId, hs.hello.sessionId)
 }
 
+/// 处理服务器 Hello
 func (hs *clientHandshakeState) processServerHello() (bool, error) {
 	c := hs.c
 

@@ -58,7 +58,7 @@ func Client(conn net.Conn, config *Config) *Conn {
 	}
 	c.handshakeFn = c.clientHandshake /// 客户端握手函数
 	return c
-}
+}f
 
 // A listener implements a network listener (net.Listener) for TLS connections.
 /// 实现了 net.Listener
