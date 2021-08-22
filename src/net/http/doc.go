@@ -3,6 +3,8 @@
 // license that can be found in the LICENSE file.
 
 /*
+
+/// 提供 http 客户端和服务端的实现
 Package http provides HTTP client and server implementations.
 
 Get, Head, Post, and PostForm make HTTP (or HTTPS) requests:
@@ -78,6 +80,7 @@ custom Server:
 	}
 	log.Fatal(s.ListenAndServe())
 
+/// ******** 重要知识点 ************* ///
 Starting with Go 1.6, the http package has transparent support for the
 HTTP/2 protocol when using HTTPS. Programs that must disable HTTP/2
 can do so by setting Transport.TLSNextProto (for clients) or

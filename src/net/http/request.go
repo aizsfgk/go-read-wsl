@@ -1086,6 +1086,7 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (req *Request, err erro
 		return nil, err
 	}
 
+	/// HTTP 升级
 	if req.isH2Upgrade() {
 		// Because it's neither chunked, nor declared:
 		req.ContentLength = -1
