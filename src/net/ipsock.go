@@ -144,6 +144,9 @@ func ipv6only(addr IPAddr) bool {
 	return len(addr.IP) == IPv6len && addr.IP.To4() == nil
 }
 
+///
+///
+///
 // SplitHostPort splits a network address of the form "host:port",
 // "host%zone:port", "[host]:port" or "[host%zone]:port" into host or
 // host%zone and port.

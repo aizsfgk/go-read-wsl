@@ -420,6 +420,7 @@ func (t *transferWriter) unwrapBody() io.Reader {
 	return t.Body
 }
 
+/// 传输读取
 type transferReader struct {
 	// Input
 	Header        Header
@@ -427,6 +428,7 @@ type transferReader struct {
 	RequestMethod string
 	ProtoMajor    int
 	ProtoMinor    int
+
 	// Output
 	Body          io.ReadCloser
 	ContentLength int64
@@ -458,6 +460,7 @@ var (
 	suppressedHeadersNoBody = []string{"Content-Length", "Transfer-Encoding"}
 )
 
+/// 被抑制的头部
 func suppressedHeaders(status int) []string {
 	switch {
 	case status == 304:
@@ -504,6 +507,9 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 		t.ProtoMajor, t.ProtoMinor = 1, 1
 	}
 
+	/// 传输编码
+	/// chunked
+	/// content-length
 	// Transfer-Encoding: chunked, and overriding Content-Length.
 	if err := t.parseTransferEncoding(); err != nil {
 		return err
@@ -524,6 +530,7 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 	}
 
 	// Trailer
+	/// http 协议: https://www.kancloud.cn/spirit-ling/http-study/851886
 	t.Trailer, err = fixTrailer(t.Header, t.Chunked)
 	if err != nil {
 		return err
@@ -540,6 +547,7 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 		}
 	}
 
+	/// 预处理Body reader
 	// Prepare body reader. ContentLength < 0 means chunked encoding
 	// or close connection when finished, since multipart is not supported yet
 	switch {
@@ -564,6 +572,7 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 		}
 	}
 
+	/// 请求或者响应
 	// Unify output
 	switch rr := msg.(type) {
 	case *Request:
@@ -613,7 +622,7 @@ func isUnsupportedTEError(err error) bool {
 func (t *transferReader) parseTransferEncoding() error {
 	raw, present := t.Header["Transfer-Encoding"]
 	if !present {
-		return nil
+		return nil /// 没有直接返回空
 	}
 	delete(t.Header, "Transfer-Encoding")
 
@@ -653,6 +662,7 @@ func (t *transferReader) parseTransferEncoding() error {
 // Determine the expected body length, using RFC 7230 Section 3.3. This
 // function is not a method, because ultimately it should be shared by
 // ReadResponse and ReadRequest.
+/// 读取固定长度
 func fixLength(isResponse bool, status int, requestMethod string, header Header, chunked bool) (int64, error) {
 	isRequest := !isResponse
 	contentLens := header["Content-Length"]
@@ -733,6 +743,7 @@ func fixLength(isResponse bool, status int, requestMethod string, header Header,
 // Determine whether to hang up after sending a request and body, or
 // receiving a response and body
 // 'header' is the request headers
+/// 是否需要关闭
 func shouldClose(major, minor int, header Header, removeCloseHeader bool) bool {
 	if major < 1 {
 		return true

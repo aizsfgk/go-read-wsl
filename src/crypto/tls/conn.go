@@ -1381,7 +1381,7 @@ func (c *Conn) Handshake() error {
 	c.in.Lock()
 	defer c.in.Unlock()
 
-	c.handshakeErr = c.handshakeFn()
+	c.handshakeErr = c.handshakeFn() /// 握手，返回握手错误
 	if c.handshakeErr == nil {
 		c.handshakes++
 	} else {

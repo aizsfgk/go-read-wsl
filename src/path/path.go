@@ -52,6 +52,7 @@ func (b *lazybuf) string() string {
 	return string(b.buf[:b.w])
 }
 
+/// purely : 完全的，纯粹的
 // Clean returns the shortest path name equivalent to path
 // by purely lexical processing. It applies the following rules
 // iteratively until no further processing can be done:

@@ -489,8 +489,12 @@ func (r *Request) multipartReader(allowMixed bool) (*multipart.Reader, error) {
 
 // isH2Upgrade reports whether r represents the http2 "client preface"
 // magic string.
+/// http2 客户端做了升级
 func (r *Request) isH2Upgrade() bool {
-	return r.Method == "PRI" && len(r.Header) == 0 && r.URL.Path == "*" && r.Proto == "HTTP/2.0"
+	return r.Method == "PRI" && /// 方法是 PRI
+		len(r.Header) == 0 &&   /// Header == 0
+		r.URL.Path == "*" &&    ///
+		r.Proto == "HTTP/2.0"   /// 协议变成 HTTP/2.0
 }
 
 // Return value if nonempty, def otherwise.
@@ -1005,6 +1009,7 @@ const (
 
 func readRequest(b *bufio.Reader, deleteHostHeader bool) (req *Request, err error) {
 	tp := newTextprotoReader(b)
+	/// 新建一个REQ
 	req = new(Request)
 
 	// First line: GET /index.html HTTP/1.0
@@ -1020,6 +1025,7 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (req *Request, err erro
 	}()
 
 	var ok bool
+	/// 解析一行请求
 	req.Method, req.RequestURI, req.Proto, ok = parseRequestLine(s)
 	if !ok {
 		return nil, badStringError("malformed HTTP request", s)
@@ -1027,7 +1033,10 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (req *Request, err erro
 	if !validMethod(req.Method) {
 		return nil, badStringError("invalid method", req.Method)
 	}
+
+	/// 原始URL
 	rawurl := req.RequestURI
+	/// 获取协议版本
 	if req.ProtoMajor, req.ProtoMinor, ok = ParseHTTPVersion(req.Proto); !ok {
 		return nil, badStringError("malformed HTTP version", req.Proto)
 	}
@@ -1046,6 +1055,7 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (req *Request, err erro
 		rawurl = "http://" + rawurl
 	}
 
+	/// 解析请求的URL
 	if req.URL, err = url.ParseRequestURI(rawurl); err != nil {
 		return nil, err
 	}
@@ -1056,6 +1066,7 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (req *Request, err erro
 	}
 
 	// Subsequent lines: Key: value.
+	/// 读取 MIME 信息
 	mimeHeader, err := tp.ReadMIMEHeader()
 	if err != nil {
 		return nil, err
@@ -1077,10 +1088,13 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (req *Request, err erro
 		delete(req.Header, "Host")
 	}
 
-	fixPragmaCacheControl(req.Header)
+	/// 命中 cache
+	fixPragmaCacheControl(req.Header) /// 缓存信息
 
+	/// 是否应该关闭
 	req.Close = shouldClose(req.ProtoMajor, req.ProtoMinor, req.Header, false)
 
+	/// 读取Transfer；读取传输数据
 	err = readTransfer(req, b)
 	if err != nil {
 		return nil, err

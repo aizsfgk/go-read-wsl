@@ -488,6 +488,7 @@ type Config struct {
 	// If Rand is nil, TLS uses the cryptographic random reader in package
 	// crypto/rand.
 	// The Reader must be safe for use by multiple goroutines.
+	/// 随机数; 并发安全
 	Rand io.Reader
 
 	// Time returns the current time as the number of seconds since the epoch.
@@ -505,6 +506,7 @@ type Config struct {
 	// Note: if there are multiple Certificates, and they don't have the
 	// optional field Leaf set, certificate selection will incur a significant
 	// per-handshake performance cost.
+	/// 证书链
 	Certificates []Certificate
 
 	// NameToCertificate maps from a certificate name to an element of

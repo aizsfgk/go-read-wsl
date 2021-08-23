@@ -86,6 +86,7 @@ func SetPendingDialHooks(before, after func()) {
 	testHookPrePendingDial, testHookPostPendingDial = before, after
 }
 
+/// 设置测试hook函数
 func SetTestHookServerServe(fn func(*Server, net.Listener)) { testHookServerServe = fn }
 
 func NewTestTimeoutHandler(handler Handler, ch <-chan time.Time) Handler {
