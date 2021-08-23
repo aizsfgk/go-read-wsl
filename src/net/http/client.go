@@ -27,7 +27,7 @@ import (
 )
 
 // A Client is an HTTP client. Its zero value (DefaultClient) is a
-// usable client that uses DefaultTransport.
+// usable client that uses DefaultTransport. /// 默认客户端使用DefaultTransport
 //
 // The Client's Transport typically has internal state (cached TCP
 // connections), so Clients should be reused instead of created as

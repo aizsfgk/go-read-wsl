@@ -476,6 +476,7 @@ type response struct {
 	// written.
 	trailers []string
 
+	/// 当句柄退出；设置为TRUE
 	handlerDone atomicBool // set true when the handler exits
 
 	// Buffers for Date, Content-Length, and status code
@@ -1139,6 +1140,7 @@ func relevantCaller() runtime.Frame {
 	return frame
 }
 
+/// 写入头信息
 func (w *response) WriteHeader(code int) {
 	if w.conn.hijacked() {
 		caller := relevantCaller()
@@ -1620,13 +1622,17 @@ func (w *response) write(lenData int, dataB []byte, dataS string) (n int, err er
 }
 
 func (w *response) finishRequest() {
+
+	/// 处理结束设置为TRUE
 	w.handlerDone.setTrue()
 
+	/// 如果没有写Header
+	/// 开始写入
 	if !w.wroteHeader {
 		w.WriteHeader(StatusOK)
 	}
 
-	w.w.Flush()
+	w.w.Flush() /// Flush掉
 	putBufioWriter(w.w)
 	w.cw.close()
 	w.conn.bufw.Flush()
@@ -1645,7 +1651,7 @@ func (w *response) finishRequest() {
 // shouldReuseConnection reports whether the underlying TCP connection can be reused.
 // It must only be called after the handler is done executing.
 func (w *response) shouldReuseConnection() bool {
-	if w.closeAfterReply {
+	if w.closeAfterReply { /// 响应后立马关闭
 		// The request or something set while executing the
 		// handler indicated we shouldn't reuse this
 		// connection.
@@ -1667,6 +1673,7 @@ func (w *response) shouldReuseConnection() bool {
 		return false
 	}
 
+	/// 否则就返回true
 	return true
 }
 
@@ -1948,24 +1955,31 @@ func (c *conn) serve(ctx context.Context) {
 		// in parallel even if their responses need to be serialized.
 		// But we're not going to implement HTTP pipelining because it
 		// was never deployed in the wild and the answer is HTTP/2.
-		serverHandler{c.server}.ServeHTTP(w, w.req)
+		/// 6. 调用先前注册的Handler
+		serverHandler{c.server}.ServeHTTP(w, w.req) /// 处理这个请求
 		w.cancelCtx()
+
+		/// 7. 如果劫持，直接返回
 		if c.hijacked() {
 			return
 		}
 
-		/// 结束请求
-		w.finishRequest()
+		/// 8. 结束请求，写入头信息
+		w.finishRequest() /// 常规处理
 
+		/// 9. 是否重用连接
 		if !w.shouldReuseConnection() {
 			if w.requestBodyLimitHit || w.closedRequestBodyEarly() {
 				c.closeWriteAndWait()
 			}
 			return
 		}
+
+		/// 10. 设置状态为空闲
 		c.setState(c.rwc, StateIdle)
 		c.curReq.Store((*response)(nil))
 
+		/// 11. 保活处理
 		if !w.conn.server.doKeepAlives() {
 			// We're in shutdown mode. We might've replied
 			// to the user without "Connection: close" and
@@ -1974,6 +1988,7 @@ func (c *conn) serve(ctx context.Context) {
 			return
 		}
 
+		/// 12. 设置连接空闲时间
 		if d := c.server.idleTimeout(); d != 0 {
 			c.rwc.SetReadDeadline(time.Now().Add(d))
 			if _, err := c.bufr.Peek(4); err != nil {
