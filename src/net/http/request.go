@@ -100,6 +100,9 @@ var reqWriteExcludeHeader = map[string]bool{
 // The field semantics differ slightly between client and server
 // usage. In addition to the notes on the fields below, see the
 // documentation for Request.Write and RoundTripper.
+/// 代表一个HTTP请求；客户端发送；服务端接收
+///
+///
 type Request struct {
 	// Method specifies the HTTP method (GET, POST, PUT, etc.).
 	// For client requests, an empty string means GET.

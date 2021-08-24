@@ -520,6 +520,7 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 		return err
 	}
 	if isResponse && t.RequestMethod == "HEAD" {
+		/// 解析长度
 		if n, err := parseContentLength(t.Header.get("Content-Length")); err != nil {
 			return err
 		} else {
@@ -559,6 +560,7 @@ func readTransfer(msg interface{}, r *bufio.Reader) (err error) {
 		}
 	case realLength == 0:
 		t.Body = NoBody
+	/// 长度大于0
 	case realLength > 0:
 		t.Body = &body{src: io.LimitReader(r, realLength), closing: t.Close}
 	default:
@@ -804,6 +806,7 @@ func fixTrailer(header Header, chunked bool) (Header, error) {
 	return trailer, nil
 }
 
+/// 实现了 read 和 close
 // body turns a Reader into a ReadCloser.
 // Close ensures that the body has been fully read
 // and then reads the trailer if necessary.

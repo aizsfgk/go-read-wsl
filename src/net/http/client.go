@@ -59,6 +59,7 @@ type Client struct {
 	// Transport specifies the mechanism by which individual
 	// HTTP requests are made.
 	// If nil, DefaultTransport is used.
+	/// 默认的transport
 	Transport RoundTripper
 
 	// CheckRedirect specifies the policy for handling redirects.
@@ -74,7 +75,7 @@ type Client struct {
 	// unclosed, along with a nil error.
 	//
 	// If CheckRedirect is nil, the Client uses its default policy,
-	// which is to stop after 10 consecutive requests.
+	// which is to stop after 10 consecutive requests.; /// 最多10次
 	CheckRedirect func(req *Request, via []*Request) error
 
 	// Jar specifies the cookie jar.
@@ -103,9 +104,10 @@ type Client struct {
 	// CancelRequest method on Transport if found. New
 	// RoundTripper implementations should use the Request's Context
 	// for cancellation instead of implementing CancelRequest.
-	Timeout time.Duration
+	Timeout time.Duration /// 超时时间, 使用请求上下文
 }
 
+/// 默认客户端
 // DefaultClient is the default Client and is used by Get, Head, and Post.
 var DefaultClient = &Client{}
 
@@ -124,7 +126,7 @@ type RoundTripper interface {
 	// A non-nil err should be reserved for failure to obtain a
 	// response. Similarly, RoundTrip should not attempt to
 	// handle higher-level protocol details such as redirects,
-	// authentication, or cookies.
+	// authentication, or cookies. /// 不处理高级的协议细节：重定向，认证，cookies
 	//
 	// RoundTrip should not modify the request, except for
 	// consuming and closing the Request's Body. RoundTrip may
@@ -144,6 +146,7 @@ type RoundTripper interface {
 
 // refererForURL returns a referer without any authentication info or
 // an empty string if lastReq scheme is https and newReq scheme is http.
+/// 返回referer
 func refererForURL(lastReq, newReq *url.URL) string {
 	// https://tools.ietf.org/html/rfc7231#section-5.5.2
 	//   "Clients SHOULD NOT include a Referer header field in a
@@ -173,6 +176,7 @@ func (c *Client) send(req *Request, deadline time.Time) (resp *Response, didTime
 			req.AddCookie(cookie)
 		}
 	}
+	/// 发送请求
 	resp, didTimeout, err = send(req, c.transport(), deadline) /// req, transport, deadline
 	if err != nil {
 		return nil, didTimeout, err
@@ -186,6 +190,7 @@ func (c *Client) send(req *Request, deadline time.Time) (resp *Response, didTime
 }
 
 func (c *Client) deadline() time.Time {
+	/// 如果超时时间大于0; 则当前时间 + 超时时间
 	if c.Timeout > 0 {
 		return time.Now().Add(c.Timeout)
 	}
@@ -196,24 +201,29 @@ func (c *Client) transport() RoundTripper {
 	if c.Transport != nil {
 		return c.Transport
 	}
-	return DefaultTransport
+	return DefaultTransport /// 否则返回默认的Transport
 }
 
 // send issues an HTTP request.
 // Caller should close resp.Body when done reading from it.
 func send(ireq *Request, rt RoundTripper, deadline time.Time) (resp *Response, didTimeout func() bool, err error) {
+
+	/// 1. 克隆原始请求
 	req := ireq // req is either the original request, or a modified fork
 
+	/// 2. 如果rt为空，直接返回错误
 	if rt == nil {
 		req.closeBody()
 		return nil, alwaysFalse, errors.New("http: no Client.Transport or DefaultTransport")
 	}
 
+	// 3. url为空，返回错误
 	if req.URL == nil {
 		req.closeBody()
 		return nil, alwaysFalse, errors.New("http: nil Request.URL")
 	}
 
+	// 4. RequestURI 不能被设置
 	if req.RequestURI != "" {
 		req.closeBody()
 		return nil, alwaysFalse, errors.New("http: Request.RequestURI can't be set in client requests")
@@ -221,6 +231,7 @@ func send(ireq *Request, rt RoundTripper, deadline time.Time) (resp *Response, d
 
 	// forkReq forks req into a shallow clone of ireq the first
 	// time it's called.
+	/// 浅克隆
 	forkReq := func() {
 		if ireq == req {
 			req = new(Request)
@@ -228,6 +239,7 @@ func send(ireq *Request, rt RoundTripper, deadline time.Time) (resp *Response, d
 		}
 	}
 
+	/// 5. 初始化Header
 	// Most the callers of send (Get, Post, et al) don't need
 	// Headers, leaving it uninitialized. We guarantee to the
 	// Transport that this has been initialized, though.
@@ -236,6 +248,7 @@ func send(ireq *Request, rt RoundTripper, deadline time.Time) (resp *Response, d
 		req.Header = make(Header)
 	}
 
+	/// 6. 认证
 	if u := req.URL.User; u != nil && req.Header.Get("Authorization") == "" {
 		username := u.Username()
 		password, _ := u.Password()
@@ -244,14 +257,24 @@ func send(ireq *Request, rt RoundTripper, deadline time.Time) (resp *Response, d
 		req.Header.Set("Authorization", "Basic "+basicAuth(username, password))
 	}
 
+	/// 7. 如果超时时间不是0；克隆请求
 	if !deadline.IsZero() {
 		forkReq()
 	}
+
+	/// 8. 设置取消函数
+	/// stopTimer: 停止定时器
+	/// didTimeout: 是否做了超时处理
 	stopTimer, didTimeout := setRequestCancel(req, rt, deadline) /// 设置请求取消函数
 
+	/// 9. 发起数据请求
 	resp, err = rt.RoundTrip(req)
+
+	/// 10. 发生错误
 	if err != nil {
+
 		stopTimer() /// 停止定时器
+
 		if resp != nil {
 			log.Printf("RoundTripper returned a response & error; ignoring response")
 		}
@@ -265,9 +288,11 @@ func send(ireq *Request, rt RoundTripper, deadline time.Time) (resp *Response, d
 		}
 		return nil, didTimeout, err
 	}
+	/// 11. 响应为空
 	if resp == nil {
 		return nil, didTimeout, fmt.Errorf("http: RoundTripper implementation (%T) returned a nil *Response with a nil error", rt)
 	}
+	/// 12. 响应的 body为空
 	if resp.Body == nil {
 		// The documentation on the Body field says “The http Client and Transport
 		// guarantee that Body is always non-nil, even on responses without a body
@@ -284,6 +309,7 @@ func send(ireq *Request, rt RoundTripper, deadline time.Time) (resp *Response, d
 		}
 		resp.Body = ioutil.NopCloser(strings.NewReader(""))
 	}
+	/// 13. 过期时间不为0
 	if !deadline.IsZero() {
 		resp.Body = &cancelTimerBody{
 			stop:          stopTimer,
@@ -291,12 +317,14 @@ func send(ireq *Request, rt RoundTripper, deadline time.Time) (resp *Response, d
 			reqDidTimeout: didTimeout,
 		}
 	}
+	/// 14. 返回响应数据
 	return resp, nil, nil
 }
 
 // timeBeforeContextDeadline reports whether the non-zero Time t is
 // before ctx's deadline, if any. If ctx does not have a deadline, it
 // always reports true (the deadline is considered infinite).
+/// 非0的时间t是否在过期时间前
 func timeBeforeContextDeadline(t time.Time, ctx context.Context) bool {
 	d, ok := ctx.Deadline()
 	if !ok {
@@ -311,6 +339,7 @@ func timeBeforeContextDeadline(t time.Time, ctx context.Context) bool {
 // to check whether this particular request is using an alternate protocol,
 // in which case we need to check the RoundTripper for that protocol.
 func knownRoundTripperImpl(rt RoundTripper, req *Request) bool {
+	/// 拿到 rt类型
 	switch t := rt.(type) {
 	case *Transport:
 		if altRT := t.alternateRoundTripper(req); altRT != nil {
@@ -329,12 +358,17 @@ func knownRoundTripperImpl(rt RoundTripper, req *Request) bool {
 	if reflect.TypeOf(rt).String() == "*http2.Transport" {
 		return true
 	}
+
 	return false
 }
 
-/// 设置请求取消：
-///
-///
+/// 设置请求取消:
+///   1. 设置 req.Cancel 参数
+///   2. 添加一个 deadline context 为这个请求，如果deadline非空
+/// 有3种方式取消一个请求:
+///   1. 使用 Transport.CancelRequest (不推荐)
+///   2. 使用 Request.Cancel
+///   3. 使用 Request.Context
 ///
 // setRequestCancel sets req.Cancel and adds a deadline context to req
 // if deadline is non-zero. The RoundTripper's type is used to
@@ -346,23 +380,35 @@ func knownRoundTripperImpl(rt RoundTripper, req *Request) bool {
 // Third was Request.Context.
 // This function populates the second and third, and uses the first if it really needs to.
 func setRequestCancel(req *Request, rt RoundTripper, deadline time.Time) (stopTimer func(), didTimeout func() bool) {
+	/// 如果过期时间是0; 则返回总是FALSE; 所以Timtout超时时间必须设置???
 	if deadline.IsZero() {
 		return nop, alwaysFalse
 	}
+
 	knownTransport := knownRoundTripperImpl(rt, req)
+	/// 获取情趣的上下文
 	oldCtx := req.Context()
 
+	/// 取消函数为空，并且 是一个合法的Transport
 	if req.Cancel == nil && knownTransport {
 		// If they already had a Request.Context that's
 		// expiring sooner, do nothing:
+		/// 如果有个请求上下文，并且不久过期，则我们什么也不做
 		if !timeBeforeContextDeadline(deadline, oldCtx) {
 			return nop, alwaysFalse
 		}
 
+		/// 取消函数
 		var cancelCtx func()
+
+		/// 新建取消上下文呢
 		req.ctx, cancelCtx = context.WithDeadline(oldCtx, deadline)
+
+		/// *** 返回取消函数 ***
 		return cancelCtx, func() bool { return time.Now().After(deadline) }
 	}
+
+	/// 初始化的请求取消
 	initialReqCancel := req.Cancel // the user's original Request.Cancel, if any
 
 	var cancelCtx func()
@@ -373,9 +419,11 @@ func setRequestCancel(req *Request, rt RoundTripper, deadline time.Time) (stopTi
 	cancel := make(chan struct{})
 	req.Cancel = cancel
 
+	/// 执行取消函数
 	doCancel := func() {
 		// The second way in the func comment above:
 		close(cancel)
+
 		// The first way, used only for RoundTripper
 		// implementations written before Go 1.5 or Go 1.6.
 		type canceler interface{ CancelRequest(*Request) }
@@ -384,28 +432,35 @@ func setRequestCancel(req *Request, rt RoundTripper, deadline time.Time) (stopTi
 		}
 	}
 
+	/// 停止定时器通道
 	stopTimerCh := make(chan struct{})
 	var once sync.Once
 	stopTimer = func() {
 		once.Do(func() {
-			close(stopTimerCh)
+			close(stopTimerCh) /// 关闭通道，如果取消函数不为空，则执行
+
 			if cancelCtx != nil {
 				cancelCtx()
 			}
 		})
 	}
 
+	/// 新建过期定时器
 	timer := time.NewTimer(time.Until(deadline))
 	var timedOut atomicBool
 
+	/// 协程; 有一个通道返回就结束
 	go func() {
 		select {
+		/// 1. 初始化的请求取消通道返回；不推荐
 		case <-initialReqCancel:
 			doCancel()
 			timer.Stop()
+		/// 2. 定时器超时或者关闭
 		case <-timer.C:
 			timedOut.setTrue()
 			doCancel()
+		/// 3. 体内告知通道关闭了
 		case <-stopTimerCh:
 			timer.Stop()
 		}

@@ -158,7 +158,7 @@ func ReadResponse(r *bufio.Reader, req *Request) (*Response, error) {
 	}
 
 	// Parse the first line of the response.
-	line, err := tp.ReadLine()
+	line, err := tp.ReadLine() /// 先读取一行数据
 	if err != nil {
 		if err == io.EOF {
 			err = io.ErrUnexpectedEOF
@@ -171,6 +171,7 @@ func ReadResponse(r *bufio.Reader, req *Request) (*Response, error) {
 		resp.Proto = line[:i]
 		resp.Status = strings.TrimLeft(line[i+1:], " ")
 	}
+	/// 状态码
 	statusCode := resp.Status
 	if i := strings.IndexByte(resp.Status, ' '); i != -1 {
 		statusCode = resp.Status[:i]
@@ -195,10 +196,11 @@ func ReadResponse(r *bufio.Reader, req *Request) (*Response, error) {
 		}
 		return nil, err
 	}
-	resp.Header = Header(mimeHeader)
+	resp.Header = Header(mimeHeader) /// 设置请求头
 
 	fixPragmaCacheControl(resp.Header)
 
+	/// 读取body
 	err = readTransfer(resp, r)
 	if err != nil {
 		return nil, err
