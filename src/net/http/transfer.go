@@ -73,6 +73,7 @@ type transferWriter struct {
 	ByteReadCh   chan readResult // non-nil if probeRequestBody called
 }
 
+/// 新建一个传输写???
 func newTransferWriter(r interface{}) (t *transferWriter, err error) {
 	t = &transferWriter{}
 

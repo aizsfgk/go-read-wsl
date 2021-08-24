@@ -547,6 +547,7 @@ var errMissingHost = errors.New("http: Request.Write on Request with no Host or 
 
 // extraHeaders may be nil
 // waitForContinue may be nil
+/// 写入数据
 func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitForContinue func() bool) (err error) {
 	trace := httptrace.ContextClientTrace(r.Context())
 	if trace != nil && trace.WroteRequest != nil {
@@ -597,15 +598,17 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 	// size.
 	var bw *bufio.Writer
 	if _, ok := w.(io.ByteWriter); !ok {
-		bw = bufio.NewWriter(w)
+		bw = bufio.NewWriter(w) /// 不ok, 则新建
 		w = bw
 	}
 
+	/// 有method使用method, 没有使用GET
 	_, err = fmt.Fprintf(w, "%s %s HTTP/1.1\r\n", valueOrDefault(r.Method, "GET"), ruri)
 	if err != nil {
 		return err
 	}
 
+	/// 写入Host
 	// Header lines
 	_, err = fmt.Fprintf(w, "Host: %s\r\n", host)
 	if err != nil {
@@ -617,6 +620,7 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 
 	// Use the defaultUserAgent unless the Header contains one, which
 	// may be blank to not send the header.
+	/// 用户代理
 	userAgent := defaultUserAgent
 	if r.Header.has("User-Agent") {
 		userAgent = r.Header.Get("User-Agent")
@@ -631,6 +635,7 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 		}
 	}
 
+	/// 处理body, 内容长度，close, trailer
 	// Process Body,ContentLength,Close,Trailer
 	tw, err := newTransferWriter(r)
 	if err != nil {
@@ -685,6 +690,7 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 		}
 	}
 
+	/// 写body
 	// Write body and trailer
 	err = tw.writeBody(w)
 	if err != nil {

@@ -1796,6 +1796,8 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (pconn *pers
 	// 新建br, bw
 	/// 读写缓冲区
 	pconn.br = bufio.NewReaderSize(pconn, t.readBufferSize())
+
+	/// 新建写缓冲区
 	pconn.bw = bufio.NewWriterSize(persistConnWriter{pconn}, t.writeBufferSize())
 
 
@@ -1818,7 +1820,9 @@ type persistConnWriter struct {
 	pc *persistConn
 }
 
+/// 往这个连接中写入数据
 func (w persistConnWriter) Write(p []byte) (n int, err error) {
+	/// 直接将切片的数据写入连接
 	n, err = w.pc.conn.Write(p)
 	w.pc.nwrite += int64(n)
 	return
@@ -2166,6 +2170,7 @@ func (pc *persistConn) readLoop() {
 			closeErr = err
 		}
 
+		/// 发生错误
 		if err != nil {
 			if pc.readLimit <= 0 {
 				err = fmt.Errorf("net/http: server response headers exceeded %d bytes; aborted", pc.maxHeaderResponseSize())
@@ -2178,6 +2183,7 @@ func (pc *persistConn) readLoop() {
 			}
 			return
 		}
+		/// 读取的限制
 		pc.readLimit = maxInt64 // effectively no limit for response bodies
 
 		pc.mu.Lock()
@@ -2194,6 +2200,7 @@ func (pc *persistConn) readLoop() {
 			alive = false
 		}
 
+		/// 没有Body
 		if !hasBody || bodyWritable {
 			pc.t.setReqCanceler(rc.cancelKey, nil)
 
@@ -2248,7 +2255,7 @@ func (pc *persistConn) readLoop() {
 			},
 		}
 
-		/// body
+		/// 更新了响应的BODY
 		resp.Body = body
 		if rc.addedGzip && strings.EqualFold(resp.Header.Get("Content-Encoding"), "gzip") {
 			resp.Body = &gzipReader{body: body}
@@ -2258,12 +2265,14 @@ func (pc *persistConn) readLoop() {
 			resp.Uncompressed = true
 		}
 
+		/// 看看那种情况
 		select {
 		case rc.ch <- responseAndError{res: resp}:
 		case <-rc.callerGone:
 			return
 		}
 
+		/// 不是合法结束????
 		// Before looping back to the top of this function and peeking on
 		// the bufio.Reader, wait for the caller goroutine to finish
 		// reading the response body. (or for cancellation or death)
@@ -2448,11 +2457,17 @@ type nothingWrittenError struct {
 
 /// ********************* 写入循环 ******************* ///
 func (pc *persistConn) writeLoop() {
+	/// 关闭写循环
 	defer close(pc.writeLoopDone)
+
+	/// 遍历
 	for {
 		select {
+		/// 数据可写
 		case wr := <-pc.writech:   /// 可写
 			startBytesWritten := pc.nwrite
+
+			/// 执行写操作
 			err := wr.req.Request.write(pc.bw, pc.isProxy, wr.req.extra, pc.waitForContinue(wr.continueCh))
 			if bre, ok := err.(requestBodyReadError); ok {
 				err = bre.error
@@ -2465,9 +2480,13 @@ func (pc *persistConn) writeLoop() {
 				// errors.
 				wr.req.setError(err)
 			}
+
+			/// 冲刷数据
 			if err == nil {
 				err = pc.bw.Flush()
 			}
+
+			/// 如果错误不为空
 			if err != nil {
 				wr.req.Request.closeBody()
 				if pc.nwrite == startBytesWritten {
@@ -2816,6 +2835,7 @@ func canonicalAddr(url *url.URL) string {
 // If earlyCloseFn is non-nil and Close is called before io.EOF is
 // seen, earlyCloseFn is called instead of fn, and its return value is
 // the return value from Close.
+/// EOF通知body
 type bodyEOFSignal struct {
 	body         io.ReadCloser
 	mu           sync.Mutex        // guards following 4 fields
