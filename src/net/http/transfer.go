@@ -28,6 +28,7 @@ import (
 // with malformed chunked encoding.
 var ErrLineTooLong = internal.ErrLineTooLong
 
+/// 错误读
 type errorReader struct {
 	err error
 }

@@ -788,6 +788,7 @@ func (c *Client) do(req *Request) (retres *Response, reterr error) {
 		}
 
 		var shouldRedirect bool
+		/// 不需要重定向
 		redirectMethod, shouldRedirect, includeBody = redirectBehavior(req.Method, resp, reqs[0])
 		if !shouldRedirect {
 			return resp, nil

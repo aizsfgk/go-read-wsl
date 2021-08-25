@@ -6,6 +6,7 @@
 
 // Package internal contains HTTP internals shared by net/http and
 // net/http/httputil.
+
 package internal
 
 import (
@@ -16,6 +17,7 @@ import (
 	"io"
 )
 
+/// 最大行长度
 const maxLineLength = 4096 // assumed <= bufio.defaultBufSize
 
 var ErrLineTooLong = errors.New("header line too long")
@@ -34,6 +36,7 @@ func NewChunkedReader(r io.Reader) io.Reader {
 	return &chunkedReader{r: br}
 }
 
+/// chunked 编码
 type chunkedReader struct {
 	r        *bufio.Reader
 	n        uint64 // unread bytes in chunk

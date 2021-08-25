@@ -748,9 +748,13 @@ var ErrSkipAltProtocol = errors.New("net/http: skip alternate protocol")
 // If rt.RoundTrip returns ErrSkipAltProtocol, the Transport will
 // handle the RoundTrip itself for that one request, as if the
 // protocol were not registered.
+///
+/// 注入协议
+///
 func (t *Transport) RegisterProtocol(scheme string, rt RoundTripper) {
 	t.altMu.Lock()
 	defer t.altMu.Unlock()
+
 	oldMap, _ := t.altProto.Load().(map[string]RoundTripper)
 	if _, exists := oldMap[scheme]; exists {
 		panic("protocol " + scheme + " already registered")
@@ -785,6 +789,7 @@ func (t *Transport) CloseIdleConnections() {
 	}
 }
 
+/// ********* 取消请求，现在已经不再推荐使用 *********** ///
 // CancelRequest cancels an in-flight request by closing its connection.
 // CancelRequest should only be called after RoundTrip has returned.
 //
@@ -892,6 +897,10 @@ func (e transportReadFromServerError) Error() string {
 	return fmt.Sprintf("net/http: Transport failed to read from server: %v", e.err)
 }
 
+///
+/// HTTP连接池的实现
+///
+///
 func (t *Transport) putOrCloseIdleConn(pconn *persistConn) {
 	if err := t.tryPutIdleConn(pconn); err != nil {
 		pconn.close(err)
@@ -1154,6 +1163,8 @@ func (t *Transport) removeIdleConnLocked(pconn *persistConn) bool {
 	return removed
 }
 
+
+/// *************** 取消器 ************** ///
 func (t *Transport) setReqCanceler(key cancelKey, fn func(error)) {
 	t.reqMu.Lock()
 	defer t.reqMu.Unlock()
@@ -1188,6 +1199,7 @@ func (t *Transport) replaceReqCanceler(key cancelKey, fn func(error)) bool {
 
 var zeroDialer net.Dialer
 
+/// 进行TCP连接
 func (t *Transport) dial(ctx context.Context, network, addr string) (net.Conn, error) {
 	if t.DialContext != nil {
 		return t.DialContext(ctx, network, addr)
@@ -1269,6 +1281,8 @@ func (w *wantConn) cancel(t *Transport, err error) {
 		t.putOrCloseIdleConn(pc)
 	}
 }
+
+/// 队列化处理
 
 // A wantConnQueue is a queue of wantConns.
 type wantConnQueue struct {
@@ -2953,6 +2967,8 @@ func cloneTLSConfig(cfg *tls.Config) *tls.Config {
 	return cfg.Clone()
 }
 
+
+/// *********** 连接LRU ********* ///
 type connLRU struct {
 	ll *list.List // list.Element.Value type is of *persistConn
 	m  map[*persistConn]*list.Element
