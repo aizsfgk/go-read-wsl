@@ -2996,13 +2996,16 @@ func (srv *Server) Serve(l net.Listener) error {
 	l = &onceCloseListener{Listener: l}
 	defer l.Close()
 
+	/// 默认做HTTP2协议升级???
 	if err := srv.setupHTTP2_Serve(); err != nil {
 		return err
 	}
 
+	/// 跟踪监听器
 	if !srv.trackListener(&l, true) {
 		return ErrServerClosed
 	}
+	/// 取消监听器
 	defer srv.trackListener(&l, false)
 
 	baseCtx := context.Background()
@@ -3027,6 +3030,7 @@ func (srv *Server) Serve(l net.Listener) error {
 				return ErrServerClosed
 			default:
 			}
+			// 如果是临时性错误
 			if ne, ok := err.(net.Error); ok && ne.Temporary() {
 				if tempDelay == 0 {
 					tempDelay = 5 * time.Millisecond

@@ -405,7 +405,7 @@ type Listener interface {
 type Error interface {
 	error
 	Timeout() bool   // Is the error a timeout?
-	Temporary() bool // Is the error temporary?
+	Temporary() bool // Is the error temporary? /// 资源临时不可用
 }
 
 // Various errors contained in OpError.
