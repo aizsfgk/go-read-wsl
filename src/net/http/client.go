@@ -380,7 +380,7 @@ func knownRoundTripperImpl(rt RoundTripper, req *Request) bool {
 // Third was Request.Context.
 // This function populates the second and third, and uses the first if it really needs to.
 func setRequestCancel(req *Request, rt RoundTripper, deadline time.Time) (stopTimer func(), didTimeout func() bool) {
-	/// 如果过期时间是0; 则返回总是FALSE; 所以Timtout超时时间必须设置???
+	///1. 如果过期时间是0; 则返回总是FALSE; 所以Timtout超时时间必须设置???
 	if deadline.IsZero() {
 		return nop, alwaysFalse
 	}
@@ -389,7 +389,7 @@ func setRequestCancel(req *Request, rt RoundTripper, deadline time.Time) (stopTi
 	/// 获取情趣的上下文
 	oldCtx := req.Context()
 
-	/// 取消函数为空，并且 是一个合法的Transport
+	/// 2. 取消函数为空，并且 是一个合法的Transport
 	if req.Cancel == nil && knownTransport {
 		// If they already had a Request.Context that's
 		// expiring sooner, do nothing:
@@ -408,7 +408,7 @@ func setRequestCancel(req *Request, rt RoundTripper, deadline time.Time) (stopTi
 		return cancelCtx, func() bool { return time.Now().After(deadline) }
 	}
 
-	/// 初始化的请求取消
+	/// 3. 初始化的请求取消
 	initialReqCancel := req.Cancel // the user's original Request.Cancel, if any
 
 	var cancelCtx func()
@@ -552,6 +552,7 @@ func (c *Client) checkRedirect(req *Request, via []*Request) error {
 	return fn(req, via)
 }
 
+/// 重定向行为
 // redirectBehavior describes what should happen when the
 // client encounters a 3xx status code from the server
 func redirectBehavior(reqMethod string, resp *Response, ireq *Request) (redirectMethod string, shouldRedirect, includeBody bool) {

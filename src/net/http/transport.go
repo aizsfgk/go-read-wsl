@@ -101,9 +101,14 @@ type Transport struct {
 	/// 互斥锁
 	idleMu       sync.Mutex
 	closeIdle    bool                                // user has requested to close all idle conns
+
+	/// 持久化连接
 	idleConn     map[connectMethodKey][]*persistConn // most recently used at end
+
+	/// 想要建立的连接
 	idleConnWait map[connectMethodKey]wantConnQueue  // waiting getConns
-	idleLRU      connLRU
+
+	idleLRU      connLRU /// 最近最少使用算法
 
 	reqMu       sync.Mutex
 	reqCanceler map[cancelKey]func(error)
@@ -2968,7 +2973,7 @@ func cloneTLSConfig(cfg *tls.Config) *tls.Config {
 }
 
 
-/// *********** 连接LRU ********* ///
+/// *********** 连接LRU（最近最少使用） ********* ///
 type connLRU struct {
 	ll *list.List // list.Element.Value type is of *persistConn
 	m  map[*persistConn]*list.Element
