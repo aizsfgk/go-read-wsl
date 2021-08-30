@@ -43,6 +43,7 @@ func (v *Value) Load() (x interface{}) {
 // All calls to Store for a given Value must use values of the same concrete type.
 // Store of an inconsistent type panics, as does Store(nil).
 func (v *Value) Store(x interface{}) {
+	/// nil 直接panic
 	if x == nil {
 		panic("sync/atomic: store of nil value into Value")
 	}

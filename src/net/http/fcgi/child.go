@@ -21,6 +21,7 @@ import (
 	"time"
 )
 
+/// 请求
 // request holds the state for an in-progress request. As soon as it's complete,
 // it's converted to an http.Request.
 type request struct {
@@ -32,6 +33,7 @@ type request struct {
 	keepConn  bool
 }
 
+/// 环境变量上下文Key
 // envVarsContextKey uniquely identifies a mapping of CGI
 // environment variables to their values in a request context
 type envVarsContextKey struct{}

@@ -32,8 +32,13 @@ const (
 // The "while h < length(input)" line in the specification becomes "for
 // remaining != 0" in the Go code, because len(s) in Go is in bytes, not runes.
 func encode(prefix, s string) (string, error) {
+
+	/// 新建切片
 	output := make([]byte, len(prefix), len(prefix)+1+2*len(s))
+	/// 复制前缀
 	copy(output, prefix)
+
+
 	delta, n, bias := int32(0), initialN, initialBias
 	b, remaining := int32(0), int32(0)
 	for _, r := range s {
@@ -44,6 +49,8 @@ func encode(prefix, s string) (string, error) {
 			remaining++
 		}
 	}
+
+
 	h := b
 	if b > 0 {
 		output = append(output, '-')
@@ -107,6 +114,7 @@ func encodeDigit(digit int32) byte {
 	panic("cookiejar: internal error in punycode encoding")
 }
 
+/// 偏好适配函数
 // adapt is the bias adaptation function specified in section 6.1.
 func adapt(delta, numPoints int32, firstTime bool) int32 {
 	if firstTime {

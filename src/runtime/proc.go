@@ -5813,6 +5813,7 @@ func sync_atomic_runtime_procUnpin() {
 //go:linkname sync_runtime_canSpin sync.runtime_canSpin
 //go:nosplit
 func sync_runtime_canSpin(i int) bool {
+	///
 	// sync.Mutex is cooperative, so we are conservative with spinning.
 	// Spin only few times and only if running on a multicore machine and
 	// GOMAXPROCS>1 and there is at least one other running P and local runq is empty.
@@ -5821,6 +5822,8 @@ func sync_runtime_canSpin(i int) bool {
 	if i >= active_spin || ncpu <= 1 || gomaxprocs <= int32(sched.npidle+sched.nmspinning)+1 {
 		return false
 	}
+
+	/// P资源 - 非空队列
 	if p := getg().m.p.ptr(); !runqempty(p) {
 		return false
 	}
