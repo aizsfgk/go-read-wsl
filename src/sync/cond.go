@@ -22,12 +22,12 @@ import (
 //
 // A Cond must not be copied after first use.
 type Cond struct {
-	noCopy noCopy
+	noCopy noCopy /// 非复制
 
 	// L is held while observing or changing the condition
 	L Locker
 
-	notify  notifyList
+	notify  notifyList /// 通知列表
 	checker copyChecker
 }
 
