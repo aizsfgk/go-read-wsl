@@ -22,15 +22,21 @@ import (
 //
 // A Cond must not be copied after first use.
 type Cond struct {
-	noCopy noCopy /// 非复制
+	/// 非复制
+	noCopy noCopy
 
 	// L is held while observing or changing the condition
+	/// 加解锁
 	L Locker
 
-	notify  notifyList /// 通知列表
+	/// 通知列表
+	notify  notifyList
+
+	/// 检查是否复制了
 	checker copyChecker
 }
 
+/// 必须传入一个互斥锁
 // NewCond returns a new Cond with Locker l.
 func NewCond(l Locker) *Cond {
 	return &Cond{L: l}
@@ -54,7 +60,8 @@ func NewCond(l Locker) *Cond {
 //
 func (c *Cond) Wait() {
 	c.checker.check()
-	t := runtime_notifyListAdd(&c.notify)
+
+	t := runtime_notifyListAdd(&c.notify) /// 通知列表添加
 	c.L.Unlock()
 	runtime_notifyListWait(&c.notify, t)
 	c.L.Lock()
@@ -66,6 +73,7 @@ func (c *Cond) Wait() {
 // during the call.
 func (c *Cond) Signal() {
 	c.checker.check()
+
 	runtime_notifyListNotifyOne(&c.notify)
 }
 
@@ -75,9 +83,12 @@ func (c *Cond) Signal() {
 // during the call.
 func (c *Cond) Broadcast() {
 	c.checker.check()
+
 	runtime_notifyListNotifyAll(&c.notify)
 }
 
+
+/// 复制检测器
 // copyChecker holds back pointer to itself to detect object copying.
 type copyChecker uintptr
 
