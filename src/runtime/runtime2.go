@@ -240,7 +240,7 @@ type iface struct {
 }
 /// 空接口
 type eface struct {
-	_type *_type
+	_type *_type /// 底层的具体类型
 	data  unsafe.Pointer
 }
 
@@ -915,10 +915,11 @@ type funcinl struct {
 // Needs to be in sync with
 // ../cmd/compile/internal/gc/reflect.go:/^func.dumptabs.
 type itab struct {
-	inter *interfacetype
-	_type *_type
+	inter *interfacetype /// 接口类型
+	_type *_type /// 底层具体类型
 	hash  uint32 // copy of _type.hash. Used for type switches.
 	_     [4]byte
+	/// 是一个动态大小的数组，它是一个用于动态派发的虚函数表，存储了一组函数指针
 	fun   [1]uintptr // variable sized. fun[0]==0 means _type does not implement inter.
 }
 

@@ -19,10 +19,10 @@ import "unsafe"
 type tflag uint8
 
 const (
-	tflagUncommon      tflag = 1 << 0
-	tflagExtraStar     tflag = 1 << 1
-	tflagNamed         tflag = 1 << 2
-	tflagRegularMemory tflag = 1 << 3 // equal and hash can treat values of this type as a single region of t.size bytes
+	tflagUncommon      tflag = 1 << 0 /// 1
+	tflagExtraStar     tflag = 1 << 1 /// 2
+	tflagNamed         tflag = 1 << 2 /// 4
+	tflagRegularMemory tflag = 1 << 3 // equal and hash can treat values of this type as a single region of t.size bytes /// 8
 )
 
 // Needs to be in sync with ../cmd/link/internal/ld/decodesym.go:/^func.commonsize,
@@ -33,7 +33,7 @@ type _type struct {
 	size       uintptr /// 占用内存大小
 	ptrdata    uintptr // size of memory prefix holding all pointers
 	hash       uint32  /// hash值
-	tflag      tflag   ///
+	tflag      tflag   /// 额外的类型信息
 	align      uint8   ///
 	fieldAlign uint8   ///
 	kind       uint8   /// 类型???
@@ -360,8 +360,8 @@ type imethod struct {
 }
 
 type interfacetype struct {
-	typ     _type
-	pkgpath name
+	typ     _type /// 接口类型的类型
+	pkgpath name /// package 路径
 	mhdr    []imethod
 }
 

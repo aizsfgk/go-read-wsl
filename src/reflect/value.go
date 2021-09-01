@@ -13,6 +13,7 @@ import (
 
 const ptrSize = 4 << (^uintptr(0) >> 63) // unsafe.Sizeof(uintptr(0)) but an ideal const
 
+/// 值是一个结构体
 // Value is the reflection interface to a Go value.
 //
 // Not all methods apply to all kinds of values. Restrictions,
@@ -36,6 +37,7 @@ const ptrSize = 4 << (^uintptr(0) >> 63) // unsafe.Sizeof(uintptr(0)) but an ide
 // they represent.
 type Value struct {
 	// typ holds the type of the value represented by a Value.
+	/// 值类型
 	typ *rtype
 
 	// Pointer-valued data or, if flagIndir is set, pointer to data.
@@ -2365,6 +2367,7 @@ func Zero(typ Type) Value {
 	return Value{t, nil, fl}
 }
 
+/// 新建一个类型
 // New returns a Value representing a pointer to a new zero value
 // for the specified type. That is, the returned Value's Type is PtrTo(typ).
 func New(typ Type) Value {
@@ -2602,6 +2605,7 @@ func makeRunes(f flag, v []rune, t Type) Value {
 	return ret
 }
 
+/// 转换函数
 // These conversion functions are returned by convertOp
 // for classes of conversions. For example, the first function, cvtInt,
 // takes any value v of signed int type and returns the value converted
@@ -2720,6 +2724,7 @@ func cvtI2I(v Value, typ Type) Value {
 	return cvtT2I(v.Elem(), typ)
 }
 
+/// chan
 // implemented in ../runtime
 func chancap(ch unsafe.Pointer) int
 func chanclose(ch unsafe.Pointer)

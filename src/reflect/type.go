@@ -20,6 +20,7 @@
 package reflect
 
 import (
+	/// 不安全的头
 	"internal/unsafeheader"
 	"strconv"
 	"sync"
@@ -43,28 +44,28 @@ type Type interface {
 	// Methods applicable to all types.
 
 	// Align returns the alignment in bytes of a value of
-	// this type when allocated in memory.
+	// this type when allocated in memory. /// 内存分配的字节对齐数
 	Align() int
 
 	// FieldAlign returns the alignment in bytes of a value of
-	// this type when used as a field in a struct.
+	// this type when used as a field in a struct. /// 在结构体中，字段的类型对齐数
 	FieldAlign() int
 
 	// Method returns the i'th method in the type's method set.
 	// It panics if i is not in the range [0, NumMethod()).
 	//
 	// For a non-interface type T or *T, the returned Method's Type and Func
-	// fields describe a function whose first argument is the receiver.
+	// fields describe a function whose first argument is the receiver. /// 第一个参数是类型接收者
 	//
 	// For an interface type, the returned Method's Type field gives the
 	// method signature, without a receiver, and the Func field is nil.
 	//
 	// Only exported methods are accessible and they are sorted in
-	// lexicographic order.
+	// lexicographic order. /// 返回指定索引位置的方法
 	Method(int) Method
 
 	// MethodByName returns the method with that name in the type's
-	// method set and a boolean indicating if the method was found.
+	// method set and a boolean indicating if the method was found. /// 返回指定名字的方法
 	//
 	// For a non-interface type T or *T, the returned Method's Type and Func
 	// fields describe a function whose first argument is the receiver.
@@ -89,14 +90,14 @@ type Type interface {
 
 	// Size returns the number of bytes needed to store
 	// a value of the given type; it is analogous to unsafe.Sizeof.
-	Size() uintptr
+	Size() uintptr /// 返回字节大小
 
 	// String returns a string representation of the type.
 	// The string representation may use shortened package names
 	// (e.g., base64 instead of "encoding/base64") and is not
 	// guaranteed to be unique among types. To test for type identity,
 	// compare the Types directly.
-	String() string
+	String() string /// 返回字符串代表
 
 	// Kind returns the specific kind of this type.
 	Kind() Kind
@@ -308,24 +309,26 @@ type rtype struct {
 	size       uintptr
 	ptrdata    uintptr // number of bytes in the type that can contain pointers
 	hash       uint32  // hash of type; avoids computation in hash tables
-	tflag      tflag   // extra type information flags
-	align      uint8   // alignment of variable with this type
-	fieldAlign uint8   // alignment of struct field with this type
+	tflag      tflag   // extra type information flags /// 额外的类型信息
+	align      uint8   // alignment of variable with this type       /// 变量对齐
+	fieldAlign uint8   // alignment of struct field with this type   /// 结构体字段对齐
 	kind       uint8   // enumeration for C
+
 	// function for comparing objects of this type
 	// (ptr to object A, ptr to object B) -> ==?
+	/// 用于判断当前类型的多个对象是否相等
 	equal     func(unsafe.Pointer, unsafe.Pointer) bool
-	gcdata    *byte   // garbage collection data
+	gcdata    *byte   // garbage collection data /// 垃圾回收相关数据
 	str       nameOff // string form
 	ptrToThis typeOff // type for pointer to this type, may be zero
 }
 
 // Method on non-interface type
 type method struct {
-	name nameOff // name of method
-	mtyp typeOff // method type (without receiver)
-	ifn  textOff // fn used in interface call (one-word receiver)
-	tfn  textOff // fn used for normal method call
+	name nameOff // name of method /// 类型名
+	mtyp typeOff // method type (without receiver) /// 方法类型
+	ifn  textOff // fn used in interface call (one-word receiver) /// 接口调用
+	tfn  textOff // fn used for normal method call  /// 正常调用
 }
 
 // uncommonType is present only for defined types or types with methods
@@ -344,9 +347,9 @@ type uncommonType struct {
 type ChanDir int
 
 const (
-	RecvDir ChanDir             = 1 << iota // <-chan
-	SendDir                                 // chan<-
-	BothDir = RecvDir | SendDir             // chan
+	RecvDir ChanDir             = 1 << iota // <-chan // 1
+	SendDir                                 // chan<- // 2
+	BothDir = RecvDir | SendDir             // chan   // 3
 )
 
 // arrayType represents a fixed array type.
@@ -567,6 +570,7 @@ func newName(n, tag string, exported bool) name {
  * The compiler does not know about the data structures and methods below.
  */
 
+/// 方法结构体
 // Method represents a single method.
 type Method struct {
 	// Name is the method name.
@@ -1104,6 +1108,9 @@ type StructField struct {
 	Anonymous bool      // is an embedded field
 }
 
+
+
+/// ********** 结构体的tag字符串 *********** ///
 // A StructTag is the tag string in a struct field.
 //
 // By convention, tag strings are a concatenation of
@@ -1124,6 +1131,7 @@ func (tag StructTag) Get(key string) string {
 	return v
 }
 
+/// 返回
 // Lookup returns the value associated with key in the tag string.
 // If the key is present in the tag the value (which may be empty)
 // is returned. Otherwise the returned value will be the empty string.
@@ -1368,7 +1376,9 @@ func (t *structType) FieldByName(name string) (f StructField, present bool) {
 // TypeOf returns the reflection Type that represents the dynamic type of i.
 // If i is a nil interface value, TypeOf returns nil.
 func TypeOf(i interface{}) Type {
+	/// 返回反射类型
 	eface := *(*emptyInterface)(unsafe.Pointer(&i))
+	/// 
 	return toType(eface.typ)
 }
 

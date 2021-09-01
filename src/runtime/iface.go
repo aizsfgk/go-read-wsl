@@ -18,6 +18,7 @@ var (
 	itabTableInit = itabTableType{size: itabInitSize} // starter table
 )
 
+/// 512 个itab
 // Note: change the formula in the mallocgc call in itabAdd if you change these fields.
 type itabTableType struct {
 	size    uintptr             // length of entries array. Always a power of 2.
@@ -30,6 +31,7 @@ func itabHashFunc(inter *interfacetype, typ *_type) uintptr {
 	return uintptr(inter.typ.hash ^ typ.hash)
 }
 
+/// 获取itab
 func getitab(inter *interfacetype, typ *_type, canfail bool) *itab {
 	if len(inter.mhdr) == 0 {
 		throw("internal error - misuse of itab")
@@ -308,6 +310,9 @@ var (
 	sliceType  *_type = efaceOf(&sliceEface)._type
 )
 
+
+/// 类型转换和断言
+
 // The conv and assert functions below do very similar things.
 // The convXXX functions are guaranteed by the compiler to succeed.
 // The assertXXX functions may fail (either panicking or returning false,
@@ -315,6 +320,7 @@ var (
 // The convXXX functions succeed on a nil input, whereas the assertXXX
 // functions fail on a nil input.
 
+/// 转换
 func convT2E(t *_type, elem unsafe.Pointer) (e eface) {
 	if raceenabled {
 		raceReadObjectPC(t, elem, getcallerpc(), funcPC(convT2E))
@@ -322,6 +328,7 @@ func convT2E(t *_type, elem unsafe.Pointer) (e eface) {
 	if msanenabled {
 		msanread(elem, t.size)
 	}
+	/// 类型转换
 	x := mallocgc(t.size, t, true)
 	// TODO: We allocate a zeroed object only to overwrite it with actual data.
 	// Figure out how to avoid zeroing. Also below in convT2Eslice, convT2I, convT2Islice.
@@ -332,13 +339,17 @@ func convT2E(t *_type, elem unsafe.Pointer) (e eface) {
 }
 
 func convT16(val uint16) (x unsafe.Pointer) {
-	if val < uint16(len(staticuint64s)) {
-		x = unsafe.Pointer(&staticuint64s[val])
+	if val < uint16(len(staticuint64s)) { /// 值小于256
+		x = unsafe.Pointer(&staticuint64s[val]) /// 取固定地址
+
+		/// 如果是大端
 		if sys.BigEndian {
 			x = add(x, 6)
 		}
 	} else {
+		/// 分配内存
 		x = mallocgc(2, uint16Type, false)
+		/// 拷贝过去
 		*(*uint16)(x) = val
 	}
 	return
@@ -369,9 +380,12 @@ func convT64(val uint64) (x unsafe.Pointer) {
 
 func convTstring(val string) (x unsafe.Pointer) {
 	if val == "" {
-		x = unsafe.Pointer(&zeroVal[0])
+		x = unsafe.Pointer(&zeroVal[0]) /// 转换为0值
 	} else {
+
+		/// 分配内存
 		x = mallocgc(unsafe.Sizeof(val), stringType, true)
+		/// 拷贝过去
 		*(*string)(x) = val
 	}
 	return
@@ -410,8 +424,11 @@ func convT2I(tab *itab, elem unsafe.Pointer) (i iface) {
 	if msanenabled {
 		msanread(elem, t.size)
 	}
+	/// 分配一个内存
 	x := mallocgc(t.size, t, true)
+	/// 从原地址复制到目标地址
 	typedmemmove(t, x, elem)
+
 	i.tab = tab
 	i.data = x
 	return
@@ -447,6 +464,7 @@ func convI2I(inter *interfacetype, i iface) (r iface) {
 	return
 }
 
+/// 断言
 func assertI2I(inter *interfacetype, i iface) (r iface) {
 	tab := i.tab
 	if tab == nil {
@@ -529,7 +547,7 @@ func iterate_itabs(fn func(*itab)) {
 }
 
 // staticuint64s is used to avoid allocating in convTx for small integer values.
-var staticuint64s = [...]uint64{
+var staticuint64s = [...]uint64{ // len 256
 	0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
 	0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
 	0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,

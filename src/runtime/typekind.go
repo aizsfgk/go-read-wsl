@@ -16,7 +16,7 @@ const (
 	kindUint16
 	kindUint32
 	kindUint64
-	kindUintptr
+	kindUintptr /// 指针 12
 	kindFloat32
 	kindFloat64
 	kindComplex64
@@ -24,17 +24,17 @@ const (
 	kindArray
 	kindChan
 	kindFunc
-	kindInterface
+	kindInterface /// 接口；接口也是一种类型 20; 10100
 	kindMap
-	kindPtr
+	kindPtr       /// 指针 22
 	kindSlice
 	kindString
 	kindStruct
-	kindUnsafePointer
+	kindUnsafePointer /// 26
 
-	kindDirectIface = 1 << 5
-	kindGCProg      = 1 << 6
-	kindMask        = (1 << 5) - 1
+	kindDirectIface = 1 << 5 /// 32 => 100000
+	kindGCProg      = 1 << 6 /// 64 => 1000000
+	kindMask        = (1 << 5) - 1 /// 31 => 11111
 )
 
 // isDirectIface reports whether t is stored directly in an interface value.
