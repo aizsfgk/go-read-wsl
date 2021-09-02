@@ -972,8 +972,8 @@ func extendRandom(r []byte, n int) {
 type _defer struct {
 	siz     int32 // includes both arguments and results
 	started bool
-	heap    bool
-	// openDefer indicates that this _defer is for a frame with open-coded
+	heap    bool /// 是否被分配到堆上了???
+	// openDefer indicates that this _defer is for a frame with open-coded /// 开放编码
 	// defers. We have only one defer record for the entire frame (which may
 	// currently have 0, 1, or more defers active).
 	openDefer bool

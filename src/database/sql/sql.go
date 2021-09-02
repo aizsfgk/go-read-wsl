@@ -742,6 +742,7 @@ func OpenDB(c driver.Connector) *DB {
 	return db
 }
 
+/// 打开一个数据库，通过它的数据库驱动名
 // Open opens a database specified by its database driver name and a
 // driver-specific data source name, usually consisting of at least a
 // database name and connection information.
@@ -760,6 +761,7 @@ func OpenDB(c driver.Connector) *DB {
 // function should be called just once. It is rarely necessary to
 // close a DB.
 func Open(driverName, dataSourceName string) (*DB, error) {
+	/// 驱动器
 	driversMu.RLock()
 	driveri, ok := drivers[driverName]
 	driversMu.RUnlock()

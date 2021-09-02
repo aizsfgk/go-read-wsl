@@ -301,6 +301,7 @@ const (
 	tflagRegularMemory tflag = 1 << 3
 )
 
+/// 这个 rtype 实现了 reflect Type 接口
 // rtype is the common implementation of most values.
 // It is embedded in other struct types.
 //
@@ -1378,7 +1379,7 @@ func (t *structType) FieldByName(name string) (f StructField, present bool) {
 func TypeOf(i interface{}) Type {
 	/// 返回反射类型
 	eface := *(*emptyInterface)(unsafe.Pointer(&i))
-	/// 
+	///
 	return toType(eface.typ)
 }
 

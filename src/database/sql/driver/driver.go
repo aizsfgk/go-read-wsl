@@ -75,6 +75,7 @@ type NamedValue struct {
 	Value Value
 }
 
+/// 数据库驱动器，只有一个Open方法
 // Driver is the interface that must be implemented by a database
 // driver.
 //
@@ -318,6 +319,7 @@ type Result interface {
 	RowsAffected() (int64, error)
 }
 
+/// 绑定一个连接，不能被并发访问
 // Stmt is a prepared statement. It is bound to a Conn and not
 // used by multiple goroutines concurrently.
 type Stmt interface {

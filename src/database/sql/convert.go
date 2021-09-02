@@ -17,6 +17,7 @@ import (
 	"unicode/utf8"
 )
 
+/// ptr nil err
 var errNilPtr = errors.New("destination pointer is nil") // embedded in descriptive error
 
 func describeNamedValue(nv *driver.NamedValue) string {

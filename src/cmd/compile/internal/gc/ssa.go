@@ -1092,12 +1092,12 @@ func (s *state) stmt(n *Node) {
 			}
 			Warnl(n.Pos, "%s defer", defertype)
 		}
-		if s.hasOpenDefers {
+		if s.hasOpenDefers { /// 开放编码
 			s.openDeferRecord(n.Left)
 		} else {
-			d := callDefer
+			d := callDefer   /// 堆分配
 			if n.Esc == EscNever {
-				d = callDeferStack
+				d = callDeferStack /// 栈分配
 			}
 			s.call(n.Left, d)
 		}

@@ -5,16 +5,21 @@
 package runtime
 
 import (
+	/// 原子操作
 	"runtime/internal/atomic"
+	/// 系统
 	"runtime/internal/sys"
+	/// 不安全
 	"unsafe"
 )
 
+///
 // We have two different ways of doing defers. The older way involves creating a
 // defer record at the time that a defer statement is executing and adding it to a
 // defer chain. This chain is inspected by the deferreturn call at all function
-// exits in order to run the appropriate defer calls. A cheaper way (which we call
-// open-coded defers) is used for functions in which no defer statements occur in
+// exits in order to run the appropriate defer calls.
+//
+//A cheaper way (which we call open-coded defers) is used for functions in which no defer statements occur in
 // loops. In that case, we simply store the defer function/arg information into
 // specific stack slots at the point of each defer statement, as well as setting a
 // bit in a bitmask. At each function exit, we add inline code to directly make
@@ -886,6 +891,7 @@ func reflectcallSave(p *_panic, fn, arg unsafe.Pointer, argsize uint32) {
 	}
 }
 
+/// 预处理panic; core logic
 // The implementation of the predeclared function panic.
 func gopanic(e interface{}) {
 	gp := getg()
@@ -1092,7 +1098,7 @@ func gorecover(argp uintptr) interface{} {
 	gp := getg()
 	p := gp._panic
 	if p != nil && !p.goexit && !p.recovered && argp == uintptr(p.argp) {
-		p.recovered = true
+		p.recovered = true /// 只是设置为true
 		return p.arg
 	}
 	return nil
@@ -1134,7 +1140,7 @@ var paniclk mutex
 // Unwind the stack after a deferred function calls recover
 // after a panic. Then arrange to continue running as though
 // the caller of the deferred function returned normally.
-func recovery(gp *g) {
+func recovery(gp *g) { /// 恢复执行
 	// Info about defer passed in G struct.
 	sp := gp.sigcode0
 	pc := gp.sigcode1
