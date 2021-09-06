@@ -739,6 +739,7 @@ type p struct {
 	/// *************** 定时器功能 ****************** ///
 	// Lock for timers. We normally access the timers while running
 	// on this P, but the scheduler can also do it from a different P.
+	/// 保护定时器相关资源的互斥锁
 	timersLock mutex
 
 	// Actions to take at some time. This is used to implement the
@@ -750,12 +751,14 @@ type p struct {
 	// Modified using atomic instructions. /// 定时器数量
 	numTimers uint32
 
+	/// 处于 `timerModifiedEarlier` 状态的定时器数量
 	// Number of timerModifiedEarlier timers on P's heap.
 	// This should only be modified while holding timersLock,
 	// or while the timer status is in a transient state
 	// such as timerModifying.
 	adjustTimers uint32
 
+	/// 处于 `timerDeleted` 状态的定时器数量
 	// Number of timerDeleted timers in P's heap.
 	// Modified using atomic instructions.
 	deletedTimers uint32

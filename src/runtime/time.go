@@ -12,6 +12,7 @@ import (
 	"unsafe"
 )
 
+/// 定时器
 // Package time knows the layout of this structure.
 // If this struct changes, adjust ../time/sleep.go:/runtimeTimer.
 type timer struct {
@@ -24,22 +25,23 @@ type timer struct {
 	// each time calling f(arg, now) in the timer goroutine, so f must be
 	// a well-behaved function and not block.
 	when   int64 /// 当前唤醒的时间
+
 	period int64 /// 两次唤醒的间隔
 
-	f      func(interface{}, uintptr)
-	arg    interface{}
-	seq    uintptr
+	f      func(interface{}, uintptr) /// 当定时器被唤醒时，都会调用的函数
+	arg    interface{} /// f(arg, now) /// 参数
+	seq    uintptr /// 序列号
 
 	// What to set the when field to in timerModifiedXX status.
-	nextwhen int64
+	nextwhen int64  /// 当 定时器处于 `timerModifiedXX` 状态，用来设置 when 字段
 
 	// The status field holds one of the values below.
-	status uint32
+	status uint32 /// 定时器状态
 }
 
 // Code outside this file has to be careful in using a timer value.
 //
-// The pp, status, and nextwhen fields may only be used by code in this file. 仅仅用于这个文件
+// The pp, status, and nextwhen fields may only be used by code in this file. 仅仅用于这个文件； 这3个字段仅仅用于这个文件
 //
 // Code that creates a new timer value can set the when, period, f,
 // arg, and seq fields.
@@ -53,20 +55,20 @@ type timer struct {
 // but not the when field.
 // It's OK to just drop an inactive timer and let the GC collect it.
 // It's not OK to pass an inactive timer to addtimer.
-// Only newly allocated timer values may be passed to addtimer.
+// Only newly allocated timer values may be passed to addtimer. /// 必须是一个新分配的定时器，才能传递给 addtimer
 //
-// An active timer may be passed to modtimer. No fields may be touched.
+// An active timer may be passed to modtimer. No fields may be touched. /// 一个激活的定时器，可以传递给 modtimer
 // It remains an active timer.
 //
-// An inactive timer may be passed to resettimer to turn into an
+// An inactive timer may be passed to resettimer to turn into an  /// 一个非激活的定时器可以传递给 resettimer,转变为一个激活定时器使用一个更新的when字段
 // active timer with an updated when field.
-// It's OK to pass a newly allocated timer value to resettimer.
+// It's OK to pass a newly allocated timer value to resettimer. /// 也可以传递一个新分配的定时器 给 resettimer
 //
 // Timer operations are addtimer, deltimer, modtimer, resettimer,
 // cleantimers, adjusttimers, and runtimer.
 //
-// We don't permit calling addtimer/deltimer/modtimer/resettimer simultaneously,
-// but adjusttimers and runtimer can be called at the same time as any of those.
+// We don't permit calling addtimer/deltimer/modtimer/resettimer simultaneously, /// addtimer/deltimer/modtimer/resettimer 不允许同时调用这些方法
+// but adjusttimers and runtimer can be called at the same time as any of those. /// adjusttimers/runtimer 可以同时调用
 //
 // Active timers live in heaps attached to P, in the timers field.
 // Inactive timers live there too temporarily, until they are removed.
@@ -186,15 +188,25 @@ func timeSleep(ns int64) {
 		return
 	}
 
+	/// 获取当前Goroutine
 	gp := getg()
+	/// cached timer for time.Sleep
 	t := gp.timer
+
+	/// 如果为空，则新建
 	if t == nil {
 		t = new(timer)
 		gp.timer = t
 	}
+
+	/// 恢复函数
 	t.f = goroutineReady
+	/// 当前Goroutine
 	t.arg = gp
+	/// 下次被唤醒时间
 	t.nextwhen = nanotime() + ns
+
+	/// gopark 暂停goroutine
 	gopark(resetForSleep, unsafe.Pointer(t), waitReasonSleep, traceEvGoSleep, 1)
 }
 
@@ -204,7 +216,10 @@ func timeSleep(ns int64) {
 // timer function, goroutineReady, before the goroutine has been parked.
 func resetForSleep(gp *g, ut unsafe.Pointer) bool {
 	t := (*timer)(ut)
+
+	/// 重置定时器
 	resettimer(t, t.nextwhen)
+
 	return true
 }
 
@@ -214,6 +229,8 @@ func startTimer(t *timer) {
 	if raceenabled {
 		racerelease(unsafe.Pointer(t))
 	}
+
+	/// 添加到定时器
 	addtimer(t)
 }
 
@@ -221,6 +238,8 @@ func startTimer(t *timer) {
 // It reports whether t was stopped before being run.
 //go:linkname stopTimer time.stopTimer
 func stopTimer(t *timer) bool {
+
+	/// 删除定时器
 	return deltimer(t)
 }
 
@@ -231,6 +250,7 @@ func resetTimer(t *timer, when int64) bool {
 	if raceenabled {
 		racerelease(unsafe.Pointer(t))
 	}
+	/// 重置定时器
 	return resettimer(t, when)
 }
 
@@ -415,10 +435,12 @@ func dodeltimer0(pp *p) {
 	atomic.Xadd(&pp.numTimers, -1)
 }
 
+/// 修改一个已经存在的定时器
 // modtimer modifies an existing timer.
 // This is called by the netpoll code or time.Ticker.Reset.
 // Reports whether the timer was modified before it was run.
 ///
+/// netpoll中调用/或者time.Ticker.Reset中调用
 /// 一直循环
 func modtimer(t *timer, when, period int64, f func(interface{}, uintptr), arg interface{}, seq uintptr) bool {
 	if when < 0 {
