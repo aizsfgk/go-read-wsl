@@ -6,6 +6,9 @@ package time
 
 import "errors"
 
+///
+/// 时间格式解析函数
+/// 预定义的布局
 // These are predefined layouts for use in Time.Format and time.Parse.
 // The reference time used in the layouts is the specific time:
 //	Mon Jan 2 15:04:05 MST 2006
@@ -70,6 +73,7 @@ import "errors"
 // permitted by the RFCs and they do accept time formats not formally defined.
 // The RFC3339Nano format removes trailing zeros from the seconds field
 // and thus may not sort correctly once formatted.
+/// 预定义的一些格式
 const (
 	ANSIC       = "Mon Jan _2 15:04:05 2006"
 	UnixDate    = "Mon Jan _2 15:04:05 MST 2006"
@@ -1366,6 +1370,7 @@ var unitMap = map[string]int64{
 	"h":  int64(Hour),
 }
 
+/// 解析间隔
 // ParseDuration parses a duration string.
 // A duration string is a possibly signed sequence of
 // decimal numbers, each with optional fraction and a unit suffix,
