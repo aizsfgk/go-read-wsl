@@ -26,6 +26,7 @@ var (
 
 	netpollBreakRd, netpollBreakWr uintptr // for netpollBreak   /// 读写管道句柄
 
+	/// 避免重复调用
 	netpollWakeSig uint32 // used to avoid duplicate calls of netpollBreak // 防止netpollBreak多次调用
 )
 
@@ -79,7 +80,7 @@ func netpollarm(pd *pollDesc, mode int) {
 
 // netpollBreak interrupts an epollwait.
 func netpollBreak() {
-	if atomic.Cas(&netpollWakeSig, 0, 1) {
+	if atomic.Cas(&netpollWakeSig, 0, 1) { ///
 		for {
 			var b byte
 			n := write(netpollBreakWr, unsafe.Pointer(&b), 1)
@@ -158,7 +159,7 @@ retry:
 				// if blocking.
 				var tmp [16]byte
 				read(int32(netpollBreakRd), noescape(unsafe.Pointer(&tmp[0])), int32(len(tmp)))
-				atomic.Store(&netpollWakeSig, 0)
+				atomic.Store(&netpollWakeSig, 0) ///
 			}
 			continue
 		}

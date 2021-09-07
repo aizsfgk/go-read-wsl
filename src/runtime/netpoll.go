@@ -117,9 +117,9 @@ func poll_runtime_pollServerInit() {
 }
 
 func netpollGenericInit() {
-	if atomic.Load(&netpollInited) == 0 {
+	if atomic.Load(&netpollInited) == 0 { /// 全局只初始化一次
 		lockInit(&netpollInitLock, lockRankNetpollInit)
-		lock(&netpollInitLock)
+		lock(&netpollInitLock) /// 需要获取锁
 		if netpollInited == 0 {
 			netpollinit()
 			atomic.Store(&netpollInited, 1)

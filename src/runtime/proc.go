@@ -2625,6 +2625,7 @@ func pollWork() bool {
 // wakeNetPoller wakes up the thread sleeping in the network poller,
 // if there is one, and if it isn't going to wake up anyhow before
 // the when argument.
+/// 唤醒睡眠的网络轮询器
 func wakeNetPoller(when int64) {
 	if atomic.Load64(&sched.lastpoll) == 0 {
 		// In findrunnable we ensure that when polling the pollUntil
@@ -4865,7 +4866,7 @@ func checkdead() {
 var forcegcperiod int64 = 2 * 60 * 1e9
 
 /// sysmon 监控线程运行，不需要P
-/// 因此写栅栏，是不被允许的
+/// 因此写栅栏，是不被允许的s
 ///
 // Always runs without a P, so write barriers are not allowed.
 //
