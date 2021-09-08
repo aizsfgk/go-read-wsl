@@ -1359,6 +1359,7 @@ func leadingFraction(s string) (x int64, scale float64, rem string) {
 	return x, scale, s[i:]
 }
 
+/// 单位map
 var unitMap = map[string]int64{
 	"ns": int64(Nanosecond),
 	"us": int64(Microsecond),

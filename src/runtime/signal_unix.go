@@ -550,6 +550,7 @@ func sighandler(sig uint32, info *siginfo, ctxt unsafe.Pointer, gp *g) {
 	c := &sigctxt{info, ctxt}
 
 	/// profile 时钟超时
+	/// 对时间进行更新???
 	if sig == _SIGPROF {
 		sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
 		return

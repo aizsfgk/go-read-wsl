@@ -10,7 +10,7 @@ const (
 	DefaultPhysPageSize = 4096
 	PCQuantum           = 1
 	Int64Align          = 8
-	MinFrameSize        = 0
+	MinFrameSize        = 0 /// 最小帧大小0
 )
 
 type Uintreg uint64

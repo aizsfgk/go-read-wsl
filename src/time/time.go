@@ -779,6 +779,7 @@ func lessThanHalf(x, y Duration) bool {
 	return uint64(x)+uint64(x) < uint64(y)
 }
 
+/// 返回最近的一个时间点
 // Round returns the result of rounding d to the nearest multiple of m.
 // The rounding behavior for halfway values is to round away from zero.
 // If the result exceeds the maximum (or minimum)
@@ -809,6 +810,7 @@ func (d Duration) Round(m Duration) Duration {
 	return maxDuration // overflow
 }
 
+/// 增加
 // Add returns the time t+d.
 func (t Time) Add(d Duration) Time {
 	dsec := int64(d / 1e9)
@@ -834,6 +836,7 @@ func (t Time) Add(d Duration) Time {
 	return t
 }
 
+/// 减少
 // Sub returns the duration t-u. If the result exceeds the maximum (or minimum)
 // value that can be stored in a Duration, the maximum (or minimum) duration
 // will be returned.
@@ -1225,6 +1228,7 @@ func (t *Time) UnmarshalBinary(data []byte) error {
 // The same semantics will be provided by the generic MarshalBinary, MarshalText,
 // UnmarshalBinary, UnmarshalText.
 
+/// 时间编码
 // GobEncode implements the gob.GobEncoder interface.
 func (t Time) GobEncode() ([]byte, error) {
 	return t.MarshalBinary()

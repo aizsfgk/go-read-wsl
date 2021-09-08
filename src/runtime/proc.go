@@ -4155,12 +4155,13 @@ func _LostSIGPROFDuringAtomic64() { _LostSIGPROFDuringAtomic64() }
 func _VDSO()                      { _VDSO() }
 
 // Called if we receive a SIGPROF signal.
-// Called by the signal handler, may run during STW.
+// Called by the signal handler, may run during STW. /// STW 期间
 ///
 /// 被调用，如果我们接受了一个 SIGPROF 信号
 ///
 //go:nowritebarrierrec
 func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
+	/// hz == 0, 直接返回
 	if prof.hz == 0 {
 		return
 	}
@@ -4189,7 +4190,7 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 	getg().m.mallocing++
 
 	// Define that a "user g" is a user-created goroutine, and a "system g"
-	// is one that is m->g0 or m->gsignal.
+	// is one that is m->g0 or m->gsignal. /// g0 或者 gsignal
 	//
 	// We might be interrupted for profiling halfway through a
 	// goroutine switch. The switch involves updating three (or four) values:
@@ -4316,6 +4317,8 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 	if prof.hz != 0 {
 		cpuprof.add(gp, stk[:n])
 	}
+
+	/// 再--
 	getg().m.mallocing--
 }
 
