@@ -11,6 +11,13 @@ import (
 	"time"
 )
 
+///
+/// 连接器
+///
+///
+///
+///
+
 // defaultTCPKeepAlive is a default constant value for TCPKeepAlive times
 // See golang.org/issue/31510
 const (
