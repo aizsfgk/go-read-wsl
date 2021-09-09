@@ -9,6 +9,8 @@ import (
 	"unsafe"
 )
 
+/// map 快速访问路径
+
 func mapaccess1_fast64(t *maptype, h *hmap, key uint64) unsafe.Pointer {
 	if raceenabled && h != nil {
 		callerpc := getcallerpc()

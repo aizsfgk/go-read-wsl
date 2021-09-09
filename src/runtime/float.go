@@ -4,6 +4,8 @@
 
 package runtime
 
+/// 浮点数
+
 import "unsafe"
 
 var inf = float64frombits(0x7FF0000000000000)

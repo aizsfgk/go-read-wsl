@@ -8,6 +8,8 @@
 
 package net
 
+/// 地址选择
+
 import "sort"
 
 func sortByRFC6724(addrs []IPAddr) {
@@ -21,6 +23,7 @@ func sortByRFC6724withSrcs(addrs []IPAddr, srcs []IP) {
 	if len(addrs) != len(srcs) {
 		panic("internal error")
 	}
+	///
 	addrAttr := make([]ipAttr, len(addrs))
 	srcAttr := make([]ipAttr, len(srcs))
 	for i, v := range addrs {

@@ -5,7 +5,7 @@
 // +build aix darwin dragonfly
 
 package runtime
-
+/// 管道函数
 func nonblockingPipe() (r, w int32, errno int32) {
 	r, w, errno = pipe()
 	if errno != 0 {

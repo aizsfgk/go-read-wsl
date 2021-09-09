@@ -13,7 +13,7 @@ import (
 	"unsafe"
 )
 
-///
+/// panic 挂载在单独的 G 上
 // We have two different ways of doing defers. The older way involves creating a
 // defer record at the time that a defer statement is executing and adding it to a
 // defer chain. This chain is inspected by the deferreturn call at all function

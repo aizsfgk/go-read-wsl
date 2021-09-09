@@ -113,6 +113,7 @@ func makeslice64(et *_type, len64, cap64 int64) unsafe.Pointer {
 	return makeslice(et, len, cap)
 }
 
+/// stings <-> bytes
 // growslice handles slice growth during append.
 // It is passed the slice element type, the old slice, and the desired new minimum capacity,
 // and it returns a new slice with at least that capacity, with the old data

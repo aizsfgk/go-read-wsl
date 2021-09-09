@@ -1377,6 +1377,9 @@ const (
 	SIGXFSZ   = Signal(0x19)
 )
 
+///
+/// 接卸这些连接错误信息的具体场景
+///
 // Error table
 var errors = [...]string{
 	1:   "operation not permitted",

@@ -10,6 +10,8 @@ import (
 	"unsafe"
 )
 
+/// 反射和类型系统
+
 const itabInitSize = 512
 
 var (

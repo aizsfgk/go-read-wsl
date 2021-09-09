@@ -22,6 +22,8 @@
 
 package runtime
 
+/// 自该文件以上文件，开始是runtime memory 相关
+
 import (
 	"runtime/internal/atomic"
 	"runtime/internal/sys"

@@ -21,27 +21,32 @@ var ticks struct {
 
 // Note: Called by runtime/pprof in addition to runtime code.
 func tickspersecond() int64 {
+	/// 每秒tick的值
 	r := int64(atomic.Load64(&ticks.val))
 	if r != 0 {
 		return r
 	}
+
+
 	lock(&ticks.lock)
 	r = int64(ticks.val)
+	//// r等于0
 	if r == 0 {
-		t0 := nanotime()
-		c0 := cputicks()
+		t0 := nanotime() /// 纳秒
+		c0 := cputicks() /// cpu tick
 		usleep(100 * 1000)
 		t1 := nanotime()
 		c1 := cputicks()
 		if t1 == t0 {
 			t1++
 		}
-		r = (c1 - c0) * 1000 * 1000 * 1000 / (t1 - t0)
+		r = (c1 - c0) * 1000 * 1000 * 1000 / (t1 - t0) /// 计算一个值
 		if r == 0 {
 			r++
 		}
 		atomic.Store64(&ticks.val, uint64(r))
 	}
+
 	unlock(&ticks.lock)
 	return r
 }

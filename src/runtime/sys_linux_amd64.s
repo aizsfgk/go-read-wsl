@@ -2,6 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+/// 系统调用和 其他系统相关函数 汇编
+
+
 //
 // System calls and other sys.stuff for AMD64, Linux
 //
@@ -211,7 +214,7 @@ TEXT ·tgkill(SB),NOSPLIT,$0 /// 给线程发送信号
 	SYSCALL
 	RET
 
-TEXT runtime·setitimer(SB),NOSPLIT,$0-24
+TEXT runtime·setitimer(SB),NOSPLIT,$0-24  /// 设置定时器
 	MOVL	mode+0(FP), DI
 	MOVQ	new+8(FP), SI
 	MOVQ	old+16(FP), DX
@@ -219,7 +222,7 @@ TEXT runtime·setitimer(SB),NOSPLIT,$0-24
 	SYSCALL
 	RET
 
-TEXT runtime·mincore(SB),NOSPLIT,$0-28
+TEXT runtime·mincore(SB),NOSPLIT,$0-28 /// 确定页面是否留在内存中
 	MOVQ	addr+0(FP), DI
 	MOVQ	n+8(FP), SI
 	MOVQ	dst+16(FP), DX
@@ -527,7 +530,7 @@ TEXT runtime·sigreturn(SB),NOSPLIT,$0
 	SYSCALL
 	INT $3	// not reached
 
-TEXT runtime·sysMmap(SB),NOSPLIT,$0
+TEXT runtime·sysMmap(SB),NOSPLIT,$0  /// mmap 函数
 	MOVQ	addr+0(FP), DI
 	MOVQ	n+8(FP), SI
 	MOVL	prot+16(FP), DX
@@ -812,7 +815,7 @@ TEXT runtime·socket(SB),NOSPLIT,$0-20
 	RET
 
 // func sbrk0() uintptr
-TEXT runtime·sbrk0(SB),NOSPLIT,$0-8
+TEXT runtime·sbrk0(SB),NOSPLIT,$0-8  /// y
 	// Implemented as brk(NULL).
 	MOVQ	$0, DI
 	MOVL	$SYS_brk, AX

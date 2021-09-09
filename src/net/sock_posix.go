@@ -143,7 +143,7 @@ func (fd *netFD) dial(ctx context.Context, laddr, raddr sockaddr, ctrlFn func(st
 	}
 	var rsa syscall.Sockaddr  // remote address from the user
 	var crsa syscall.Sockaddr // remote address we actually connected to
-	if raddr != nil { /// 远程的地址为空
+	if raddr != nil { /// 远程的地址不为空
 		/// 新建一个socket
 		if rsa, err = raddr.sockaddr(fd.family); err != nil {
 			return err

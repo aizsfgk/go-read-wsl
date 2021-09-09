@@ -4,6 +4,8 @@
 
 // +build msan
 
+/// 汇编代码操作
+
 #include "go_asm.h"
 #include "go_tls.h"
 #include "funcdata.h"

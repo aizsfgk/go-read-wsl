@@ -2351,7 +2351,7 @@ top:
 	// not set lastpoll yet), this thread will do blocking netpoll below
 	// anyway.
 	if netpollinited() && atomic.Load(&netpollWaiters) > 0 && atomic.Load64(&sched.lastpoll) != 0 {
-		if list := netpoll(0); !list.empty() { // non-blocking
+		if list := netpoll(0); !list.empty() { // non-blocking /// 非阻塞
 			gp := list.pop()
 			injectglist(&list)
 			casgstatus(gp, _Gwaiting, _Grunnable) /// findrunnable
@@ -2560,7 +2560,7 @@ stop:
 			// When using fake time, just poll.
 			delta = 0
 		}
-		list := netpoll(delta) // block until new work is available
+		list := netpoll(delta) // block until new work is available /// 阻塞直到有可用的work
 		atomic.Store64(&sched.pollUntil, 0)
 		atomic.Store64(&sched.lastpoll, uint64(nanotime()))
 		if faketime != 0 && list.empty() {

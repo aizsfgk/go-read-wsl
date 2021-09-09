@@ -9,6 +9,14 @@ import (
 	"runtime/internal/sys"
 	"unsafe"
 )
+/// GOTRACEBACK
+
+/// 这个文件的代码实现了 栈跟踪 为全部的架构。
+/// 是否使用链接寄存器???
+/// with link: 存储在新分配的栈的底部
+/// without ink: 返回值存储在栈的顶部
+/// LR : 表示 return PC
+///
 
 // The code in this file implements stack trace walking for all architectures.
 // The most important fact about a given architecture is whether it uses a link register.  /// 使用链接寄存器
@@ -16,7 +24,7 @@ import (
 // incoming value of LR at the bottom of the newly allocated stack frame.
 // On systems without link registers, the architecture pushes a return PC during
 // the call instruction, so the return PC ends up above the stack frame.
-// In this file, the return PC is always called LR, no matter how it was found.
+// In this file, the return PC is always called LR, no matter how it was found. ///
 //
 // To date, the opposite of a link register architecture is an x86 architecture.
 // This code may need to change if some other kind of non-link-register
@@ -80,6 +88,7 @@ func tracebackdefers(gp *g, callback func(*stkframe, unsafe.Pointer) bool, v uns
 	}
 }
 
+/// 跳过函数的大小
 const sizeofSkipFunction = 256
 
 // This function is defined in asm.s to be sizeofSkipFunction bytes long.

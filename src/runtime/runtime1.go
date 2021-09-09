@@ -10,6 +10,8 @@ import (
 	"unsafe"
 )
 
+/// 系统相关的一些操作
+
 // Keep a cached value to make gotraceback fast,
 // since we call it on every call to gentraceback.
 // The cached value is a uint32 in which the low bits

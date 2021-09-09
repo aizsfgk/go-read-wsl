@@ -4,6 +4,7 @@
 
 // +build aix darwin dragonfly freebsd linux netbsd openbsd solaris
 
+/// DNS 客户端
 // DNS client: see RFC 1035.
 // Has to be linked into package net for Dial.
 
@@ -388,6 +389,7 @@ func (conf *resolverConfig) releaseSema() {
 	<-conf.ch
 }
 
+/// 寻找
 func (r *Resolver) lookup(ctx context.Context, name string, qtype dnsmessage.Type) (dnsmessage.Parser, string, error) {
 	if !isDomainName(name) {
 		// We used to use "invalid domain name" as the error,

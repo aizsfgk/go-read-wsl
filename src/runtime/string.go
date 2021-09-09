@@ -98,6 +98,7 @@ func slicebytetostring(buf *tmpBuf, ptr *byte, n int) (str string) {
 	if msanenabled {
 		msanread(unsafe.Pointer(ptr), uintptr(n))
 	}
+	/// 长度为1的字符串
 	if n == 1 {
 		p := unsafe.Pointer(&staticuint64s[*ptr])
 		if sys.BigEndian {
@@ -108,12 +109,14 @@ func slicebytetostring(buf *tmpBuf, ptr *byte, n int) (str string) {
 		return
 	}
 
+	//
 	var p unsafe.Pointer
 	if buf != nil && n <= len(buf) {
 		p = unsafe.Pointer(buf)
 	} else { /// 超过32字节后，如何处理字符串 40 ; 解析mallocgc 函数
 		p = mallocgc(uintptr(n), nil, false)
 	}
+
 	stringStructOf(&str).str = p
 	stringStructOf(&str).len = n
 	memmove(p, unsafe.Pointer(ptr), uintptr(n))
@@ -124,8 +127,10 @@ func slicebytetostring(buf *tmpBuf, ptr *byte, n int) (str string) {
 // stored on the current goroutine's stack.
 /// 记录这个字符串数据是否存储在当前goroutine的栈上
 func stringDataOnStack(s string) bool {
-	ptr := uintptr(stringStructOf(&s).str)
-	stk := getg().stack
+	ptr := uintptr(stringStructOf(&s).str) /// 获取字符串的指针地址
+	stk := getg().stack                    /// 获取协程的栈地址
+
+	/// 大小地址判断
 	return stk.lo <= ptr && ptr < stk.hi /// 字符串的地址 大于等于g的第地址；小于等于g的高地址
 }
 

@@ -7,6 +7,8 @@
 #include "go_asm.h"
 #include "textflag.h"
 
+/// 内存清除相关函数
+
 // NOTE: Windows externalthreadhandler expects memclr to preserve DX.
 
 // func memclrNoHeapPointers(ptr unsafe.Pointer, n uintptr)

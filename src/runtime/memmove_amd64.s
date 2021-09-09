@@ -28,6 +28,9 @@
 #include "go_asm.h"
 #include "textflag.h"
 
+
+/// 内存移动相关函数
+
 // See memmove Go doc for important implementation constraints. /// 内存移动的重要实现制约
 
 // func memmove(to, from unsafe.Pointer, n uintptr)

@@ -6,6 +6,8 @@ package runtime
 
 import "internal/bytealg"
 
+/// 运行时错误接口
+
 // The Error interface identifies a run time error.
 type Error interface {
 	error

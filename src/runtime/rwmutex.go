@@ -8,6 +8,7 @@ import (
 	"runtime/internal/atomic"
 )
 
+/// 读写锁
 // This is a copy of sync/rwmutex.go rewritten to work in the runtime.
 
 // A rwmutex is a reader/writer mutual exclusion lock.

@@ -9,6 +9,8 @@ import (
 	"unsafe"
 )
 
+/// 原子相关操作
+
 // These functions cannot have go:noescape annotations,
 // because while ptr does not escape, new does.
 // If new is marked as not escaping, the compiler will make incorrect

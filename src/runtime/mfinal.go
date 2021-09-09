@@ -12,6 +12,8 @@ import (
 	"unsafe"
 )
 
+/// finalizer
+
 // finblock is an array of finalizers to be executed. finblocks are
 // arranged in a linked list for the finalizer queue.
 //

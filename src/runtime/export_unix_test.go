@@ -6,6 +6,8 @@
 
 package runtime
 
+/// 这是一些导出函数，或许可以使用
+
 import "unsafe"
 
 var NonblockingPipe = nonblockingPipe

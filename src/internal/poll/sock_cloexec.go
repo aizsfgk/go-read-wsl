@@ -42,6 +42,8 @@ func accept(s int) (int, syscall.Sockaddr, string, error) {
 	if err != nil {
 		return -1, nil, "accept", err
 	}
+
+	/// 设置非阻塞
 	if err = syscall.SetNonblock(ns, true); err != nil {
 		CloseFunc(ns)
 		return -1, nil, "setnonblock", err

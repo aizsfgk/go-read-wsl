@@ -11,6 +11,8 @@ import (
 	"unsafe"
 )
 
+/// 信号抢占
+
 // sigTabT is the type of an entry in the global sigtable array.
 // sigtable is inherently system dependent, and appears in OS-specific files,
 // but sigTabT is the same for all Unixy systems.

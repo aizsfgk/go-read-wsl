@@ -9,6 +9,10 @@
 // The format of the dumped file is described at
 // https://golang.org/s/go15heapdump.
 
+///
+/// 打印内存
+///
+
 package runtime
 
 import (

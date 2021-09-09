@@ -4,6 +4,8 @@
 
 package runtime
 
+/// Go map 内部实现
+
 // This file contains the implementation of Go's map type.
 //
 // A map is just a hash table. The data is arranged

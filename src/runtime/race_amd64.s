@@ -4,6 +4,8 @@
 
 // +build race
 
+/// 静态条件
+
 #include "go_asm.h"
 #include "go_tls.h"
 #include "funcdata.h"

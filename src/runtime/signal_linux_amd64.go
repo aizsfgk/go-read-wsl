@@ -9,6 +9,8 @@ import (
 	"unsafe"
 )
 
+/// 信号上下文
+
 type sigctxt struct {
 	info *siginfo
 	ctxt unsafe.Pointer

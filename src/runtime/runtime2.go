@@ -11,6 +11,8 @@ import (
 	"unsafe"
 )
 
+/// 定义了常量，变量，数据结构体等
+
 // defined constants
 const (
 	// G status

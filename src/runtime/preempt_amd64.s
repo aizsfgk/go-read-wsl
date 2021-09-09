@@ -3,6 +3,7 @@
 #include "go_asm.h"
 #include "textflag.h"
 
+///
 /// 异步抢占代码
 TEXT ·asyncPreempt(SB),NOSPLIT|NOFRAME,$0-0
 	PUSHQ BP

@@ -10,6 +10,8 @@
 
 // Based on race_amd64.s; see commentary there.
 
+/// 这是干嘛的???
+
 #ifdef GOOS_windows
 #define RARG0 CX
 #define RARG1 DX

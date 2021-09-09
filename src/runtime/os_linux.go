@@ -75,6 +75,7 @@ func futexwakeup(addr *uint32, cnt uint32) {
 	*(*int32)(unsafe.Pointer(uintptr(0x1006))) = 0x1006
 }
 
+///
 func getproccount() int32 {
 	// This buffer is huge (8 kB) but we are on the system stack
 	// and there should be plenty of space (64 kB).
@@ -101,6 +102,8 @@ func getproccount() int32 {
 	}
 	return n
 }
+
+/// 克隆的各种标识
 
 // Clone, the Linux rfork.
 const (
@@ -498,6 +501,7 @@ func tgkill(tgid, tid, sig int)
 // mlockGsignal workaround.
 var touchStackBeforeSignal uint32
 
+/// 发送一个信号给 mp
 // signalM sends a signal to mp.
 func signalM(mp *m, sig int) {
 	if atomic.Load(&touchStackBeforeSignal) != 0 {

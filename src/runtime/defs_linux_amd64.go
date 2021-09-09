@@ -229,6 +229,8 @@ type ucontext struct {
 	__fpregs_mem fpstate
 }
 
+/// 信号上下文
+
 type sigcontext struct {
 	r8          uint64
 	r9          uint64

@@ -14,6 +14,9 @@ path to this file based on the path to the runtime package.
 #      foo string' will make foo a plain struct in the eyes of gdb,
 #      circumventing the pretty print triggering.
 
+"""
+GDB 美化脚本
+"""
 
 from __future__ import print_function
 import re

@@ -138,6 +138,10 @@ func (fd *netFD) connect(ctx context.Context, la, ra syscall.Sockaddr) (rsa sysc
 		// SO_ERROR socket option to see if the connection
 		// succeeded or failed. See issue 7474 for further
 		// details.
+
+		/// 已经管理的连接???
+		/// 永远不可写了
+		///
 		if err := fd.pfd.WaitWrite(); err != nil {
 			select {
 			case <-ctx.Done():

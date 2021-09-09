@@ -5,7 +5,7 @@
 // +build freebsd linux netbsd openbsd solaris
 
 package runtime
-
+/// 管道函数2
 func nonblockingPipe() (r, w int32, errno int32) {
 	r, w, errno = pipe2(_O_NONBLOCK | _O_CLOEXEC)
 	if errno == -_ENOSYS {

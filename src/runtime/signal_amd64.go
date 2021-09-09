@@ -11,6 +11,8 @@ import (
 	"runtime/internal/sys"
 	"unsafe"
 )
+
+/// 调试模式???
 /// 打印寄存器
 
 func dumpregs(c *sigctxt) {

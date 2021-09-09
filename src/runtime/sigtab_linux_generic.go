@@ -9,7 +9,7 @@
 // +build linux
 
 package runtime
-
+/// 信号表
 var sigtable = [...]sigTabT{
 	/* 0 */ {0, "SIGNONE: no trap"},
 	/* 1 */ {_SigNotify + _SigKill, "SIGHUP: terminal line hangup"},
