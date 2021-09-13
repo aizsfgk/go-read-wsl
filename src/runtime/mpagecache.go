@@ -9,6 +9,9 @@ import (
 	"unsafe"
 )
 
+
+/// 页面也存在缓存
+
 const pageCachePages = 8 * unsafe.Sizeof(pageCache{}.cache)
 
 // pageCache represents a per-p cache of pages the allocator can
@@ -39,6 +42,8 @@ func (c *pageCache) alloc(npages uintptr) (uintptr, uintptr) {
 	if c.cache == 0 {
 		return 0, 0
 	}
+
+	/// 只是一个 page
 	if npages == 1 {
 		i := uintptr(sys.TrailingZeros64(c.cache))
 		scav := (c.scav >> i) & 1
@@ -46,6 +51,7 @@ func (c *pageCache) alloc(npages uintptr) (uintptr, uintptr) {
 		c.scav &^= 1 << i  // clear bit to mark unscavenged
 		return c.base + i*pageSize, uintptr(scav) * pageSize
 	}
+	/// 分配多个 page
 	return c.allocN(npages)
 }
 
@@ -98,6 +104,8 @@ func (c *pageCache) flush(s *pageAlloc) {
 	*c = pageCache{}
 }
 
+
+///
 // allocToCache acquires a pageCachePages-aligned chunk of free pages which
 // may not be contiguous, and returns a pageCache structure which owns the
 // chunk.

@@ -22,11 +22,11 @@ const (
 	minPhysPageSize = 4096 /// 4KB
 
 	// maxPhysPageSize is the maximum page size the runtime supports.
-	maxPhysPageSize = 512 << 10   /// 512KB
+	maxPhysPageSize = 512 << 10   /// 512KB; 最大页数
 
 	// maxPhysHugePageSize sets an upper-bound on the maximum huge page size
 	// that the runtime supports.
-	maxPhysHugePageSize = pallocChunkBytes
+	maxPhysHugePageSize = pallocChunkBytes /// 512 * 8K
 
 	// pagesPerReclaimerChunk indicates how many pages to scan from the
 	// pageInUse bitmap at a time. Used by the page reclaimer.
@@ -55,8 +55,8 @@ const (
 	go115NewMCentralImpl = true && go115NewMarkrootSpans
 )
 
-// Main malloc heap.
-// The heap itself is the "free" and "scav" treaps,
+// Main malloc heap. /// 主分配堆
+// The heap itself is the "free" and "scav" treaps, ///  scavenge 在废弃物中寻觅有用的东西
 // but all the other global data is here too.
 //
 // mheap must not be heap-allocated because it contains mSpanLists,
@@ -96,7 +96,7 @@ type mheap struct {
 	// swept stack. Likewise, allocating an in-use span pushes it
 	// on the swept stack.
 	//
-	/// 包含2个mspan栈
+	/// 包含2个mspan栈; 废弃
 	///
 	// For !go115NewMCentralImpl.
 	sweepSpans [2]gcSweepBuf
@@ -727,8 +727,10 @@ func pageIndexOf(p uintptr) (arena *heapArena, pageIdx uintptr, pageMask uint8) 
 	return
 }
 
+/// 初始化堆内存
 // Initialize the heap.
 func (h *mheap) init() {
+	///
 	lockInit(&h.lock, lockRankMheap)
 	lockInit(&h.sweepSpans[0].spineLock, lockRankSpine)
 	lockInit(&h.sweepSpans[1].spineLock, lockRankSpine)
@@ -955,6 +957,11 @@ func (h *mheap) alloc(npages uintptr, spanclass spanClass, needzero bool) *mspan
 //
 //go:systemstack
 func (h *mheap) allocManual(npages uintptr, stat *uint64) *mspan {
+	/// 手工分配
+	/// npages: 页数
+	/// true : 使用 手工分配
+	/// 0: 0 class size
+	/// stat: 用于统计使用内存大小的字段
 	return h.allocSpan(npages, true, 0, stat)
 }
 
@@ -1114,7 +1121,11 @@ func (h *mheap) freeMSpanLocked(s *mspan) {
 	// the heap.
 	h.spanalloc.free(unsafe.Pointer(s))
 }
-
+/// 栈是直接从 mheap 上分配内存
+///
+///
+///
+///
 // allocSpan allocates an mspan which owns npages worth of memory.
 //
 // If manual == false, allocSpan allocates a heap span of class spanclass
@@ -1144,6 +1155,7 @@ func (h *mheap) allocSpan(npages uintptr, manual bool, spanclass spanClass, sysS
 	if pp != nil && npages < pageCachePages/4 {
 		c := &pp.pcache
 
+		/// 如果 cache 是空的，则填充它
 		// If the cache is empty, refill it.
 		if c.empty() {
 			lock(&h.lock)

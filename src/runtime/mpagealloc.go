@@ -57,7 +57,7 @@ const (
 	// The size of a bitmap chunk, i.e. the amount of bits (that is, pages) to consider
 	// in the bitmap at once.
 	pallocChunkPages    = 1 << logPallocChunkPages
-	pallocChunkBytes    = pallocChunkPages * pageSize
+	pallocChunkBytes    = pallocChunkPages * pageSize /// 512 * 8K
 	logPallocChunkPages = 9
 	logPallocChunkBytes = logPallocChunkPages + pageShift
 
@@ -174,7 +174,7 @@ func blockAlignSummaryRange(level int, lo, hi int) (int, int) {
 }
 
 type pageAlloc struct {
-	// Radix tree of summaries.
+	// Radix tree of summaries. /// 基数树
 	//
 	// Each slice's cap represents the whole memory reservation.
 	// Each slice's len reflects the allocator's maximum known
