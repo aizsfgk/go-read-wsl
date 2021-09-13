@@ -37,12 +37,14 @@ type dnsConfig struct {
 }
 
 // See resolv.conf(5) on a Linux machine.
-func dnsReadConfig(filename string) *dnsConfig {
+func dnsReadConfig(filename string) *dnsConfig { /// 读取DNS配置
 	conf := &dnsConfig{
 		ndots:    1,
 		timeout:  5 * time.Second,
 		attempts: 2,
 	}
+
+	/// 打开文件
 	file, err := open(filename)
 	if err != nil {
 		conf.servers = defaultNS
@@ -51,6 +53,8 @@ func dnsReadConfig(filename string) *dnsConfig {
 		return conf
 	}
 	defer file.close()
+
+
 	if fi, err := file.file.Stat(); err == nil {
 		conf.mtime = fi.ModTime()
 	} else {
@@ -59,16 +63,22 @@ func dnsReadConfig(filename string) *dnsConfig {
 		conf.err = err
 		return conf
 	}
+
+	/// 一行一行读取文件
 	for line, ok := file.readLine(); ok; line, ok = file.readLine() {
+		/// 跳过注释
 		if len(line) > 0 && (line[0] == ';' || line[0] == '#') {
 			// comment.
 			continue
 		}
+
 		f := getFields(line)
 		if len(f) < 1 {
 			continue
 		}
 		switch f[0] {
+
+		/// DNS服务器
 		case "nameserver": // add one name server
 			if len(f) > 1 && len(conf.servers) < 3 { // small, but the standard limit
 				// One more check: make sure server name is
@@ -81,17 +91,18 @@ func dnsReadConfig(filename string) *dnsConfig {
 				}
 			}
 
+		/// 设置搜索路径，调整域名
 		case "domain": // set search path to just this domain
 			if len(f) > 1 {
 				conf.search = []string{ensureRooted(f[1])}
 			}
-
+		/// 设置搜索路径，给的服务器
 		case "search": // set search path to given servers
 			conf.search = make([]string, len(f)-1)
 			for i := 0; i < len(conf.search); i++ {
 				conf.search[i] = ensureRooted(f[i+1])
 			}
-
+		/// 选项
 		case "options": // magic options
 			for _, s := range f[1:] {
 				switch {
@@ -147,12 +158,17 @@ func dnsReadConfig(filename string) *dnsConfig {
 			conf.unknownOpt = true
 		}
 	}
+
+	/// 服务器长度
 	if len(conf.servers) == 0 {
 		conf.servers = defaultNS
 	}
+	/// 搜索数
 	if len(conf.search) == 0 {
 		conf.search = dnsDefaultSearch()
 	}
+
+	/// 返回配置
 	return conf
 }
 

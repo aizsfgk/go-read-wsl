@@ -60,6 +60,7 @@ func equalASCIIName(x, y dnsmessage.Name) bool {
 	return true
 }
 
+/// 是否是域名???
 // isDomainName checks if a string is a presentation-format domain name
 // (currently restricted to hostname-compatible "preferred name" LDH labels and
 // SRV-like "underscore labels"; see golang.org/issue/12421).

@@ -50,7 +50,7 @@ type Dialer struct {
 	// Deadline is the absolute point in time after which dials
 	// will fail. If Timeout is set, it may fail earlier.
 	// Zero means no deadline, or dependent on the operating system
-	// as with the Timeout option.
+	// as with the Timeout option. /// 0 则没有超时
 	Deadline time.Time
 
 	// LocalAddr is the local address to use when dialing an
@@ -130,7 +130,7 @@ func (d *Dialer) deadline(ctx context.Context, now time.Time) (earliest time.Tim
 	if d, ok := ctx.Deadline(); ok {
 		earliest = minNonzeroTime(earliest, d)
 	}
-	return minNonzeroTime(earliest, d.Deadline)
+	return minNonzeroTime(earliest, d.Deadline) /// 最后选择一个最早的时间
 }
 
 func (d *Dialer) resolver() *Resolver {
@@ -173,6 +173,7 @@ func (d *Dialer) fallbackDelay() time.Duration {
 }
 
 func parseNetwork(ctx context.Context, network string, needsProto bool) (afnet string, proto int, err error) {
+	/// 返回最后一个 : 的索引位置
 	i := last(network, ':')
 	if i < 0 { // no colon
 		switch network {
@@ -208,6 +209,8 @@ func parseNetwork(ctx context.Context, network string, needsProto bool) (afnet s
 // addresses. The result contains at least one address when error is
 // nil.
 func (r *Resolver) resolveAddrList(ctx context.Context, op, network, addr string, hint Addr) (addrList, error) {
+
+	/// 解析地址列表
 	afnet, _, err := parseNetwork(ctx, network, true)
 	if err != nil {
 		return nil, err
@@ -215,6 +218,8 @@ func (r *Resolver) resolveAddrList(ctx context.Context, op, network, addr string
 	if op == "dial" && addr == "" {
 		return nil, errMissingAddress
 	}
+
+	/// unix地址
 	switch afnet {
 	case "unix", "unixgram", "unixpacket":
 		addr, err := ResolveUnixAddr(afnet, addr)
@@ -226,6 +231,8 @@ func (r *Resolver) resolveAddrList(ctx context.Context, op, network, addr string
 		}
 		return addrList{addr}, nil
 	}
+
+
 	addrs, err := r.internetAddrList(ctx, afnet, addr)
 	if err != nil || op != "dial" || hint == nil {
 		return addrs, err
@@ -419,6 +426,7 @@ func (d *Dialer) DialContext(ctx context.Context, network, address string) (Conn
 		address: address,
 	}
 
+	/// 优先级和退回
 	var primaries, fallbacks addrList
 	if d.dualStack() && network == "tcp" {
 		primaries, fallbacks = addrs.partition(isIPv4)

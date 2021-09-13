@@ -104,7 +104,8 @@ func readHosts() {
 func lookupStaticHost(host string) []string {
 	hosts.Lock()
 	defer hosts.Unlock()
-	readHosts()
+
+	readHosts() /// 读取HOST文件
 	if len(hosts.byName) != 0 {
 		// TODO(jbd,bradfitz): avoid this alloc if host is already all lowercase?
 		// or linear scan the byName map if it's small enough?

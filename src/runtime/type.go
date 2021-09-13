@@ -30,20 +30,26 @@ const (
 // ../reflect/type.go:/^type.rtype.
 // ../internal/reflectlite/type.go:/^type.rtype.
 type _type struct {
-	size       uintptr /// 占用内存大小
-	ptrdata    uintptr // size of memory prefix holding all pointers
-	hash       uint32  /// hash值
+	size       uintptr /// 占用内存的大小
+	ptrdata    uintptr /// 持有全部指针的内存前缀的大小 size of memory prefix holding all pointers [持有的指针个数] ???
+	hash       uint32  /// hash值; 快速进行类型比较
 	tflag      tflag   /// 额外的类型信息
 	align      uint8   ///
 	fieldAlign uint8   ///
-	kind       uint8   /// 类型???
+	kind       uint8   /// 类型枚举值
+
 	// function for comparing objects of this type
 	// (ptr to object A, ptr to object B) -> ==?
 	equal func(unsafe.Pointer, unsafe.Pointer) bool
+
 	// gcdata stores the GC type data for the garbage collector.
 	// If the KindGCProg bit is set in kind, gcdata is a GC program.
 	// Otherwise it is a ptrmask bitmap. See mbitmap.go for details.
+	/// gcdata 存储着 GC 类型数据为了垃圾回收。
+	/// 如果这个 KindGCProg 位标识被设置了再kind中， gcdata 就是个 GC程序。
+	/// 否则 他是一个ptrmast bitmap。
 	gcdata    *byte
+
 	str       nameOff
 	ptrToThis typeOff
 }

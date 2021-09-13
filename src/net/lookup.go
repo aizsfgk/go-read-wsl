@@ -117,6 +117,7 @@ var DefaultResolver = &Resolver{}
 //
 // A nil *Resolver is equivalent to a zero Resolver.
 type Resolver struct {
+	/// DNS解析首选
 	// PreferGo controls whether Go's built-in DNS resolver is preferred
 	// on platforms where it's available. It is equivalent to setting
 	// GODEBUG=netdns=go, but scoped to just this resolver.
@@ -258,6 +259,7 @@ func withUnexpiredValuesPreserved(lookupCtx context.Context) context.Context {
 
 // lookupIPAddr looks up host using the local resolver and particular network.
 // It returns a slice of that host's IPv4 and IPv6 addresses.
+/// 返回一个ipv4 or ipv6 list
 func (r *Resolver) lookupIPAddr(ctx context.Context, network, host string) ([]IPAddr, error) {
 	// Make sure that no matter what we do later, host=="" is rejected.
 	// parseIP, for example, does accept empty strings.
@@ -373,7 +375,7 @@ func (r *Resolver) LookupPort(ctx context.Context, network, service string) (por
 			return 0, err
 		}
 	}
-	if 0 > port || port > 65535 {
+	if 0 > port || port > 65535 { /// 端口号只能是这些
 		return 0, &AddrError{Err: "invalid port", Addr: service}
 	}
 	return port, nil

@@ -76,8 +76,12 @@ func (r *Resolver) dial(ctx context.Context, network, server string) (Conn, erro
 }
 
 func (r *Resolver) lookupHost(ctx context.Context, host string) (addrs []string, err error) {
+
+	/// 排序
 	order := systemConf().hostLookupOrder(r, host)
+
 	if !r.preferGo() && order == hostLookupCgo {
+		/// 使用cgo的方式
 		if addrs, err, ok := cgoLookupHost(ctx, host); ok {
 			return addrs, err
 		}
@@ -107,6 +111,7 @@ func (r *Resolver) lookupPort(ctx context.Context, network, service string) (int
 	if !r.preferGo() && systemConf().canUseCgo() {
 		if port, err, ok := cgoLookupPort(ctx, network, service); ok {
 			if err != nil {
+				/// 检查网络包
 				// Issue 18213: if cgo fails, first check to see whether we
 				// have the answer baked-in to the net package.
 				if port, err := goLookupPort(network, service); err == nil {

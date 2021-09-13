@@ -263,10 +263,13 @@ func (r *Resolver) internetAddrList(ctx context.Context, net, addr string) (addr
 	default:
 		return nil, UnknownNetworkError(net)
 	}
+
+	/// ********** ///
+	/// 网络地址函数 ///
 	inetaddr := func(ip IPAddr) Addr {
 		switch net {
 		case "tcp", "tcp4", "tcp6":
-			return &TCPAddr{IP: ip.IP, Port: portnum, Zone: ip.Zone}
+			return &TCPAddr{IP: ip.IP, Port: portnum, Zone: ip.Zone} /// 返回这个
 		case "udp", "udp4", "udp6":
 			return &UDPAddr{IP: ip.IP, Port: portnum, Zone: ip.Zone}
 		case "ip", "ip4", "ip6":

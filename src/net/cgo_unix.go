@@ -140,7 +140,9 @@ func cgoPortLookup(result chan<- portLookupResult, hints *C.struct_addrinfo, net
 	result <- portLookupResult{port, err}
 }
 
+///
 func cgoLookupIPCNAME(network, name string) (addrs []IPAddr, cname string, err error) {
+	/// 调用 CGO函数
 	acquireThread()
 	defer releaseThread()
 

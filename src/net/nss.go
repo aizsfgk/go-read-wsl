@@ -67,8 +67,8 @@ func (c nssCriterion) standardStatusAction(last bool) bool {
 }
 
 func parseNSSConfFile(file string) *nssConf {
-	f, err := os.Open(file)
-	if err != nil {
+	f, err := os.Open(file) err != nil {
+	if
 		return &nssConf{err: err}
 	}
 	defer f.Close()

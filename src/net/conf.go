@@ -94,9 +94,11 @@ func initConfVal() {
 	}
 
 	if runtime.GOOS != "openbsd" {
+		/// net service switch
 		confVal.nss = parseNSSConfFile("/etc/nsswitch.conf")
 	}
 
+	/// 独起dns配置
 	confVal.resolv = dnsReadConfig("/etc/resolv.conf")
 	if confVal.resolv.err != nil && !os.IsNotExist(confVal.resolv.err) &&
 		!os.IsPermission(confVal.resolv.err) {
@@ -107,6 +109,7 @@ func initConfVal() {
 		confVal.forceCgoLookupHost = true
 	}
 
+	///
 	if _, err := os.Stat("/etc/mdns.allow"); err == nil {
 		confVal.hasMDNSAllow = true
 	}

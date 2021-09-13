@@ -47,16 +47,22 @@ var (
 	errServerTemporarilyMisbehaving = errors.New("server misbehaving")
 )
 
+/// 一个 dns 请求
 func newRequest(q dnsmessage.Question) (id uint16, udpReq, tcpReq []byte, err error) {
 	id = uint16(rand.Int()) ^ uint16(time.Now().UnixNano())
 	b := dnsmessage.NewBuilder(make([]byte, 2, 514), dnsmessage.Header{ID: id, RecursionDesired: true})
 	b.EnableCompression()
+
+
+	/// 启动询问
 	if err := b.StartQuestions(); err != nil {
 		return 0, nil, nil, err
 	}
+	/// 询问
 	if err := b.Question(q); err != nil {
 		return 0, nil, nil, err
 	}
+	/// 结束
 	tcpReq, err = b.Finish()
 	udpReq = tcpReq[2:]
 	l := len(tcpReq) - 2
@@ -65,6 +71,7 @@ func newRequest(q dnsmessage.Question) (id uint16, udpReq, tcpReq []byte, err er
 	return id, udpReq, tcpReq, err
 }
 
+/// 检查响应
 func checkResponse(reqID uint16, reqQues dnsmessage.Question, respHdr dnsmessage.Header, respQues dnsmessage.Question) bool {
 	if !respHdr.Response {
 		return false
@@ -389,7 +396,12 @@ func (conf *resolverConfig) releaseSema() {
 	<-conf.ch
 }
 
+
+///
+///
 /// 寻找
+///
+///
 func (r *Resolver) lookup(ctx context.Context, name string, qtype dnsmessage.Type) (dnsmessage.Parser, string, error) {
 	if !isDomainName(name) {
 		// We used to use "invalid domain name" as the error,
@@ -436,7 +448,7 @@ func (r *Resolver) lookup(ctx context.Context, name string, qtype dnsmessage.Typ
 // golang.org/issue/13705. Does not cover .local names (RFC 6762),
 // see golang.org/issue/16739.
 func avoidDNS(name string) bool {
-	if name == "" {
+	if name == ""  {
 		return true
 	}
 	if name[len(name)-1] == '.' {
@@ -741,14 +753,18 @@ func (r *Resolver) goLookupCNAME(ctx context.Context, host string) (string, erro
 // Normally we let cgo use the C library resolver instead of depending
 // on our lookup code, so that Go and C get the same answers.
 func (r *Resolver) goLookupPTR(ctx context.Context, addr string) ([]string, error) {
+
+	/// 1. 读取 /etc/hosts 文件
 	names := lookupStaticAddr(addr)
 	if len(names) > 0 {
 		return names, nil
 	}
+	/// 2. 返回地址
 	arpa, err := reverseaddr(addr)
 	if err != nil {
 		return nil, err
 	}
+	/// 3.
 	p, server, err := r.lookup(ctx, arpa, dnsmessage.TypePTR)
 	if err != nil {
 		return nil, err
