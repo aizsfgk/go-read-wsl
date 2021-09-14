@@ -214,6 +214,7 @@ type mheap struct {
 	// then release mheap_.lock.
 	allArenas []arenaIdx
 
+	/// 清扫开始的一个快照
 	// sweepArenas is a snapshot of allArenas taken at the
 	// beginning of the sweep cycle. This can be read safely by
 	// simply blocking GC (by disabling preemption).
@@ -266,11 +267,11 @@ type heapArena struct {
 	// bitmap stores the pointer/scalar bitmap for the words in
 	// this arena. See mbitmap.go for a description. Use the
 	// heapBits type to access this.
-	/// 用于标识 arena 区域中的那些地址保存了对象，位图中的每个字节都会表示堆区中的 32 字节是否包含空闲；
+	/// 用于标识 arena 区域中的那些地址保存了对象。
 	/// heapArenaBitmapBytes 2MB
 	/// 2MB * 32 ==> 64MB; 可以用来表示64MB大小的内存
-	/// 0000 0000 ->
-	bitmap [heapArenaBitmapBytes]byte
+	/// 一个字节 可以标识 连续 4个指针大小的内存（32字节)
+	bitmap [heapArenaBitmapBytes]byte /// 2MB * 32byte ==> 64MB
 
 	// spans maps from virtual address page ID within this arena to *mspan.
 	// For allocated spans, their pages map to the span itself.
@@ -286,8 +287,9 @@ type heapArena struct {
 	/// 区域存储了指向内存管理单元 runtime.mspan 的指针，每个内存单元会管理几页的内存空间，每页大小为 8KB；
 	/// pagesPerArena == 8192
 	/// 8KB
-	spans [pagesPerArena]*mspan
+	spans [pagesPerArena]*mspan // 8192个
 
+	/// 表明 span 是被使用
 	// pageInUse is a bitmap that indicates which spans are in
 	// state mSpanInUse. This bitmap is indexed by page number,
 	// but only the bit corresponding to the first page in each
@@ -296,6 +298,7 @@ type heapArena struct {
 	// Reads and writes are atomic.
 	pageInUse [pagesPerArena / 8]uint8  /// 1024
 
+	/// span是否含有标记对象
 	// pageMarks is a bitmap that indicates which spans have any
 	// marked objects on them. Like pageInUse, only the bit
 	// corresponding to the first page in each span is used.
@@ -311,6 +314,7 @@ type heapArena struct {
 	// operations.
 	pageMarks [pagesPerArena / 8]uint8 /// 1024
 
+	/// span 是否含有特殊标记位( finalizers or other )
 	// pageSpecials is a bitmap that indicates which spans have
 	// specials (finalizers or other). Like pageInUse, only the bit
 	// corresponding to the first page in each span is used.

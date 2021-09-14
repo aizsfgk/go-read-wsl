@@ -258,7 +258,7 @@ const (
 	// heapArenaBitmapBytes is the size of each heap arena's bitmap.
 	heapArenaBitmapBytes = heapArenaBytes / (sys.PtrSize * 8 / 2) /// 2MB ???
 
-	pagesPerArena = heapArenaBytes / pageSize // 64MB / 8 KB ===> 8921
+	pagesPerArena = heapArenaBytes / pageSize // 64MB / 8 KB ==> 8921
 
 	// arenaL1Bits is the number of bits of the arena number
 	// covered by the first level arena map.

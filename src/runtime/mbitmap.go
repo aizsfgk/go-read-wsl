@@ -328,6 +328,10 @@ func (m *markBits) advance() {
 	m.index++
 }
 
+///
+///
+///
+///
 // heapBitsForAddr returns the heapBits for the address addr.
 // The caller must ensure addr is in an allocated span.
 // In particular, be careful not to point past the end of an object.
