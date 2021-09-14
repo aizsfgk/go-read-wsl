@@ -70,7 +70,7 @@ var levelLogPages = [summaryLevels]uint{
 func (s *pageAlloc) sysInit() {
 	// Reserve memory for each level. This will get mapped in
 	// as R/W by setArenas.
-	for l, shift := range levelShift {
+	for l, shift := range levelShift { /// 5次
 		entries := 1 << (heapAddrBits - shift)
 
 		// Reserve b bytes of memory anywhere in the address space.
@@ -101,7 +101,8 @@ func (s *pageAlloc) sysGrow(base, limit uintptr) {
 		print("runtime: base = ", hex(base), ", limit = ", hex(limit), "\n")
 		throw("sysGrow bounds not aligned to pallocChunkBytes")
 	}
-
+	/// ************ 这三个函数干嘛的??? ************* ///
+	/// 转换一个地址范围到一个总的范围
 	// addrRangeToSummaryRange converts a range of addresses into a range
 	// of summary indices which must be mapped to support those addresses
 	// in the summary range.

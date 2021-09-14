@@ -175,6 +175,7 @@ func (a *addrRanges) init(sysStat *uint64) {
 	ranges := (*notInHeapSlice)(unsafe.Pointer(&a.ranges))
 	ranges.len = 0
 	ranges.cap = 16
+	/// 持久化分配一段内存
 	ranges.array = (*notInHeap)(persistentalloc(unsafe.Sizeof(addrRange{})*uintptr(ranges.cap), sys.PtrSize, sysStat))
 	a.sysStat = sysStat
 	a.totalBytes = 0
@@ -182,6 +183,7 @@ func (a *addrRanges) init(sysStat *uint64) {
 
 // findSucc returns the first index in a such that base is
 // less than the base of the addrRange at that index.
+/// 返回第一个索引，该索引小于addrRange base 的索引
 func (a *addrRanges) findSucc(addr uintptr) int {
 	// TODO(mknyszek): Consider a binary search for large arrays.
 	// While iterating over these ranges is potentially expensive,
@@ -284,6 +286,9 @@ func (a *addrRanges) add(r addrRange) {
 	a.totalBytes += r.size()
 }
 
+///
+/// 删除和返回最高地址连续的范围a, 或者最后一个字节，如果为空，返回空range
+///
 // removeLast removes and returns the highest-addressed contiguous range
 // of a, or the last nBytes of that range, whichever is smaller. If a is
 // empty, it returns an empty range.
@@ -293,6 +298,8 @@ func (a *addrRanges) removeLast(nBytes uintptr) addrRange {
 	}
 	r := a.ranges[len(a.ranges)-1]
 	size := r.size()
+
+	/// size 大于 nBytes
 	if size > nBytes {
 		newEnd := r.limit.sub(nBytes)
 		a.ranges[len(a.ranges)-1].limit = newEnd
@@ -300,12 +307,16 @@ func (a *addrRanges) removeLast(nBytes uintptr) addrRange {
 		return addrRange{newEnd, r.limit}
 	}
 	a.ranges = a.ranges[:len(a.ranges)-1]
+
+	/// 减少这些字节数
 	a.totalBytes -= size
+
 	return r
 }
 
 // removeGreaterEqual removes the ranges of a which are above addr, and additionally
 // splits any range containing addr.
+/// 删除大于等于该地址的内存
 func (a *addrRanges) removeGreaterEqual(addr uintptr) {
 	pivot := a.findSucc(addr)
 	if pivot == 0 {

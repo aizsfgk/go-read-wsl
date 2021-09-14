@@ -167,10 +167,14 @@ func stackinit() {
 	if _StackCacheSize&_PageMask != 0 {
 		throw("cache size must be a multiple of page size")
 	}
+
+	///
 	for i := range stackpool {
+		/// 池初始化
 		stackpool[i].item.span.init()                      /// spanList 初始化
 		lockInit(&stackpool[i].item.mu, lockRankStackpool) /// 初始化锁
 	}
+	/// 大栈
 	for i := range stackLarge.free {
 		stackLarge.free[i].init()
 		lockInit(&stackLarge.lock, lockRankStackLarge)

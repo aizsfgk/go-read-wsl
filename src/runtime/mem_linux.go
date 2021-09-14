@@ -133,9 +133,12 @@ func sysUsed(v unsafe.Pointer, n uintptr) {
 }
 
 func sysHugePage(v unsafe.Pointer, n uintptr) {
+	/// 如果物理大页不是0
 	if physHugePageSize != 0 {
+
 		// Round v up to a huge page boundary.
 		beg := alignUp(uintptr(v), physHugePageSize)
+
 		// Round v+n down to a huge page boundary.
 		end := alignDown(uintptr(v)+n, physHugePageSize)
 

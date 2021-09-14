@@ -87,13 +87,15 @@ func allocmcache() *mcache {
 	systemstack(func() {
 		lock(&mheap_.lock)
 
+		/// 分配一块内存
 		c = (*mcache)(mheap_.cachealloc.alloc())
+
 		c.flushGen = mheap_.sweepgen
 
 		unlock(&mheap_.lock)
 	})
 	for i := range c.alloc {
-		c.alloc[i] = &emptymspan
+		c.alloc[i] = &emptymspan /// 空的span
 	}
 	c.next_sample = nextSample()
 	return c

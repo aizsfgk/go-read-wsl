@@ -12,9 +12,12 @@ import (
 )
 
 // A spanSet is a set of *mspans.
-//
+// 并发安全 pop 和 push
 // spanSet is safe for concurrent push and pop operations.
 type spanSet struct {
+	/// spanSet 是一个2级数据结构包含一个增长的spine指向固定大小的blocks.
+	/// spine 访问无需锁
+	/// 但是添加一个block 或者增加它，需要获取锁
 	// A spanSet is a two-level data structure consisting of a
 	// growable spine that points to fixed-sized blocks. The spine
 	// can be accessed without locks, but adding a block or
@@ -194,6 +197,7 @@ claimLoop:
 		// extremely small. Try again.
 		s = (*mspan)(atomic.Loadp(unsafe.Pointer(&block.spans[bottom])))
 	}
+
 	// Clear the pointer. This isn't strictly necessary, but defensively
 	// avoids accidentally re-using blocks which could lead to memory
 	// corruption. This way, we'll get a nil pointer access instead.

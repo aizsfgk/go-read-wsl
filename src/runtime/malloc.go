@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Memory allocator.
+// Memory allocator. 内存分配器
 //
 // This was originally based on tcmalloc, but has diverged quite a bit.
 // http://goog-perftools.sourceforge.net/doc/tcmalloc.html
@@ -12,7 +12,7 @@
 // rounded to one of about 70 size classes, each of which
 // has its own free set of objects of exactly that size.
 // Any free page of memory can be split into a set of objects
-// of one size class, which are then managed using a free bitmap.
+// of one size class, which are then managed using a free bitmap. /// 使用一个 free bitmap 管理
 //
 // The allocator's data structures are:
 //
@@ -28,73 +28,73 @@
 //
 //	1. Round the size up to one of the small size classes
 //	   and look in the corresponding mspan in this P's mcache.
-//	   Scan the mspan's free bitmap to find a free slot.
+//	   Scan the mspan's free bitmap to find a free slot. /// 1. 通过 free bitmap 找到一个空闲槽位
 //	   If there is a free slot, allocate it.
-//	   This can all be done without acquiring a lock.
+//	   This can all be done without acquiring a lock.  /// 无需获取锁，因为是在P上。
 //
-//	2. If the mspan has no free slots, obtain a new mspan
-//	   from the mcentral's list of mspans of the required size
-//	   class that have free space.
-//	   Obtaining a whole span amortizes the cost of locking
-//	   the mcentral.
+//	2. If the mspan has no free slots, obtain a new mspan        /// 2. 如果mspan 没有空闲槽位
+//	   from the mcentral's list of mspans of the required size   /// 从mcentral 响应的class size1 列表上获取一个新的mspan
+//	   class that have free space.                               ///
+//	   Obtaining a whole span amortizes the cost of locking      /// 获得整个跨度可以摊销锁定m中心的成本
+//	   the mcentral.                                             ///
 //
-//	3. If the mcentral's mspan list is empty, obtain a run
+//	3. If the mcentral's mspan list is empty, obtain a run       /// 3. 如果mcentral 列表空，则获取一个pages从mheap
 //	   of pages from the mheap to use for the mspan.
 //
-//	4. If the mheap is empty or has no page runs large enough,
+//	4. If the mheap is empty or has no page runs large enough,   /// 4. 如果mheap 是空，则从操作系统获取内存
 //	   allocate a new group of pages (at least 1MB) from the
 //	   operating system. Allocating a large run of pages
 //	   amortizes the cost of talking to the operating system.
 //
-// Sweeping an mspan and freeing objects on it proceeds up a similar
+// Sweeping an mspan and freeing objects on it proceeds up a similar  /// 清除mspan并释放其上的对象将继续进行类似的层次结构
 // hierarchy:
 //
-//	1. If the mspan is being swept in response to allocation, it
+//	1. If the mspan is being swept in response to allocation, it      /// 1. 如果mspan被清扫在向对应的分配器上，它则返回给mcache
 //	   is returned to the mcache to satisfy the allocation.
 //
-//	2. Otherwise, if the mspan still has allocated objects in it,
+//	2. Otherwise, if the mspan still has allocated objects in it,     /// 2. 否则，如果这个mspan任然还有已经分配的对象，则返回给mcentral
 //	   it is placed on the mcentral free list for the mspan's size
 //	   class.
 //
-//	3. Otherwise, if all objects in the mspan are free, the mspan's
+//	3. Otherwise, if all objects in the mspan are free, the mspan's   /// 3. 否则，如果mspan的全部对象都被释放，则mspan的page则返回给mheap
 //	   pages are returned to the mheap and the mspan is now dead.
 //
-// Allocating and freeing a large object uses the mheap
+// Allocating and freeing a large object uses the mheap               /// 分配 和 释放 大对象直接使用 mheap 直接
 // directly, bypassing the mcache and mcentral.
 //
-// If mspan.needzero is false, then free object slots in the mspan are
-// already zeroed. Otherwise if needzero is true, objects are zeroed as
-// they are allocated. There are various benefits to delaying zeroing
+// If mspan.needzero is false, then free object slots in the mspan are   /// 如果 mspan.needzero 是 false, 则 mspan上的空闲槽已经0化。
+// already zeroed. Otherwise if needzero is true, objects are zeroed as  /// 否则，如果 mspan.needzero 是 true, 对象在分配的时候0化。
+// they are allocated. There are various benefits to delaying zeroing    ///     好处：
 // this way:
 //
-//	1. Stack frame allocation can avoid zeroing altogether.
+//	1. Stack frame allocation can avoid zeroing altogether.              ///  1. 栈帧避免0化
 //
-//	2. It exhibits better temporal locality, since the program is
+//	2. It exhibits better temporal locality, since the program is        ///  2. 它显示出更好的时间局部性，因为程序可能要写入内存
 //	   probably about to write to the memory.
 //
-//	3. We don't zero pages that never get reused.
+//	3. We don't zero pages that never get reused.                        ///  3. 我们不能 0 pages 当他们没有重用
 
-// Virtual memory layout
+// Virtual memory layout                                                 /// ** 虚拟内存布局 ** ///
 //
-// The heap consists of a set of arenas, which are 64MB on 64-bit and
-// 4MB on 32-bit (heapArenaBytes). Each arena's start address is also
+// The heap consists of a set of arenas, which are 64MB on 64-bit and    /// 这个堆包含一个 arenas 集合, 64MB 在 64系统上。
+// 4MB on 32-bit (heapArenaBytes). Each arena's start address is also    /// 每一个 arena地址对齐 arena 大小。
 // aligned to the arena size.
 //
-// Each arena has an associated heapArena object that stores the
-// metadata for that arena: the heap bitmap for all words in the arena
-// and the span map for all pages in the arena. heapArena objects are
+// Each arena has an associated heapArena object that stores the         /// 每个 arena 都有个相关联的 heapArena 对象，它存储arena的元数据
+// metadata for that arena: the heap bitmap for all words in the arena   /// 这个bitmap 存储了映射关系。
+// and the span map for all pages in the arena. heapArena objects are    /// heapArena 是非堆分配的。
 // themselves allocated off-heap.
 //
-// Since arenas are aligned, the address space can be viewed as a
+// Since arenas are aligned, the address space can be viewed as a        /// 尽管arenas 是对齐的，但 其地址仍然可以视为连续的frames.
 // series of arena frames. The arena map (mheap_.arenas) maps from
 // arena frame number to *heapArena, or nil for parts of the address
 // space not backed by the Go heap. The arena map is structured as a
-// two-level array consisting of a "L1" arena map and many "L2" arena
+// two-level array consisting of a "L1" arena map and many "L2" arena    /// 2级数组
 // maps; however, since arenas are large, on many architectures, the
 // arena map consists of a single, large L2 map.
 //
-// The arena map covers the entire possible address space, allowing
-// the Go heap to use any part of the address space. The allocator
+// The arena map covers the entire possible address space, allowing         /// arena 映射整个可能的地址空间，允许Go程序使用其中的任何部分。
+// the Go heap to use any part of the address space. The allocator          /// 分配器保证地址连续。大对象span能够穿过arenas.
 // attempts to keep arenas contiguous so that large spans (and hence
 // large objects) can cross arenas.
 
@@ -123,8 +123,8 @@ const (
 
 	concurrentSweep = _ConcurrentSweep  /// true
 
-	_PageSize = 1 << _PageShift /// 1024 * 8 == 8192
-	_PageMask = _PageSize - 1
+	_PageSize = 1 << _PageShift /// 1024 * 8 == 8192 ==> 8K
+	_PageMask = _PageSize - 1   /// 8K-1
 
 	// _64bit = 1 on 64-bit systems, 0 on 32-bit systems
 	_64bit = 1 << (^uintptr(0) >> 63) / 2   /// 1
@@ -139,6 +139,7 @@ const (
 	_StackCacheSize = 32 * 1024  /// 32KB
 
 	// Number of orders that get caching. Order 0 is FixedStack
+	/// 获取缓存的排序数， 0 表示 FixedStack
 	// and each successive order is twice as large.
 	// We want to cache 2KB, 4KB, 8KB, and 16KB stacks. Larger stacks  ==> 2KB --> 4 KB --> 8 KB --> 16KB
 	// will be allocated directly.
@@ -152,6 +153,10 @@ const (
 	//   plan9            | 4KB        | 3
 	_NumStackOrders = 4 - sys.PtrSize/4*sys.GoosWindows - 1*sys.GoosPlan9 /// 4
 
+	/// heapAddrBits 是一个heap地址的位数
+	///
+	///
+	///
 	// heapAddrBits is the number of bits in a heap address. On
 	// amd64, addresses are sign-extended beyond heapAddrBits. On
 	// other arches, they are zero-extended.
@@ -207,6 +212,7 @@ const (
 	// arenaBaseOffset to offset into the top 4 GiB.
 	//
 	// WebAssembly currently has a limit of 4GB linear memory.
+
 	heapAddrBits = (_64bit*(1-sys.GoarchWasm)*(1-sys.GoosDarwin*sys.GoarchArm64))*48 + (1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle)) + 33*sys.GoosDarwin*sys.GoarchArm64
 
 	// maxAlloc is the maximum size of an allocation. On 64-bit,
@@ -345,7 +351,7 @@ var (
 	physHugePageShift uint
 )
 
-// OS memory management abstraction layer
+// OS memory management abstraction layer       /// 操作系统内存管理抽象层
 //
 // Regions of the address space managed by the runtime may be in one of four
 // states at any given time:
@@ -414,7 +420,12 @@ var (
 // marks a region such that it will always fault if accessed. Used only for
 // debugging the runtime.
 
+///
+/// 分配初始化
+///
 func mallocinit() {
+
+	/// 错误的tiny大小
 	if class_to_size[_TinySizeClass] != _TinySize {
 		throw("bad TinySizeClass")
 	}
@@ -493,6 +504,7 @@ func mallocinit() {
 		throw("bad pagesPerReclaimerChunk")
 	}
 
+	/// 初始化堆
 	// Initialize the heap.
 	mheap_.init()
 
@@ -520,6 +532,8 @@ func mallocinit() {
 		// so it's important that addresses be distinguishable
 		// from other data.
 		//
+		//
+		/// 开始地址是 0x00c0
 		// Starting at 0x00c0 means that the valid memory addresses
 		// will begin 0x00c0, 0x00c1, ...
 		// In little-endian, that's c0 00, c1 00, ... None of those are valid
@@ -570,11 +584,17 @@ func mallocinit() {
 				//println("p: ", hex(p))
 			}
 
+			/// 分配一个 arenaHint
 			hint := (*arenaHint)(mheap_.arenaHintAlloc.alloc())
+			/// 设置其地址
 			hint.addr = p
+
+			/// 拉成链
 			hint.next, mheap_.arenaHints = mheap_.arenaHints, hint
 		}
 	} else {
+		/// ************ 32位 *********** ///
+
 		// On a 32-bit machine, we're much more concerned
 		// about keeping the usable heap contiguous.
 		// Hence:
@@ -656,6 +676,7 @@ func mallocinit() {
 func (h *mheap) sysAlloc(n uintptr) (v unsafe.Pointer, size uintptr) {
 	n = alignUp(n, heapArenaBytes)
 
+	/// 首先使用32位方式分配内存，失败后，往下走
 	// First, try the arena pre-reservation.
 	v = h.arena.alloc(n, heapArenaBytes, &memstats.heap_sys)
 	if v != nil {
@@ -663,6 +684,7 @@ func (h *mheap) sysAlloc(n uintptr) (v unsafe.Pointer, size uintptr) {
 		goto mapped
 	}
 
+	/// 64位走这里
 	// Try to grow the heap at a hint address.
 	for h.arenaHints != nil {
 		hint := h.arenaHints
@@ -701,6 +723,7 @@ func (h *mheap) sysAlloc(n uintptr) (v unsafe.Pointer, size uintptr) {
 		h.arenaHintAlloc.free(unsafe.Pointer(hint))
 	}
 
+	/// 错误代码；默认不走
 	if size == 0 {
 		if raceenabled {
 			// The race detector assumes the heap lives in
@@ -751,10 +774,12 @@ func (h *mheap) sysAlloc(n uintptr) (v unsafe.Pointer, size uintptr) {
 	}
 
 	// Transition from Reserved to Prepared.
+	/// Reserved --> Prepared
 	sysMap(v, size, &memstats.heap_sys)
 
 mapped:
 
+	/// 创建 arena元数据
 	// Create arena metadata.
 	for ri := arenaIndex(uintptr(v)); ri <= arenaIndex(uintptr(v)+size-1); ri++ {
 		l2 := h.arenas[ri.l1()]
@@ -770,9 +795,12 @@ mapped:
 		if l2[ri.l2()] != nil {
 			throw("arena already initialized")
 		}
+
+
 		var r *heapArena
 		r = (*heapArena)(h.heapArenaAlloc.alloc(unsafe.Sizeof(*r), sys.PtrSize, &memstats.gc_sys))
 		if r == nil {
+			/// 64位走这里
 			r = (*heapArena)(persistentalloc(unsafe.Sizeof(*r), sys.PtrSize, &memstats.gc_sys))
 			if r == nil {
 				throw("out of memory allocating heap arena metadata")
@@ -1390,6 +1418,8 @@ func persistentalloc(size, align uintptr, sysStat *uint64) unsafe.Pointer {
 	return unsafe.Pointer(p)
 }
 
+/// 持久化分配内存
+///
 // Must run on system stack because stack growth can (re)invoke it.
 // See issue 9174.
 //go:systemstack
@@ -1412,18 +1442,19 @@ func persistentalloc1(size, align uintptr, sysStat *uint64) *notInHeap {
 		align = 8
 	}
 
-	if size >= maxBlock {
+	if size >= maxBlock { /// 64KB
 		return (*notInHeap)(sysAlloc(size, sysStat))
 	}
 
 	mp := acquirem()
 	var persistent *persistentAlloc
 	if mp != nil && mp.p != 0 {
-		persistent = &mp.p.ptr().palloc
+		persistent = &mp.p.ptr().palloc /// P 的内存分配器
 	} else {
 		lock(&globalAlloc.mutex)
-		persistent = &globalAlloc.persistentAlloc
+		persistent = &globalAlloc.persistentAlloc /// 全局分配器
 	}
+
 	persistent.off = alignUp(persistent.off, align)
 	if persistent.off+size > persistentChunkSize || persistent.base == nil {
 		persistent.base = (*notInHeap)(sysAlloc(persistentChunkSize, &memstats.other_sys))

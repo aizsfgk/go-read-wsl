@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Page allocator.
+// Page allocator. /// 页分配器
 //
 /// pageSize : 8K
 // The page allocator manages mapped pages (defined by pageSize, NOT
@@ -302,6 +302,7 @@ type pageAlloc struct {
 	test bool
 }
 
+/// 页面分配器初始化
 func (s *pageAlloc) init(mheapLock *mutex, sysStat *uint64) {
 	if levelLogPages[0] > logMaxPackedValue {
 		// We can't represent 1<<levelLogPages[0] pages, the maximum number
@@ -311,8 +312,11 @@ func (s *pageAlloc) init(mheapLock *mutex, sysStat *uint64) {
 		print("runtime: summary max pages = ", maxPackedValue, "\n")
 		throw("root level max pages doesn't fit in summary")
 	}
+
+
 	s.sysStat = sysStat
 
+	/// 地址范围初始化
 	// Initialize s.inUse.
 	s.inUse.init(sysStat)
 
@@ -341,8 +345,8 @@ func (s *pageAlloc) chunkOf(ci chunkIdx) *pallocData {
 func (s *pageAlloc) grow(base, size uintptr) {
 	// Round up to chunks, since we can't deal with increments smaller
 	// than chunks. Also, sysGrow expects aligned values.
-	limit := alignUp(base+size, pallocChunkBytes)
-	base = alignDown(base, pallocChunkBytes)
+	limit := alignUp(base+size, pallocChunkBytes) /// 向上对齐
+	base = alignDown(base, pallocChunkBytes)  /// 向下对齐
 
 	// Grow the summary levels in a system-dependent manner.
 	// We just update a bunch of additional metadata here.

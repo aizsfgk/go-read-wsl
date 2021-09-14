@@ -25,6 +25,8 @@ type mcentral struct {
 	nonempty mSpanList // list of spans with a free object, ie a nonempty free list
 	empty    mSpanList // list of spans with no free objects (or cached in an mcache)
 
+	/// 1个属于q清扫
+	/// 2
 	// partial and full contain two mspan sets: one of swept in-use
 	// spans, and one of unswept in-use spans. These two trade
 	// roles on each GC cycle. The unswept set is drained either by
@@ -43,8 +45,9 @@ type mcentral struct {
 	// to the appropriate swept list. As a result, the parts of the
 	// sweeper and mcentral that do consume from the unswept list may
 	// encounter swept spans, and these should be ignored.
-	partial [2]spanSet // list of spans with a free object
-	full    [2]spanSet // list of spans with no free objects
+
+	partial [2]spanSet // list of spans with a free object   /// 还有部分空余的对象; 其中又分为扫描和未扫描
+	full    [2]spanSet // list of spans with no free objects /// 不再有空闲空间
 
 	// nmalloc is the cumulative count of objects allocated from
 	// this mcentral, assuming all spans in mcaches are
@@ -55,6 +58,8 @@ type mcentral struct {
 // Initialize a single central free list.
 func (c *mcentral) init(spc spanClass) {
 	c.spanclass = spc
+
+	/// 新的实现
 	if go115NewMCentralImpl {
 		lockInit(&c.partial[0].spineLock, lockRankSpanSetSpine)
 		lockInit(&c.partial[1].spineLock, lockRankSpanSetSpine)
@@ -62,6 +67,7 @@ func (c *mcentral) init(spc spanClass) {
 		lockInit(&c.full[0].spineLock, lockRankSpanSetSpine)
 		lockInit(&c.full[1].spineLock, lockRankSpanSetSpine)
 	} else {
+		/// 旧的实现
 		c.nonempty.init()
 		c.empty.init()
 		lockInit(&c.lock, lockRankMcentral)

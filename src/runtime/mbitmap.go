@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Garbage collector: type and heap bitmaps.
+// Garbage collector: type and heap bitmaps. /// 类型和 heap bitmaps
 //
 // Stack, data, and bss bitmaps
 //
@@ -81,8 +81,8 @@ import (
 )
 
 const (
-	bitPointer = 1 << 0
-	bitScan    = 1 << 4
+	bitPointer = 1 << 0 /// 1
+	bitScan    = 1 << 4 /// 16
 
 	heapBitsShift      = 1     // shift offset between successive bitPointer or bitScan entries
 	wordsPerBitmapByte = 8 / 2 // heap words described by one bitmap byte

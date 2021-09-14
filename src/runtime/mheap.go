@@ -70,11 +70,11 @@ type mheap struct {
 	pages     pageAlloc // page allocation data structure
 
 	sweepgen  uint32    // sweep generation, see comment in mspan; written during STW
-	sweepdone uint32    // all spans are swept
-	sweepers  uint32    // number of active sweepone calls
+	sweepdone uint32    // all spans are swept             /// 全部的 span 已经被清扫
+	sweepers  uint32    // number of active sweepone calls /// 激活的sweepone调用数
 
 	// allspans is a slice of all mspans ever created. Each mspan
-	// appears exactly once.
+	// appears exactly once. /// 每个mspan只出现一次
 	//
 	// The memory for allspans is manually managed and can be
 	// reallocated and move as the heap grows.
@@ -146,6 +146,7 @@ type mheap struct {
 	//
 	// This is accessed atomically.
 	reclaimIndex uint64
+
 	// reclaimCredit is spare credit for extra pages swept. Since
 	// the page reclaimer works in large chunks, it may reclaim
 	// more than requested. Any spare pages released go to this
@@ -185,21 +186,24 @@ type mheap struct {
 	/// arenas[1][4MB]*heapArena
 	/// 4MB * 64 MB == 256 TB
 
+	// arenaHints is a list of addresses at which to attempt to
+	// add more heap arenas. This is initially populated with a
+	// set of general hint addresses, and grown with the bounds of
+	// actual heap arena ranges. /// 实际的范围
+	//// 地址链表
+	arenaHints *arenaHint
+
+
+	/// ####### 32bit ###### ///
+	// arena is a pre-reserved space for allocating heap arenas
+	// (the actual arenas). This is only used on 32-bit. /// 32位使用
+	arena linearAlloc
+
+	/// ###### 32bit ###### ///
 	// heapArenaAlloc is pre-reserved space for allocating heapArena
 	// objects. This is only used on 32-bit, where we pre-reserve
 	// this space to avoid interleaving it with the heap itself. /// 32位使用
 	heapArenaAlloc linearAlloc
-
-	// arenaHints is a list of addresses at which to attempt to
-	// add more heap arenas. This is initially populated with a
-	// set of general hint addresses, and grown with the bounds of
-	// actual heap arena ranges.
-	//// 地址链表
-	arenaHints *arenaHint
-
-	// arena is a pre-reserved space for allocating heap arenas
-	// (the actual arenas). This is only used on 32-bit. /// 32位使用
-	arena linearAlloc
 
 	// allArenas is the arenaIndex of every mapped arena. This can
 	// be used to iterate through the address space.
@@ -244,6 +248,7 @@ type mheap struct {
 	specialfinalizeralloc fixalloc // allocator for specialfinalizer*
 	specialprofilealloc   fixalloc // allocator for specialprofile*
 	speciallock           mutex    // lock for special record allocators.
+
 	arenaHintAlloc        fixalloc // allocator for arenaHints /// 地址范围
 
 	unused *specialfinalizer // never set, just here to force the specialfinalizer type into DWARF
@@ -264,6 +269,7 @@ type heapArena struct {
 	/// 用于标识 arena 区域中的那些地址保存了对象，位图中的每个字节都会表示堆区中的 32 字节是否包含空闲；
 	/// heapArenaBitmapBytes 2MB
 	/// 2MB * 32 ==> 64MB; 可以用来表示64MB大小的内存
+	/// 0000 0000 ->
 	bitmap [heapArenaBitmapBytes]byte
 
 	// spans maps from virtual address page ID within this arena to *mspan.
@@ -279,7 +285,7 @@ type heapArena struct {
 	// address is live and looking it up in the spans array.
 	/// 区域存储了指向内存管理单元 runtime.mspan 的指针，每个内存单元会管理几页的内存空间，每页大小为 8KB；
 	/// pagesPerArena == 8192
-	///
+	/// 8KB
 	spans [pagesPerArena]*mspan
 
 	// pageInUse is a bitmap that indicates which spans are in
@@ -477,6 +483,7 @@ type mspan struct {
 	allocBits  *gcBits /// 分配位
 	gcmarkBits *gcBits /// 标记位
 
+	/// 表明GC 清扫状态
 	// sweep generation:
 	// if sweepgen == h->sweepgen - 2, the span needs sweeping
 	// if sweepgen == h->sweepgen - 1, the span is currently being swept
@@ -562,7 +569,7 @@ func recordspan(vh unsafe.Pointer, p unsafe.Pointer) {
 type spanClass uint8
 
 const (
-	numSpanClasses = _NumSizeClasses << 1
+	numSpanClasses = _NumSizeClasses << 1 /// 134个
 	tinySpanClass  = spanClass(tinySizeClass<<1 | 1)
 )
 
@@ -746,6 +753,9 @@ func (h *mheap) init() {
 	h.specialprofilealloc.init(unsafe.Sizeof(specialprofile{}), nil, nil, &memstats.other_sys)
 
 
+	///
+	/// 初始化 arenaHint
+	///
 	h.arenaHintAlloc.init(unsafe.Sizeof(arenaHint{}), nil, nil, &memstats.other_sys)
 
 	// Don't zero mspan allocations. Background sweeping can
@@ -759,6 +769,7 @@ func (h *mheap) init() {
 
 	// h->mapcache needs no init
 
+	/// i : 0=>133
 	for i := range h.central {
 		h.central[i].mcentral.init(spanClass(i))
 	}

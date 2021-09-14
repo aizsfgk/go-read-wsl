@@ -603,9 +603,10 @@ func schedinit() {
 
 	moduledataverify()
 
+	/// 栈初始化
 	stackinit()
 
-	// 分配器初始化
+	/// 分配器初始化
 	mallocinit()
 
 	fastrandinit() // must run before mcommoninit
