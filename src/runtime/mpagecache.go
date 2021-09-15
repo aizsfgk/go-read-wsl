@@ -20,8 +20,8 @@ const pageCachePages = 8 * unsafe.Sizeof(pageCache{}.cache)
 // pages in it.
 type pageCache struct {
 	base  uintptr // base address of the chunk
-	cache uint64  // 64-bit bitmap representing free pages (1 means free)
-	scav  uint64  // 64-bit bitmap representing scavenged pages (1 means scavenged)
+	cache uint64  // 64-bit bitmap representing free pages (1 means free) /// 从操作系统获取的页
+	scav  uint64  // 64-bit bitmap representing scavenged pages (1 means scavenged) /// 从垃圾回收退回的页
 }
 
 // empty returns true if the pageCache has any free pages, and false

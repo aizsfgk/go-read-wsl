@@ -85,7 +85,7 @@ const (
 	bitScan    = 1 << 4 /// 16
 
 	heapBitsShift      = 1     // shift offset between successive bitPointer or bitScan entries
-	wordsPerBitmapByte = 8 / 2 // heap words described by one bitmap byte
+	wordsPerBitmapByte = 8 / 2 // heap words described by one bitmap byte; /// 4
 
 	// all scan/pointer bits in a byte
 	bitScanAll    = bitScan | bitScan<<heapBitsShift | bitScan<<(2*heapBitsShift) | bitScan<<(3*heapBitsShift)
@@ -798,6 +798,10 @@ func typeBitsBulkBarrier(typ *_type, dst, src, size uintptr) {
 //
 // TODO(rsc): Perhaps introduce a different heapBitsSpan type.
 
+///
+/// initSpan 初始化 heap bitmap 为一个 span
+/// 1. 清除所有的 checkmark bits
+/// 2. 如果是指针对象，初始化为 pointer/scan; 否则 scalar/dead
 // initSpan initializes the heap bitmap for a span.
 // It clears all checkmark bits.
 // If this is a span of pointer-sized objects, it initializes all
@@ -812,10 +816,15 @@ func (h heapBits) initSpan(s *mspan) {
 	if h.shift != 0 {
 		throw("initSpan: unaligned base")
 	}
+
+	/// 是否指针大小
 	isPtrs := sys.PtrSize == 8 && s.elemsize == sys.PtrSize
+
 	for nw > 0 {
 		hNext, anw := h.forwardOrBoundary(nw)
 		nbyte := anw / wordsPerBitmapByte
+
+		/// 指针大小
 		if isPtrs {
 			bitp := h.bitp
 			for i := uintptr(0); i < nbyte; i++ {
@@ -825,6 +834,7 @@ func (h heapBits) initSpan(s *mspan) {
 		} else {
 			memclrNoHeapPointers(unsafe.Pointer(h.bitp), nbyte)
 		}
+
 		h = hNext
 		nw -= anw
 	}

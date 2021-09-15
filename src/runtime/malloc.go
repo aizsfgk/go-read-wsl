@@ -897,7 +897,9 @@ var zerobase uintptr
 // nextFreeFast returns the next free object if one is quickly available.
 // Otherwise it returns 0.
 func nextFreeFast(s *mspan) gclinkptr {
+	/// 分配缓存
 	theBit := sys.Ctz64(s.allocCache) // Is there a free object in the allocCache?
+	/// 小于 64
 	if theBit < 64 {
 		result := s.freeindex + uintptr(theBit)
 		if result < s.nelems {
@@ -933,6 +935,8 @@ func (c *mcache) nextFree(spc spanClass) (v gclinkptr, s *mspan, shouldhelpgc bo
 			println("runtime: s.allocCount=", s.allocCount, "s.nelems=", s.nelems)
 			throw("s.allocCount != s.nelems && freeIndex == s.nelems")
 		}
+
+		/// 填充
 		c.refill(spc)
 		shouldhelpgc = true
 		s = c.alloc[spc]
@@ -953,6 +957,7 @@ func (c *mcache) nextFree(spc spanClass) (v gclinkptr, s *mspan, shouldhelpgc bo
 	return
 }
 
+/// 进行内存分配
 // Allocate an object of size bytes. /// 分配一个size字节大小的对象
 // Small objects are allocated from the per-P cache's free lists. /// 小对象被分配从per-P cache 空闲列表
 // Large objects (> 32 kB) are allocated straight from the heap.  /// 大对象 大于 32KB被分配直接从heap上
@@ -990,7 +995,7 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		return persistentalloc(size, align, &memstats.other_sys)
 	}
 	
-	/// 辅助G : 负债还是结语???
+	/// 辅助G : 负债还是结余 ???
 	///
 	// assistG is the G to charge for this allocation, or nil if
 	// GC is not currently active.
@@ -1041,6 +1046,8 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 
 	var span *mspan         /// 申明一个span指针
 	var x unsafe.Pointer
+
+	/// 无需scan
 	noscan := typ == nil || typ.ptrdata == 0 /// 不含义指针
 
 	if size <= maxSmallSize {
@@ -1105,6 +1112,8 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 				releasem(mp)
 				return x /// 返回微对象
 			}
+
+
 			// Allocate a new maxTinySize block.
 			span = c.alloc[tinySpanClass] /// 从mcache里拿一个合适的span
 			v := nextFreeFast(span)
@@ -1130,6 +1139,9 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 				sizeclass = size_to_class128[divRoundUp(size-smallSizeMax, largeSizeDiv)]
 			}
 			size = uintptr(class_to_size[sizeclass]) /// 384???
+			/// size class
+			/// span class
+			///
 			spc := makeSpanClass(sizeclass, noscan)
 			span = c.alloc[spc]
 			v := nextFreeFast(span)
@@ -1153,8 +1165,10 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		size = span.elemsize
 	}
 
+	/// 如果需要扫描
 	var scanSize uintptr
-	if !noscan {
+	if !noscan { /// 含有指针数据
+
 		// If allocating a defer+arg block, now that we've picked a malloc size
 		// large enough to hold everything, cut the "asked for" size down to
 		// just the defer header, so that the GC bitmap will record the arg block
@@ -1164,6 +1178,8 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		if typ == deferType {
 			dataSize = unsafe.Sizeof(_defer{})
 		}
+
+		/// 设置heapBits
 		heapBitsSetType(uintptr(x), size, dataSize, typ)
 		if dataSize > typ.size {
 			// Array allocation. If there are any
@@ -1175,6 +1191,8 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		} else {
 			scanSize = typ.ptrdata
 		}
+
+
 		c.local_scan += scanSize
 	}
 
@@ -1233,9 +1251,11 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		}
 	}
 
+	/// 返回这个内存地址
 	return x
 }
 
+/// 大对象分配
 func largeAlloc(size uintptr, needzero bool, noscan bool) *mspan {
 	// print("largeAlloc size=", size, "\n")
 
@@ -1252,6 +1272,11 @@ func largeAlloc(size uintptr, needzero bool, noscan bool) *mspan {
 	// Deduct credit for this span allocation and sweep if
 	// necessary. mHeap_Alloc will also sweep npages, so this only
 	// pays the debt down to npage pages.
+
+	///
+	///
+	///
+	///
 	deductSweepCredit(npages*_PageSize, npages)
 
 	spc := makeSpanClass(0, noscan)
@@ -1267,7 +1292,12 @@ func largeAlloc(size uintptr, needzero bool, noscan bool) *mspan {
 		mheap_.central[spc].mcentral.fullSwept(mheap_.sweepgen).push(s)
 	}
 	s.limit = s.base() + size
+
+
+	/// 做 heapBits 标记
 	heapBitsForAddr(s.base()).initSpan(s)
+
+
 	return s
 }
 

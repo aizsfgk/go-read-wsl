@@ -651,7 +651,9 @@ type p struct {
 	m           muintptr   // back-link to associated m (nil if idle)
 
 	mcache      *mcache   /// mcache
+
 	pcache      pageCache /// 页面缓存
+
 	raceprocctx uintptr
 
 	deferpool    [5][]*_defer // pool of available defer structs of different sizes (see panic.go)
@@ -932,8 +934,8 @@ type itab struct {
 // Lock-free stack node. /// 无锁栈节点
 // Also known to export_test.go.
 type lfnode struct {
-	next    uint64
-	pushcnt uintptr
+	next    uint64 ///
+	pushcnt uintptr ///
 }
 
 type forcegcstate struct {

@@ -20,11 +20,19 @@ import (
 // The stack does not keep GC-visible pointers to nodes, so the caller
 // is responsible for ensuring the nodes are not garbage collected
 // (typically by allocating them from manually-managed memory).
+///
+/// 这个栈是不能保持 GC可视的，因此调用者必须保证其分配不参与垃圾回收。典型用法使用
+/// manually-managed memory
+///
 type lfstack uint64
 
 func (head *lfstack) push(node *lfnode) {
+	/// 推送数+1
 	node.pushcnt++
+
+	///
 	new := lfstackPack(node, node.pushcnt)
+
 	if node1 := lfstackUnpack(new); node1 != node {
 		print("runtime: lfstack.push invalid packing: node=", node, " cnt=", hex(node.pushcnt), " packed=", hex(new), " -> node=", node1, "\n")
 		throw("lfstack.push")

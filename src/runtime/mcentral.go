@@ -103,6 +103,8 @@ func (c *mcentral) cacheSpan() *mspan {
 	if !go115NewMCentralImpl {
 		return c.oldCacheSpan()
 	}
+
+	/// 扣除结余为这个span分配，清扫如果需要
 	// Deduct credit for this span allocation and sweep if necessary.
 	spanBytes := uintptr(class_to_allocnpages[c.spanclass.sizeclass()]) * _PageSize
 	deductSweepCredit(spanBytes, 0)
@@ -337,14 +339,18 @@ havespan:
 // s must have a span class corresponding to this
 // mcentral and it must not be empty.
 func (c *mcentral) uncacheSpan(s *mspan) {
+	/// 旧版
 	if !go115NewMCentralImpl {
 		c.oldUncacheSpan(s)
 		return
 	}
+
+	/// 因为已经缓存过，所以 allocCount 不能是0
 	if s.allocCount == 0 {
 		throw("uncaching span but s.allocCount == 0")
 	}
 
+	/// 清扫状态
 	sg := mheap_.sweepgen
 	stale := s.sweepgen == sg+1
 
@@ -383,16 +389,23 @@ func (c *mcentral) uncacheSpan(s *mspan) {
 		}
 	}
 
+	/// 放 span 在一个合适的空间
 	// Put the span in the appropriate place.
 	if stale {
 		// It's stale, so just sweep it. Sweeping will put it on
 		// the right list.
 		s.sweep(false)
+
 	} else {
+
 		if n > 0 {
+
+			/// 部分清扫
 			// Put it back on the partial swept list.
 			c.partialSwept(sg).push(s)
 		} else {
+
+			/// 全部清扫
 			// There's no free space and it's not stale, so put it on the
 			// full swept list.
 			c.fullSwept(sg).push(s)
@@ -507,9 +520,12 @@ func (c *mcentral) freeSpan(s *mspan, preserve bool, wasempty bool) bool {
 
 // grow allocates a new empty span from the heap and initializes it for c's size class.
 func (c *mcentral) grow() *mspan {
+	/// 找到需要的页数
 	npages := uintptr(class_to_allocnpages[c.spanclass.sizeclass()])
+	/// 获取大小
 	size := uintptr(class_to_size[c.spanclass.sizeclass()])
 
+	/// 分配一个span
 	s := mheap_.alloc(npages, c.spanclass, true)
 	if s == nil {
 		return nil
@@ -519,6 +535,9 @@ func (c *mcentral) grow() *mspan {
 	// n := (npages << _PageShift) / size
 	n := (npages << _PageShift) >> s.divShift * uintptr(s.divMul) >> s.divShift2
 	s.limit = s.base() + size*n
+
+	///
 	heapBitsForAddr(s.base()).initSpan(s)
+
 	return s
 }

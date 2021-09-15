@@ -70,6 +70,7 @@ type mheap struct {
 	pages     pageAlloc // page allocation data structure
 
 	sweepgen  uint32    // sweep generation, see comment in mspan; written during STW
+
 	sweepdone uint32    // all spans are swept             /// 全部的 span 已经被清扫
 	sweepers  uint32    // number of active sweepone calls /// 激活的sweepone调用数
 
@@ -270,7 +271,10 @@ type heapArena struct {
 	/// 用于标识 arena 区域中的那些地址保存了对象。
 	/// heapArenaBitmapBytes 2MB
 	/// 2MB * 32 ==> 64MB; 可以用来表示64MB大小的内存
-	/// 一个字节 可以标识 连续 4个指针大小的内存（32字节)
+	///
+	/// 1个字节标识 4个指针大小的内存
+	/// 低4bit 表示是否含有指针
+	/// 高4bit 表示是否被扫描
 	bitmap [heapArenaBitmapBytes]byte /// 2MB * 32byte ==> 64MB
 
 	// spans maps from virtual address page ID within this arena to *mspan.
@@ -287,6 +291,8 @@ type heapArena struct {
 	/// 区域存储了指向内存管理单元 runtime.mspan 的指针，每个内存单元会管理几页的内存空间，每页大小为 8KB；
 	/// pagesPerArena == 8192
 	/// 8KB
+	///
+	/// spans 映射了 虚拟地址 pageID
 	spans [pagesPerArena]*mspan // 8192个
 
 	/// 表明 span 是被使用
@@ -425,22 +431,24 @@ type mSpanList struct {
 
 //go:notinheap
 type mspan struct {
+	/// 链表结构
 	next *mspan     // next span in list, or nil if none
 	prev *mspan     // previous span in list, or nil if none
 	list *mSpanList // For debugging. TODO: Remove.
 
 	startAddr uintptr // address of first byte of span aka s.base()
-	npages    uintptr // number of pages in span
+	npages    uintptr // number of pages in span /// 含有几个页
 
+	/// 被释放的在manual span中的对象的列表
 	manualFreeList gclinkptr // list of free objects in mSpanManual spans
 
 	// freeindex is the slot index between 0 and nelems at which to begin scanning
-	// for the next free object in this span.
+	// for the next free object in this span. /// 空闲槽索引
 	// Each allocation scans allocBits starting at freeindex until it encounters a 0
 	// indicating a free object. freeindex is then adjusted so that subsequent scans begin
 	// just past the newly discovered free object.
 	//
-	// If freeindex == nelem, this span has no free objects.
+	// If freeindex == nelem, this span has no free objects. /// 没有空闲空间可以分配对象
 	//
 	// allocBits is a bitmap of objects in this span.
 	// If n >= freeindex and allocBits[n/8] & (1<<(n%8)) is 0
@@ -460,6 +468,11 @@ type mspan struct {
 	// ctz (count trailing zero) to use it directly.
 	// allocCache may contain bits beyond s.nelems; the caller must ignore
 	// these.
+	///- allocBits在freeIndex上的缓存;
+	///- allocBits的补码,ctz可以直接使用来计算查找空闲的内存;
+	///- 会包含一些s.nelems前面的位，调用者要忽略这些位;
+	/// 在mspan.refillAllocCache()时改变值;
+	/// 是allocBits的表示从freeindex开始的64个slot的分配情况，1为未分配，0为已分配，使用ctz(Count trailing zeros指令)找到第一个非0位，使用完了就从allocBits加载，取反；
 	allocCache uint64
 
 	// allocBits and gcmarkBits hold pointers to a span's mark and
@@ -484,9 +497,17 @@ type mspan struct {
 	// The sweep will free the old allocBits and set allocBits to the
 	// gcmarkBits. The gcmarkBits are replaced with a fresh zeroed
 	// out memory.
-	allocBits  *gcBits /// 分配位
-	gcmarkBits *gcBits /// 标记位
+	///
+	///
+	/// 垃圾回收的分代状态，主要拥有同mheap中的当前mSpan的sweepgen进行比较: 每次GC，h->sweepgen都会 +2
 
+	/// 标记内存占用状态，表示上一次GC之后哪一些slot被使用，0未使用或释放，1已分配
+	allocBits  *gcBits /// 分配位; 用在分配内存
+
+	/// 标记内存回收状态
+	gcmarkBits *gcBits /// 标记位; 用在标记内存
+
+	///
 	/// 表明GC 清扫状态
 	// sweep generation:
 	// if sweepgen == h->sweepgen - 2, the span needs sweeping
@@ -496,7 +517,14 @@ type mspan struct {
 	// if sweepgen == h->sweepgen + 3, the span was swept and then cached and is still cached
 	// h->sweepgen is incremented by 2 after every GC
 
+	/// 如果 sweepgen == h->sweepgen - 2, 这个span需要清除
+	/// 如果 sweepgen == h->sweepgen - 1, 这个span正在被清除
+	/// if sweepgen == h->sweepgen, 这个span已经被清除过并且就绪可用
+	/// if sweepgen == h->sweepgen + 1, 这个span在清除之前就被缓存且仍在缓存中，需要被清除（很明显这里mSpan的sweepgen>h.sweepgen，证明已经活过了上一次清除,即被缓存下来);
+	/// if sweepgen == h->sweepgen + 3, 这个span被清除后缓存，且在缓存中(一般来讲是不需要再缓存了???)
+
 	sweepgen    uint32
+
 	divMul      uint16        // for divide by elemsize - divMagic.mul
 	baseMask    uint16        // if non-0, elemsize is a power of 2, & this will get object allocation base
 	allocCount  uint16        // number of allocated objects /// 已经分配的对象数
@@ -954,6 +982,8 @@ func (h *mheap) alloc(npages uintptr, spanclass spanClass, needzero bool) *mspan
 		}
 		s.needzero = 0
 	}
+
+	///
 	return s
 }
 
@@ -1167,7 +1197,7 @@ func (h *mheap) allocSpan(npages uintptr, manual bool, spanclass spanClass, sysS
 
 	// If the allocation is small enough, try the page cache!
 	pp := gp.m.p.ptr()
-	if pp != nil && npages < pageCachePages/4 {
+	if pp != nil && npages < pageCachePages/4 { // n < 16
 		c := &pp.pcache
 
 		/// 如果 cache 是空的，则填充它
@@ -1208,7 +1238,7 @@ func (h *mheap) allocSpan(npages uintptr, manual bool, spanclass spanClass, sysS
 
 	if base == 0 {
 		// Try to acquire a base address.
-		base, scav = h.pages.alloc(npages)
+		base, scav = h.pages.alloc(npages) ///从heap 上直接进行pageAlloc
 		if base == 0 {
 			if !h.grow(npages) { /// 这里会增长heap
 				unlock(&h.lock)
@@ -1260,6 +1290,7 @@ func (h *mheap) allocSpan(npages uintptr, manual bool, spanclass spanClass, sysS
 	}
 	unlock(&h.lock)
 
+/// 已经分配好Span
 HaveSpan:
 	// At this point, both s != nil and base != 0, and the heap
 	// lock is no longer held. Initialize the span.

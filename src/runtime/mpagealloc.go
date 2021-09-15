@@ -2,6 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+/// 页分配器
+/// 页分配器映射页（默认8K, 不是操作系统物理页），用来分配和重用，它内嵌于mheap;
+///
+/// page 被bitmap管理，其被共享在 chunks间。
+/// 在 bitmap 中， 1 表示 in-user, 0 表示 free。
+/// bitmap 横跨进程地址空间。Chunks 被管理通过一种稀疏数组类型，类似 mheap.arenas。
+///
+/// bitmap 实现高效搜索，通过一个基数树+快速位操作
+/// 分配被执行使用一个地址排序首先适应的路径
+
 // Page allocator. /// 页分配器
 //
 /// pageSize : 8K
@@ -13,6 +23,7 @@
 // process's address space. Chunks are managed in a sparse-array-style structure
 // similar to mheap.arenas, since the bitmap may be large on some systems.
 //
+/// bitmap 是基数树
 // The bitmap is efficiently searched by using a radix tree in combination
 // with fast bit-wise intrinsics. Allocation is performed using an address-ordered
 // first-fit approach.
@@ -54,12 +65,13 @@ import (
 )
 
 const (
+
 	// The size of a bitmap chunk, i.e. the amount of bits (that is, pages) to consider
 	// in the bitmap at once.
-	pallocChunkPages    = 1 << logPallocChunkPages
-	pallocChunkBytes    = pallocChunkPages * pageSize /// 512 * 8K
+	pallocChunkPages    = 1 << logPallocChunkPages // 512
+	pallocChunkBytes    = pallocChunkPages * pageSize /// 512 * 8K ==> 4096Byte
 	logPallocChunkPages = 9
-	logPallocChunkBytes = logPallocChunkPages + pageShift
+	logPallocChunkBytes = logPallocChunkPages + pageShift /// 21
 
 	// The number of radix bits for each level.
 	//
@@ -73,6 +85,9 @@ const (
 	//
 	// summaryLevels is an architecture-dependent value defined in mpagealloc_*.go.
 	summaryLevelBits = 3
+	///
+	///
+	/// 80 - 34 => 46
 	summaryL0Bits    = heapAddrBits - logPallocChunkBytes - (summaryLevels-1)*summaryLevelBits
 
 	// pallocChunksL2Bits is the number of bits of the chunk index number
@@ -174,7 +189,7 @@ func blockAlignSummaryRange(level int, lo, hi int) (int, int) {
 }
 
 type pageAlloc struct {
-	// Radix tree of summaries. /// 基数树
+	// Radix tree of summaries. /// summary基数树
 	//
 	// Each slice's cap represents the whole memory reservation.
 	// Each slice's len reflects the allocator's maximum known
@@ -195,6 +210,11 @@ type pageAlloc struct {
 	//
 	// We may still get segmentation faults < len since some of that
 	// memory may not be committed yet.
+	/// 这个结构非常特殊，summary包含了在这个区域中空闲内存页的信息
+	/// 1. 包括了在开头有多少连续内存页
+	/// 2. 最大有多少连续内存页
+	/// 3. 在末尾有多少连续内存页
+	/// 一棵树管理16G; 共有16384个(64系统)
 	summary [summaryLevels][]pallocSum
 
 	// chunks is a slice of bitmap chunks.
@@ -214,7 +234,7 @@ type pageAlloc struct {
 	// ------------------------------------------------
 	// 32           | 0       | 10      | 128 KiB
 	// 33 (iOS)     | 0       | 11      | 256 KiB
-	// 48           | 13      | 13      | 1 MiB
+	// 48           | 13      | 13      | 1 MiB      /// Linux amd64
 	//
 	// There's no reason to use the L1 part of chunks on 32-bit, the
 	// address space is small so the L2 is small. For platforms with a
@@ -772,6 +792,7 @@ nextLevel:
 	return addr, s.findMappedAddr(firstFree.base)
 }
 
+/// 分配
 // alloc allocates npages worth of memory from the page heap, returning the base
 // address for the allocation and the amount of scavenged memory in bytes
 // contained in the region [base address, base address + npages*pageSize).
@@ -832,6 +853,7 @@ Found:
 	return addr, scav
 }
 
+/// 释放
 // free returns npages worth of memory starting at base back to the page heap.
 //
 // s.mheapLock must be held.

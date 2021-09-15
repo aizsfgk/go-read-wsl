@@ -42,6 +42,8 @@ func lfstackPack(node *lfnode, cnt uintptr) uint64 {
 	if GOARCH == "ppc64" && GOOS == "aix" {
 		return uint64(uintptr(unsafe.Pointer(node)))<<(64-aixAddrBits) | uint64(cnt&(1<<aixCntBits-1))
 	}
+
+	///
 	return uint64(uintptr(unsafe.Pointer(node)))<<(64-addrBits) | uint64(cnt&(1<<cntBits-1))
 }
 

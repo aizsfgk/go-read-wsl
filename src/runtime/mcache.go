@@ -118,6 +118,8 @@ func freemcache(c *mcache) {
 	})
 }
 
+/// 获取一个新的span为mcache. 这个span至少有一个空闲对象。
+/// 当前span 必须是full。
 // refill acquires a new span of span class spc for c. This span will
 // have at least one free object. The current span in c must be full.
 //
@@ -127,14 +129,19 @@ func (c *mcache) refill(spc spanClass) {
 	// Return the current cached span to the central lists.
 	s := c.alloc[spc]
 
+	/// 必须满了
 	if uintptr(s.allocCount) != s.nelems {
 		throw("refill of span with free space remaining")
 	}
+	/// 如果s 不是空span
 	if s != &emptymspan {
+		/// 清除后缓存
 		// Mark this span as no longer cached.
 		if s.sweepgen != mheap_.sweepgen+3 {
 			throw("bad sweepgen in refill")
 		}
+
+		/// 新的实现
 		if go115NewMCentralImpl {
 			mheap_.central[spc].mcentral.uncacheSpan(s)
 		} else {
@@ -152,6 +159,9 @@ func (c *mcache) refill(spc spanClass) {
 		throw("span has no free space")
 	}
 
+	///
+	/// 表明：这个span被缓存，阻塞被异步清扫在下次sweep阶段
+	///
 	// Indicate that this span is cached and prevent asynchronous
 	// sweeping in the next sweep phase.
 	s.sweepgen = mheap_.sweepgen + 3
