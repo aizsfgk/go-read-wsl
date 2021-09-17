@@ -41,22 +41,22 @@
 //    part of allocation. The write barrier shades both the
 //    overwritten pointer and the new pointer value for any pointer
 //    writes (see mbarrier.go for details). Newly allocated objects
-//    are immediately marked black.
+//    are immediately marked black. /// 新分配对象立即标记为黑色
 //
 //    c. GC performs root marking jobs. This includes scanning all
 //    stacks, shading all globals, and shading any heap pointers in
 //    off-heap runtime data structures. Scanning a stack stops a
 //    goroutine, shades any pointers found on its stack, and then
-//    resumes the goroutine.
+//    resumes the goroutine. /// 扫描栈的时候，先停止Goroutine, shade后，然后再恢复Goroutine.
 //
 //    d. GC drains the work queue of grey objects, scanning each grey
-//    object to black and shading all pointers found in the object
+//    object to black and shading all pointers found in the object /// shading : 涂灰
 //    (which in turn may add those pointers to the work queue).
 //
 //    e. Because GC work is spread across local caches, GC uses a
 //    distributed termination algorithm to detect when there are no
 //    more root marking jobs or grey objects (see gcMarkDone). At this
-//    point, GC transitions to mark termination.
+//    point, GC transitions to mark termination. /// 使用分布式终止算法
 //
 // 3. GC performs mark termination.      # 标记终止
 //
@@ -86,7 +86,7 @@
 // The sweep phase proceeds concurrently with normal program execution.
 // The heap is swept span-by-span both lazily (when a goroutine needs another span)
 // and concurrently in a background goroutine (this helps programs that are not CPU bound).
-// At the end of STW mark termination all spans are marked as "needs sweeping".
+// At the end of STW mark termination all spans are marked as "needs sweeping". /// 标记终止阶段，标记span 为 "needs sweeping"
 //
 // The background sweeper goroutine simply sweeps spans one-by-one. /// sweeps spans one-by-one
 //
@@ -106,11 +106,11 @@
 ///
 //
 // It's critical to ensure that no operations proceed on unswept spans (that would corrupt
-// mark bits in GC bitmap). During GC all mcaches are flushed into the central cache,
+// mark bits in GC bitmap). During GC all mcaches are flushed into the central cache, ///
 // so they are empty. When a goroutine grabs a new span into mcache, it sweeps it.
 // When a goroutine explicitly frees an object or sets a finalizer, it ensures that
 // the span is swept (either by sweeping it, or by waiting for the concurrent sweep to finish).
-// The finalizer goroutine is kicked off only when all spans are swept.
+// The finalizer goroutine is kicked off only when all spans are swept. /// finalizer goroutine
 // When the next GC starts, it sweeps all not-yet-swept spans (if any).
 ///
 /// 这是严格的。
@@ -124,14 +124,15 @@
 // proportion to the allocation cost. Adjusting GOGC just changes the linear constant
 // (and also the amount of extra memory used).
 
-// Oblets
+// Oblets : 观察对象
 //
 // In order to prevent long pauses while scanning large objects and to
 // improve parallelism, the garbage collector breaks up scan jobs for
 // objects larger than maxObletBytes into "oblets" of at most
 // maxObletBytes. When scanning encounters the beginning of a large
 // object, it scans only the first oblet and enqueues the remaining
-// oblets as new scan jobs.
+// oblets as new scan jobs. /// 入队剩下的oblets,作为新的扫描对象
+/// 为了防止长期停顿当扫描大对象 和 提升并发度，gc 打断 扫描大对象（大于 maxObletBytes）
 
 package runtime
 
@@ -144,7 +145,7 @@ import (
 const (
 	_DebugGC         = 0          /// 开启调试
 	_ConcurrentSweep = true       /// 是否并发清扫 ?
-	_FinBlockSize    = 4 * 1024   /// 终结块大小
+	_FinBlockSize    = 4 * 1024   /// 终结块大小； 4096B ==> 4KB
 
 	// debugScanConservative enables debug logging for stack
 	// frames that are scanned conservatively.

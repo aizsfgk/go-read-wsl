@@ -139,6 +139,7 @@ var zeroProcAttr ProcAttr
 var zeroSysProcAttr SysProcAttr
 
 /// 克隆子进程，并执行新的程序
+/// pid 是子进程的PID
 func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) {
 	var p [2]int
 	var n int
@@ -244,6 +245,7 @@ func forkExec(argv0 string, argv []string, attr *ProcAttr) (pid int, err error) 
 		for err1 == EINTR {
 			_, err1 = Wait4(pid, &wstatus, 0, nil)
 		}
+		/// 失败
 		return 0, err
 	}
 

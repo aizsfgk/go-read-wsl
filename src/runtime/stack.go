@@ -62,7 +62,7 @@ functions to make sure that this limit cannot be violated.
 */
 
 const (
-	SFDEBUG = false
+	SF_GO_DEBUG = false
 )
 
 const (
@@ -180,7 +180,7 @@ func stackinit() {
 		lockInit(&stackLarge.lock, lockRankStackLarge)
 	}
 
-	if SFDEBUG {
+	if SF_GO_DEBUG {
 		println("------ stack ------")
 		println("_StackSystem: ", _StackSystem) // 0
 		println("_StackGuard: ", _StackGuard) // 928

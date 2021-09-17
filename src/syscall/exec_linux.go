@@ -80,6 +80,8 @@ func runtime_AfterForkInChild()
 func forkAndExecInChild(argv0 *byte, argv, envv []*byte, chroot, dir *byte, attr *ProcAttr, sys *SysProcAttr, pipe int) (pid int, err Errno) {
 	// Set up and fork. This returns immediately in the parent or
 	// if there's an error.
+
+	/// 一次调用，2次返回
 	r1, err1, p, locked := forkAndExecInChild1(argv0, argv, envv, chroot, dir, attr, sys, pipe)
 	if locked {
 		runtime_AfterFork()

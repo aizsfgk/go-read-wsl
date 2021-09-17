@@ -213,6 +213,9 @@ const (
 	//
 	// WebAssembly currently has a limit of 4GB linear memory.
 
+	///
+	/// 33*sys.GoosDarwin*sys.GoarchArm64 == 0
+	/// (1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle)) == 32 + 48 ==> 80 ???
 	heapAddrBits = (_64bit*(1-sys.GoarchWasm)*(1-sys.GoosDarwin*sys.GoarchArm64))*48 + (1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle)) + 33*sys.GoosDarwin*sys.GoarchArm64
 
 	// maxAlloc is the maximum size of an allocation. On 64-bit,
@@ -432,7 +435,24 @@ func mallocinit() {
 
 	testdefersizes()
 
-	if SFDEBUG {
+	/*
+		------ stack ------
+		_StackSystem:  0
+		_StackGuard:  928
+		_StackLimit:  800
+		heapAddrBits - pageShift:  35
+		_NumStackOrders:  4
+		_FixedStack<<_NumStackOrders:  32768
+		_StackCacheSize:  32768
+		------ mallocinit() ------
+		arenaL2Bits:  22
+		1 << arenaL2Bits:  4194304
+		heapArenaBytes:  67108864
+		heapArenaBitmapBytes:  2097152
+		pagesPerArena:  8192
+		pageSize:  8192
+	 */
+	if SF_GO_DEBUG {
 		// println
 		println("------ mallocinit() ------")
 		println("arenaL2Bits: ", arenaL2Bits) // 22
@@ -441,6 +461,11 @@ func mallocinit() {
 		println("heapArenaBitmapBytes: ", heapArenaBitmapBytes) // 2097152 => 2MB
 		println("pagesPerArena: ", pagesPerArena) // 8192
 		println("pageSize: ", pageSize) // 8192
+		println("heapAddrBits: ", heapAddrBits) // 48
+		println("maxAlloc: ", maxAlloc) // 281474976710656
+		println("logHeapArenaBytes: ", logHeapArenaBytes) // 26
+		println("(1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle)): ",(1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle))) // 0
+		println("_64bit: ", _64bit) // 1
 
 	}
 

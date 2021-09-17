@@ -22,13 +22,13 @@ const (
 	rootBlockBytes = 256 << 10
 
 	// maxObletBytes is the maximum bytes of an object to scan at
-	// once. Larger objects will be split up into "oblets" of at
+	// once. Larger objects will be split up into "oblets" of at /// 对象将被分成最多为此大小的对象
 	// most this size. Since we can scan 1–2 MB/ms, 128 KB bounds
-	// scan preemption at ~100 µs.
+	// scan preemption at ~100 µs. /// 100 微妙
 	//
 	// This must be > _MaxSmallSize so that the object base is the
 	// span base.
-	maxObletBytes = 128 << 10
+	maxObletBytes = 128 << 10 /// 128K
 
 	// drainCheckThreshold specifies how many units of work to do
 	// between self-preemption checks in gcDrain. Assuming a scan
@@ -1318,6 +1318,7 @@ func scanobject(b uintptr, gcw *gcWork) {
 		throw("scanobject n == 0")
 	}
 
+	/// 切割大对象
 	if n > maxObletBytes {
 		// Large object. Break into oblets for better
 		// parallelism and lower latency.

@@ -67,7 +67,7 @@ func (head *lfstack) empty() bool {
 // lfnodeValidate panics if node is not a valid address for use with
 // lfstack.push. This only needs to be called when node is allocated.
 func lfnodeValidate(node *lfnode) {
-	if lfstackUnpack(lfstackPack(node, ^uintptr(0))) != node {
+	if lfstackUnpack(lfstackPack(node, ^uintptr(0))) != node { /// 打包解包比较
 		printlock()
 		println("runtime: bad lfnode address", hex(uintptr(unsafe.Pointer(node))))
 		throw("bad lfnode address")
