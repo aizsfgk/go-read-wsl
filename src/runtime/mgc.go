@@ -191,10 +191,13 @@ func gcinit() {
 	// Fake a heap_marked value so it looks like a trigger at
 	// heapminimum is the appropriate growth from heap_marked.
 	// This will go into computing the initial GC goal.
+	/// 伪造一个堆内存标记值，看起来被触发在一个最小值
+	/// 4MB / 1 + 7/8 ~ 2MB
 	memstats.heap_marked = uint64(float64(heapminimum) / (1 + memstats.triggerRatio))
 
 	// Set gcpercent from the environment. This will also compute
 	// and set the GC trigger and goal.
+	/// readgogc() 默认 100
 	_ = setGCPercent(readgogc())
 
 	work.startSema = 1
@@ -242,7 +245,7 @@ func setGCPercent(in int32) (out int32) {
 			in = -1
 		}
 		gcpercent = in
-		heapminimum = defaultHeapMinimum * uint64(gcpercent) / 100
+		heapminimum = defaultHeapMinimum * uint64(gcpercent) / 100 /// 默认 4MB
 		// Update pacing in response to gcpercent change.
 		gcSetTriggerRatio(memstats.triggerRatio)
 
@@ -357,11 +360,16 @@ var gcMarkWorkerModeStrings = [...]string{
 // GOMAXPROCS. The high-level design of this algorithm is documented
 // at https://golang.org/s/go15gcpacing.
 //
+/// 它使用一个反馈控制算法，调整memstats.gc_trigger; 其触发基于heap growth 和 GC CPU utilization 每个循环。
+/// 它使用 $GOMAXPROCS 的 25% 作为 CPU使用率 为 辅助标记和后台标记。
+///
 // All fields of gcController are used only during a single mark
 // cycle.
 var gcController gcControllerState
 
 type gcControllerState struct {
+
+	/// 总的scan work 数
 	// scanWork is the total scan work performed this cycle. This
 	// is updated atomically during the cycle. Updates occur in
 	// bounded batches, since it is both written and read
@@ -373,6 +381,7 @@ type gcControllerState struct {
 	// definition is important.
 	scanWork int64
 
+	/// 后台扫描结余: 这个值可以被辅助标记清扫偷取，从而快速分配内存
 	// bgScanCredit is the scan work credit accumulated by the
 	// concurrent background scan. This credit is accumulated by
 	// the background scan and stolen by mutator assists. This is
@@ -380,32 +389,38 @@ type gcControllerState struct {
 	// it is both written and read throughout the cycle.
 	bgScanCredit int64
 
+	/// 本轮循环，辅助标记清扫花费的时间
 	// assistTime is the nanoseconds spent in mutator assists
 	// during this cycle. This is updated atomically. Updates
 	// occur in bounded batches, since it is both written and read
 	// throughout the cycle.
 	assistTime int64
 
+	/// 专注标记时间：
 	// dedicatedMarkTime is the nanoseconds spent in dedicated
 	// mark workers during this cycle. This is updated atomically
 	// at the end of the concurrent mark phase.
 	dedicatedMarkTime int64
 
+	/// 部分标记时间：
 	// fractionalMarkTime is the nanoseconds spent in the
 	// fractional mark worker during this cycle. This is updated
 	// atomically throughout the cycle and will be up-to-date if
 	// the fractional mark worker is not currently running.
 	fractionalMarkTime int64
 
+	/// 空闲标记时间
 	// idleMarkTime is the nanoseconds spent in idle marking
 	// during this cycle. This is updated atomically throughout
 	// the cycle.
 	idleMarkTime int64
 
+	/// 辅助标记和后台标记启动时间，绝对时间
 	// markStartTime is the absolute start time in nanoseconds
 	// that assists and background mark workers started.
 	markStartTime int64
 
+	/// 专注标记任务需要启动的个数
 	// dedicatedMarkWorkersNeeded is the number of dedicated mark
 	// workers that need to be started. This is computed at the
 	// beginning of each cycle and decremented atomically as
@@ -421,6 +436,7 @@ type gcControllerState struct {
 	// assistBytesPerWork is 1/assistWorkPerByte.
 	assistBytesPerWork float64
 
+	/// 时钟时间分数; 用来在部分模式GC中
 	// fractionalUtilizationGoal is the fraction of wall clock
 	// time that should be spent in the fractional mark worker on
 	// each P that isn't running a dedicated worker.
@@ -436,9 +452,13 @@ type gcControllerState struct {
 	_ cpu.CacheLinePad
 }
 
+///
+/// 重置GC控制器状态，计算下一次GC的预估时间
+///
 // startCycle resets the GC controller's state and computes estimates
 // for a new GC cycle. The caller must hold worldsema. /// 必须持有 worldsema
 func (c *gcControllerState) startCycle() {
+
 	c.scanWork = 0
 	c.bgScanCredit = 0
 	c.assistTime = 0
@@ -453,17 +473,21 @@ func (c *gcControllerState) startCycle() {
 	// GOGC. Assist is proportional to this distance, so enforce a
 	// minimum distance, even if it means going over the GOGC goal
 	// by a tiny bit.
-	if memstats.next_gc < memstats.heap_live+1024*1024 {
+	if memstats.next_gc < memstats.heap_live+1024*1024 {    /// 至少1MB
 		memstats.next_gc = memstats.heap_live + 1024*1024
 	}
 
+	/// 计算后台标记使用目标
 	// Compute the background mark utilization goal. In general,
 	// this may not come out exactly. We round the number of
 	// dedicated workers so that the utilization is closest to
 	// 25%. For small GOMAXPROCS, this would introduce too much
 	// error, so we add fractional workers in that case.
 	totalUtilizationGoal := float64(gomaxprocs) * gcBackgroundUtilization
+	/// dedicatedMarkWorkersNeeded：专注模式需要启动的Go数
 	c.dedicatedMarkWorkersNeeded = int64(totalUtilizationGoal + 0.5)
+
+	///
 	utilError := float64(c.dedicatedMarkWorkersNeeded)/totalUtilizationGoal - 1
 	const maxUtilError = 0.3
 	if utilError < -maxUtilError || utilError > maxUtilError {
@@ -475,17 +499,21 @@ func (c *gcControllerState) startCycle() {
 			// Too many dedicated workers.
 			c.dedicatedMarkWorkersNeeded--
 		}
+
+		/// 部分工作模式Go数
 		c.fractionalUtilizationGoal = (totalUtilizationGoal - float64(c.dedicatedMarkWorkersNeeded)) / float64(gomaxprocs)
 	} else {
 		c.fractionalUtilizationGoal = 0
 	}
 
+	/// 调试模式???
 	// In STW mode, we just want dedicated workers.
 	if debug.gcstoptheworld > 0 {
 		c.dedicatedMarkWorkersNeeded = int64(gomaxprocs)
 		c.fractionalUtilizationGoal = 0
 	}
 
+	/// 清除每个P的状态
 	// Clear per-P state
 	for _, p := range allp {
 		p.gcAssistTime = 0
@@ -577,6 +605,9 @@ func (c *gcControllerState) revise() {
 		heapRemaining = 1
 	}
 
+	///
+	/// 计算辅助标记的比率
+	///
 	// Compute the mutator assist ratio so by the time the mutator
 	// allocates the remaining heap bytes up to next_gc, it will
 	// have done (or stolen) the remaining amount of scan work.
@@ -732,9 +763,11 @@ func (c *gcControllerState) findRunnableGCWorker(_p_ *p) *g {
 		return false
 	}
 
+	/// dedicatedMarkWorkersNeeded > 0; 直接是专注模式
 	if decIfPositive(&c.dedicatedMarkWorkersNeeded) {
 		// This P is now dedicated to marking until the end of
 		// the concurrent mark phase.
+		/// 专注模式
 		_p_.gcMarkWorkerMode = gcMarkWorkerDedicatedMode
 	} else if c.fractionalUtilizationGoal == 0 {
 		// No need for fractional workers.
@@ -750,6 +783,8 @@ func (c *gcControllerState) findRunnableGCWorker(_p_ *p) *g {
 			return nil
 		}
 		// Run a fractional worker.
+
+		/// 部分模式
 		_p_.gcMarkWorkerMode = gcMarkWorkerFractionalMode
 	}
 
@@ -783,7 +818,12 @@ func pollFractionalWorkerExit() bool {
 // gcSetTriggerRatio sets the trigger ratio and updates everything
 // derived from it: the absolute trigger, the heap goal, mark pacing,
 // and sweep pacing.
-//
+///
+/// 设置触发比率， 更新一些驱动项：
+///  * 绝对触发器
+///  * 堆目标
+///  * mark pacing; 标记调步
+///  * sweep pacing; 清扫调步
 // This can be called any time. If GC is the in the middle of a
 // concurrent phase, it will adjust the pacing of that phase.
 //
@@ -791,6 +831,7 @@ func pollFractionalWorkerExit() bool {
 // memstats.heap_live. These must be up to date.
 //
 // mheap_.lock must be held or the world must be stopped.
+/// 首轮设置为 7/8
 func gcSetTriggerRatio(triggerRatio float64) {
 	// Compute the next GC goal, which is when the allocated heap
 	// has grown by GOGC/100 over the heap marked by the last
@@ -973,6 +1014,7 @@ const gcAssistTimeSlack = 5000
 // assist by pre-paying for this many bytes of future allocations.
 const gcOverAssistWork = 64 << 10
 
+/// gc.work
 var work struct {
 	full  lfstack          // lock-free list of full blocks workbuf
 	empty lfstack          // lock-free list of empty blocks workbuf
@@ -1019,6 +1061,7 @@ var work struct {
 	nFlushCacheRoots                               int
 	nDataRoots, nBSSRoots, nSpanRoots, nStackRoots int
 
+	///
 	// Each type of GC state transition is protected by a lock.
 	// Since multiple threads can simultaneously detect the state
 	// transition condition, any thread that detects a transition
@@ -1264,7 +1307,11 @@ func gcStart(trigger gcTrigger) {
 	// the guts of a number of libraries that might be holding
 	// locks, don't attempt to start GC in non-preemptible or
 	// potentially unstable situations.
+
+	/// 获取m指针
 	mp := acquirem()
+
+	/// 不能是g0
 	if gp := getg(); gp == mp.g0 || mp.locks > 1 || mp.preemptoff != "" {
 		releasem(mp)
 		return
@@ -1305,7 +1352,7 @@ func gcStart(trigger gcTrigger) {
 	// We do this after re-checking the transition condition so
 	// that multiple goroutines that detect the heap trigger don't
 	// start multiple STW GCs.
-	mode := gcBackgroundMode
+	mode := gcBackgroundMode /// GC的三种模式
 	if debug.gcstoptheworld == 1 {
 		mode = gcForceMode
 	} else if debug.gcstoptheworld == 2 {
@@ -1364,6 +1411,7 @@ func gcStart(trigger gcTrigger) {
 	work.cycles++
 
 	gcController.startCycle() /// 只有这里调用了
+
 	work.heapGoal = memstats.next_gc
 
 	// In STW mode, disable scheduling of user Gs. This may also
@@ -2081,12 +2129,15 @@ func gcBgMarkWorker(_p_ *p) {
 // on p is potentially useful. p may be nil, in which case it only
 // checks the global sources of work.
 func gcMarkWorkAvailable(p *p) bool {
+	/// 本地缓冲区
 	if p != nil && !p.gcw.empty() {
 		return true
 	}
+	/// 全局缓冲区
 	if !work.full.empty() {
 		return true // global work available
 	}
+	///
 	if work.markrootNext < work.markrootJobs {
 		return true // root scan work available
 	}

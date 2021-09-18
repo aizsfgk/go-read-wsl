@@ -99,7 +99,7 @@ type mstats struct {
 	// previous cycle. This should be ≤ GOGC/100 so the trigger
 	// heap size is less than the goal heap size. This is set
 	// during mark termination for the next cycle's trigger.
-	triggerRatio float64
+	triggerRatio float64 // 7/8
 
 	// gc_trigger is the heap size that triggers marking.
 	//
@@ -109,7 +109,7 @@ type mstats struct {
 	//
 	// This is computed from triggerRatio during mark termination
 	// for the next cycle's trigger.
-	gc_trigger uint64
+	gc_trigger uint64 /// == uint64(float64(memstats.heap_marked) * (1 + triggerRatio))
 
 	// heap_live is the number of bytes considered live by the GC.
 	// That is: retained by the most recent GC plus allocated

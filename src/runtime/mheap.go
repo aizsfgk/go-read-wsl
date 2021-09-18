@@ -536,7 +536,8 @@ type mspan struct {
 	elemsize    uintptr       // computed from sizeclass or from npages
 	limit       uintptr       // end of data in span
 	speciallock mutex         // guards specials list
-	specials    *special      // linked list of special records sorted by offset.
+
+	specials    *special      // linked list of special records sorted by offset. /// 存储 finalizer
 }
 
 func (s *mspan) base() uintptr {

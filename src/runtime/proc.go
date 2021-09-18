@@ -2794,6 +2794,8 @@ top:
 			tryWakeP = true
 		}
 	}
+
+	/// gp为空 并且 激活了GC
 	if gp == nil && gcBlackenEnabled != 0 {
 		gp = gcController.findRunnableGCWorker(_g_.m.p.ptr())
 		tryWakeP = tryWakeP || gp != nil
@@ -2850,7 +2852,7 @@ top:
 
 	// If about to schedule a not-normal goroutine (a GCworker or tracereader),
 	// wake a P if there is one.
-	if tryWakeP {
+	if tryWakeP { /// GCworker
 		wakep()
 	}
 	if gp.lockedm != 0 {

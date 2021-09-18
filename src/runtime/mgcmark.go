@@ -959,6 +959,7 @@ func scanstack(gp *g, gcw *gcWork) {
 	}
 }
 
+/// 扫描一个栈帧：本地变量 和 函数参数/返回值
 // Scan a stack frame: local variables and function arguments/results.
 //go:nowritebarrier
 func scanframeworker(frame *stkframe, state *stackScanState, gcw *gcWork) {

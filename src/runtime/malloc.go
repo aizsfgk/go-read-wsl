@@ -1180,6 +1180,8 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		}
 	} else {
 		/// 大对象分配
+
+		/// 大对象分配，则需要辅助GC
 		shouldhelpgc = true
 		systemstack(func() {
 			span = largeAlloc(size, needzero, noscan)
