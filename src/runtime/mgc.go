@@ -227,8 +227,10 @@ func readgogc() int32 {
 func gcenable() {
 	// Kick off sweeping and scavenging.
 	c := make(chan int, 2)
+
 	go bgsweep(c)      /// 后台清扫协程
 	go bgscavenge(c)   /// 后台scavenge; 将内存还给操作系统
+
 	<-c
 	<-c
 	memstats.enablegc = true // now that runtime is initialized, GC is okay
@@ -453,7 +455,7 @@ type gcControllerState struct {
 }
 
 ///
-/// 重置GC控制器状态，计算下一次GC的预估时间
+/// 重置GC控制器状态，计算下一次GC的预估时间； 调步算法???
 ///
 // startCycle resets the GC controller's state and computes estimates
 // for a new GC cycle. The caller must hold worldsema. /// 必须持有 worldsema
@@ -1233,6 +1235,7 @@ func gcWaitOnMark(n uint32) {
 }
 
 // gcMode indicates how concurrent a GC cycle should be.
+/// gcMode 表明 并发GC 如何工作
 type gcMode int
 
 const (
@@ -1352,7 +1355,8 @@ func gcStart(trigger gcTrigger) {
 	// We do this after re-checking the transition condition so
 	// that multiple goroutines that detect the heap trigger don't
 	// start multiple STW GCs.
-	mode := gcBackgroundMode /// GC的三种模式
+	mode := gcBackgroundMode /// GC的三种模式; 默认是这种模式
+
 	if debug.gcstoptheworld == 1 {
 		mode = gcForceMode
 	} else if debug.gcstoptheworld == 2 {
@@ -1375,7 +1379,8 @@ func gcStart(trigger gcTrigger) {
 		}
 	}
 
-	/// 后台标记工作启动
+	/// *** 后台标记工作启动 *** ///
+	/// 里边有很多逻辑
 	gcBgMarkStartWorkers()
 
 	/// 重置标记状态
@@ -1561,6 +1566,7 @@ top:
 			// Flush the write barrier buffer, since this may add
 			// work to the gcWork.
 			wbBufFlush1(_p_)
+
 			// For debugging, shrink the write barrier
 			// buffer so it flushes immediately.
 			// wbBuf.reset will keep it at this size as
@@ -1769,6 +1775,8 @@ func gcMarkTermination(nextTriggerRatio float64) {
 
 		// marking is complete so we can turn the write barrier off
 		setGCPhase(_GCoff)  /// 标记阶段完成；写屏障关闭
+
+		/// 开始清除
 		gcSweep(work.mode)
 	})
 
@@ -2111,7 +2119,7 @@ func gcBgMarkWorker(_p_ *p) {
 			_p_.gcBgMarkWorker.set(nil)
 			releasem(park.m.ptr())
 
-			gcMarkDone()
+			gcMarkDone() /// 标记终止阶段
 
 			// Disable preemption and prepare to reattach
 			// to the P.
@@ -2252,25 +2260,33 @@ func gcSweep(mode gcMode) {
 		throw("gcSweep being done but phase is not GCoff")
 	}
 
+	/// 获取堆锁
 	lock(&mheap_.lock)
-	mheap_.sweepgen += 2
+
+	/// 设置初始值
+	mheap_.sweepgen += 2 /// 表明开始清扫
 	mheap_.sweepdone = 0
+
 	if !go115NewMCentralImpl && mheap_.sweepSpans[mheap_.sweepgen/2%2].index != 0 {
 		// We should have drained this list during the last
 		// sweep phase. We certainly need to start this phase
 		// with an empty swept list.
 		throw("non-empty swept list")
 	}
+
+
 	mheap_.pagesSwept = 0
 	mheap_.sweepArenas = mheap_.allArenas
 	mheap_.reclaimIndex = 0
 	mheap_.reclaimCredit = 0
+
 	unlock(&mheap_.lock)
 
 	if go115NewMCentralImpl {
 		sweep.centralIndex.clear()
 	}
 
+	/// 老版本处理逻辑；忽略
 	if !_ConcurrentSweep || mode == gcForceBlockMode {
 		// Special case synchronous sweep.
 		// Record that no proportional sweeping has to happen.
@@ -2295,7 +2311,10 @@ func gcSweep(mode gcMode) {
 
 	// Background sweep.
 	lock(&sweep.lock)
+	/// 如果暂停了
 	if sweep.parked {
+		/// 不再暂停
+		/// 启动后台sweep Goroutine
 		sweep.parked = false
 		ready(sweep.g, 0, true)
 	}

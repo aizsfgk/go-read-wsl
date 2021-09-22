@@ -536,6 +536,12 @@ type g struct {
 
 	// Per-G GC state
 
+	/// gcAssistBytes 是这个Goroutine 就字节分配的辅助结余。
+	/// 如果其是正数, 表明这个Goroutine有 gcAssistBytes字节可以分配，无需辅助
+	/// 如果是负数， 这个Goroutine需要辅助标记清扫
+	/// 我们跟踪这个字节，可以快速的更新和检测债务在分配热点路径上。
+	/// 辅助比率决定了响应的扫描债务工作。
+	///
 	// gcAssistBytes is this G's GC assist credit in terms of
 	// bytes allocated. If this is positive, then the G has credit
 	// to allocate gcAssistBytes bytes without assisting. If this

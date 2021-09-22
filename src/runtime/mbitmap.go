@@ -879,11 +879,13 @@ func (h heapBits) clearCheckmarkSpan(size, n, total uintptr) {
 	}
 }
 
+/// 通过扫描`allocation bitmap`获取这个`span`中的分配对象数
 // countAlloc returns the number of objects allocated in span s by
 // scanning the allocation bitmap.
 func (s *mspan) countAlloc() int {
 	count := 0
 	bytes := divRoundUp(s.nelems, 8)
+
 	// Iterate over each 8-byte chunk and count allocations
 	// with an intrinsic. Note that newMarkBits guarantees that
 	// gcmarkBits will be 8-byte aligned, so we don't have to

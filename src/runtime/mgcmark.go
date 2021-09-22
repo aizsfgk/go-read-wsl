@@ -1051,10 +1051,10 @@ func scanframeworker(frame *stkframe, state *stackScanState, gcw *gcWork) {
 type gcDrainFlags int
 
 const (
-	gcDrainUntilPreempt gcDrainFlags = 1 << iota
-	gcDrainFlushBgCredit
-	gcDrainIdle
-	gcDrainFractional
+	gcDrainUntilPreempt gcDrainFlags = 1 << iota /// 直到抢占
+	gcDrainFlushBgCredit                         /// 冲刷后台结余
+	gcDrainIdle                                  /// 空闲
+	gcDrainFractional                            /// 部分的
 )
 
 // gcDrain scans roots and objects in work buffers, blackening grey

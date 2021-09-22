@@ -25,14 +25,17 @@
 //   this is mheap_.reclaim and it's driven by a sequential scan of
 //   the page marks bitmap in the heap arenas.
 ///
-///  内存单元回收算法：
-///  span没有包含标记的对象，释放整个span。
+/// 内存单元回收算法：
+/// span没有包含标记的对象，释放整个span。
 /// mheap_.reclaim触发
-///
+/// 被驱动通过一个page的序列化扫描标记位 在 heap arenas 区域。
 ///
 //
 // Both algorithms ultimately call mspan.sweep, which sweeps a single
 // heap span.
+///
+/// 这两个算法，都会调用 mspan.sweep
+///
 
 package runtime
 
@@ -46,31 +49,33 @@ var sweep sweepdata
 
 // State of background sweep.
 type sweepdata struct {
-	lock    mutex
-	g       *g
-	parked  bool
-	started bool
+	lock    mutex      /// 资源锁
+	g       *g         /// 清扫相关的Goroutine
+	parked  bool       /// 是否暂停?
+	started bool       /// 是否启动?
 
-	nbgsweep    uint32
-	npausesweep uint32
+	nbgsweep    uint32 /// 后台清扫个数
+	npausesweep uint32 /// 暂停清扫个数
 
 	// centralIndex is the current unswept span class.
 	// It represents an index into the mcentral span
 	// sets. Accessed and updated via its load and
 	// update methods. Not protected by a lock.
 	//
-	// Reset at mark termination.
+	// Reset at mark termination. /// 标记终止阶段会进行重置
 	// Used by mheap.nextSpanForSweep.
+	/// 当前未清扫span类位置
 	centralIndex sweepClass
 }
 
 // sweepClass is a spanClass and one bit to represent whether we're currently
 // sweeping partial or full spans.
+/// 一个bit代表我们当前是否清扫 partial 或者 full span
 type sweepClass uint32
 
 const (
-	numSweepClasses            = numSpanClasses * 2
-	sweepClassDone  sweepClass = sweepClass(^uint32(0))
+	numSweepClasses            = numSpanClasses * 2 /// 134 * 2 = 268
+	sweepClassDone  sweepClass = sweepClass(^uint32(0)) /// 按位取反
 )
 
 func (s *sweepClass) load() sweepClass {
@@ -167,14 +172,22 @@ func finishsweep_m() {
 }
 
 func bgsweep(c chan int) {
+	/// 获取当前G, 设置为扫描G
 	sweep.g = getg()
+
+	if SF_GO_DEBUG { /// GC sweep
+		println("sweepClassDone: ", sweepClassDone) /// 4294967295
+	}
 
 	lockInit(&sweep.lock, lockRankSweep)
 	lock(&sweep.lock)
+
+	/// 暂停
 	sweep.parked = true
 	c <- 1
 	goparkunlock(&sweep.lock, waitReasonGCSweepWait, traceEvGoBlock, 1)
 
+	/// 被唤醒，开始执行
 	for {
 		for sweepone() != ^uintptr(0) {
 			sweep.nbgsweep++
@@ -202,23 +215,26 @@ func bgsweep(c chan int) {
 /// 清扫一些堆上未清扫的span，返回返回给堆的pages数。
 /// 如果没有清扫则返回 ^uintptr(0)
 ///
-func sweepone() uintptr {
+func sweepone() uintptr { /// 清扫一个页面
+
+	/// 获取当前G
 	_g_ := getg()
 	sweepRatio := mheap_.sweepPagesPerByte // For debugging
 
 	// increment locks to ensure that the goroutine is not preempted
 	// in the middle of sweep thus leaving the span in an inconsistent state for next GC
 	_g_.m.locks++
-	if atomic.Load(&mheap_.sweepdone) != 0 {
+	if atomic.Load(&mheap_.sweepdone) != 0 { /// 已经清扫完成
 		_g_.m.locks--
 		return ^uintptr(0) /// ^按位取反
 	}
-	atomic.Xadd(&mheap_.sweepers, +1)
+	atomic.Xadd(&mheap_.sweepers, +1) /// 清扫器调用数
 
 	// Find a span to sweep.
 	var s *mspan
 	sg := mheap_.sweepgen
 	for {
+		/// 1.15 新的实现
 		if go115NewMCentralImpl {
 			s = mheap_.nextSpanForSweep()
 		} else {
@@ -237,6 +253,7 @@ func sweepone() uintptr {
 		// if sweepgen == h->sweepgen + 3, the span was swept and then cached and is still cached
 		// h->sweepgen is incremented by 2 after every GC
 
+		/// 不是GC的span, 跳过
 		if state := s.state.get(); state != mSpanInUse {
 			// This can happen if direct sweeping already
 			// swept this span, but in that case the sweep
@@ -273,6 +290,9 @@ func sweepone() uintptr {
 
 	// Decrement the number of active sweepers and if this is the
 	// last one print trace information.
+	///
+	/// 消耗 active sweepers 个数
+	/// 如果是最后一个，则打印跟踪信息
 	if atomic.Xadd(&mheap_.sweepers, -1) == 0 && atomic.Load(&mheap_.sweepdone) != 0 {
 		// Since the sweeper is done, move the scavenge gen forward (signalling
 		// that there's new work to do) and wake the scavenger.
@@ -302,7 +322,7 @@ func sweepone() uintptr {
 	}
 
 	_g_.m.locks--
-	return npages
+	return npages /// 返回页数
 }
 
 // isSweepDone reports whether all spans are swept or currently being swept.
@@ -440,6 +460,8 @@ func (s *mspan) sweep(preserve bool) bool {
 			special = *specialp
 		}
 	}
+
+	///
 	if hadSpecials && s.specials == nil {
 		spanHasNoSpecials(s)
 	}
@@ -470,6 +492,7 @@ func (s *mspan) sweep(preserve bool) bool {
 		}
 	}
 
+	/// 检测僵尸对象
 	// Check for zombie objects.
 	if s.freeindex < s.nelems {
 		// Everything < freeindex is allocated and hence
@@ -507,7 +530,7 @@ func (s *mspan) sweep(preserve bool) bool {
 
 	// gcmarkBits becomes the allocBits.
 	// get a fresh cleared gcmarkBits in preparation for next GC
-	s.allocBits = s.gcmarkBits
+	s.allocBits = s.gcmarkBits /// ??? why
 	s.gcmarkBits = newMarkBits(s.nelems)
 
 	// Initialize alloc bits cache.
@@ -535,6 +558,7 @@ func (s *mspan) sweep(preserve bool) bool {
 	// to go so release the span.
 	atomic.Store(&s.sweepgen, sweepgen)
 
+	/// size 不是0 说明是常规跨度类
 	if spc.sizeclass() != 0 {
 		// Handle spans for small objects.
 		if nfreed > 0 {
@@ -543,6 +567,7 @@ func (s *mspan) sweep(preserve bool) bool {
 			// wasn't totally filled, but then swept, still has all of its
 			// free slots zeroed.
 			s.needzero = 1
+			/// c是`mcache`
 			c.local_nsmallfree[spc.sizeclass()] += uintptr(nfreed)
 		}
 		if !preserve {
@@ -558,12 +583,15 @@ func (s *mspan) sweep(preserve bool) bool {
 			}
 			// Return span back to the right mcentral list.
 			if uintptr(nalloc) == s.nelems {
-				mheap_.central[spc].mcentral.fullSwept(sweepgen).push(s)
+				mheap_.central[spc].mcentral.fullSwept(sweepgen).push(s)    /// 放入全部的
 			} else {
-				mheap_.central[spc].mcentral.partialSwept(sweepgen).push(s)
+				mheap_.central[spc].mcentral.partialSwept(sweepgen).push(s) /// 放入部分的
 			}
 		}
 	} else if !preserve {
+		///
+		///
+		///
 		// Handle spans for large objects.
 		if nfreed != 0 {
 			// Free large object span to heap.
@@ -588,8 +616,10 @@ func (s *mspan) sweep(preserve bool) bool {
 			} else {
 				mheap_.freeSpan(s)
 			}
+
 			c.local_nlargefree++
 			c.local_largefree += size
+
 			return true
 		}
 
@@ -651,6 +681,8 @@ func (s *mspan) oldSweep(preserve bool) bool {
 	hadSpecials := s.specials != nil
 	specialp := &s.specials
 	special := *specialp
+
+	/// 有特殊指针，则需要特殊处理
 	for special != nil {
 		// A finalizer can be set for an inner byte of an object, find object beginning.
 		objIndex := uintptr(special.offset) / size
@@ -744,7 +776,7 @@ func (s *mspan) oldSweep(preserve bool) bool {
 
 	// gcmarkBits becomes the allocBits.
 	// get a fresh cleared gcmarkBits in preparation for next GC
-	s.allocBits = s.gcmarkBits
+	s.allocBits = s.gcmarkBits /// 标记位为何要赋值给分配位???
 	s.gcmarkBits = newMarkBits(s.nelems)
 
 	// Initialize alloc bits cache.
@@ -772,6 +804,7 @@ func (s *mspan) oldSweep(preserve bool) bool {
 		c.local_nsmallfree[spc.sizeclass()] += uintptr(nfreed)
 		res = mheap_.central[spc].mcentral.freeSpan(s, preserve, wasempty)
 		// mcentral.freeSpan updates sweepgen
+
 	} else if freeToHeap {
 		// Free large span to heap
 
@@ -799,6 +832,8 @@ func (s *mspan) oldSweep(preserve bool) bool {
 		c.local_largefree += size
 		res = true
 	}
+
+	///
 	if !res {
 		// The span has been swept and is still in-use, so put
 		// it on the swept in-use list.

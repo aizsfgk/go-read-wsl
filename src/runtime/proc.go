@@ -1426,6 +1426,7 @@ func forEachP(fn func(*p)) {
 			atomic.Store(&p.runSafePointFn, 1)
 		}
 	}
+	/// 抢占全部的P
 	preemptall()
 
 	// Any P entering _Pidle or _Psyscall from now on will observe
