@@ -167,8 +167,8 @@ func gcPaceScavenger() {
 
 // Sleep/wait state of the background scavenger. /// 后台清扫工
 var scavenge struct {
-	lock       mutex
-	g          *g
+	lock       mutex /// 全局锁
+	g          *g    /// 清扫G
 	parked     bool
 	timer      *timer
 	sysmonWake uint32 // Set atomically.
@@ -270,7 +270,7 @@ func bgscavenge(c chan int) {
 	scavenge.parked = true
 
 	// 新建定时器/设置定时器函数：唤醒清扫
-	scavenge.timer = new(timer)
+	scavenge.timer = new(timer) /// 没有设置时间，立刻执行???
 	scavenge.timer.f = func(_ interface{}, _ uintptr) {
 		wakeScavenger()
 	}
@@ -389,12 +389,12 @@ func bgscavenge(c chan int) {
 		// much, then scavengeEMWA < idealFraction, so we'll adjust the sleep time
 		// down.
 		adjust := scavengeEWMA / idealFraction
-		sleepTime := int64(adjust * crit / (scavengePercent / 100.0))
+		sleepTime := int64(adjust * crit / (scavengePercent / 100.0)) /// 睡眠这么久；ns
 
 		/// 确定了睡眠的时间
 		/// 之后进行继续的清扫
 		// Go to sleep.
-		slept := scavengeSleep(sleepTime)
+		slept := scavengeSleep(sleepTime) /// 睡眠多久后唤醒
 
 		// Compute the new ratio.
 		fraction := crit / (crit + float64(slept))

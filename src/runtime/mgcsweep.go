@@ -189,13 +189,16 @@ func bgsweep(c chan int) {
 
 	/// 被唤醒，开始执行
 	for {
-		for sweepone() != ^uintptr(0) {
+		for sweepone() != ^uintptr(0) { /// 一span一span的清除
 			sweep.nbgsweep++
 			Gosched()
 		}
+
+		/// 释放些写Buf ???
 		for freeSomeWbufs(true) {
 			Gosched()
 		}
+
 		lock(&sweep.lock)
 		if !isSweepDone() {
 			// This can happen if a GC runs between
@@ -307,7 +310,7 @@ func sweepone() uintptr { /// 清扫一个页面
 		// with scavenging work.
 		systemstack(func() {
 			lock(&mheap_.lock)
-			mheap_.pages.scavengeStartGen()
+			mheap_.pages.scavengeStartGen() /// 如果是最后一个，则开始scavengeStart
 			unlock(&mheap_.lock)
 		})
 
@@ -331,7 +334,7 @@ func sweepone() uintptr { /// 清扫一个页面
 // time as the sweeper runs. It may transition from true to false if a
 // GC runs; to prevent that the caller must be non-preemptible or must
 // somehow block GC progress.
-func isSweepDone() bool {
+func isSweepDone() bool { /// 是否清除完成
 	return mheap_.sweepdone != 0
 }
 

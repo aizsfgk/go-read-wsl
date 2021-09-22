@@ -35,7 +35,7 @@ func init() {
 	}
 }
 
-// Garbage collector work pool abstraction.
+// Garbage collector work pool abstraction. /// 垃圾收集器工作池抽象
 //
 // This implements a producer/consumer model for pointers to grey
 // objects. A grey object is one that is marked and on a work
@@ -539,7 +539,10 @@ func freeSomeWbufs(preemptible bool) bool {
 		unlock(&work.wbufSpans.lock)
 		return false
 	}
+
+
 	systemstack(func() {
+		/// 获取当前G
 		gp := getg().m.curg
 		for i := 0; i < batchSize && !(preemptible && gp.preempt); i++ {
 			span := work.wbufSpans.free.first
