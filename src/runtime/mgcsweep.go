@@ -293,6 +293,7 @@ func sweepone() uintptr { /// 清扫一个页面
 	///
 	/// 消耗 active sweepers 个数
 	/// 如果是最后一个，则打印跟踪信息
+	///
 	if atomic.Xadd(&mheap_.sweepers, -1) == 0 && atomic.Load(&mheap_.sweepdone) != 0 {
 		// Since the sweeper is done, move the scavenge gen forward (signalling
 		// that there's new work to do) and wake the scavenger.

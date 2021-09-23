@@ -470,6 +470,9 @@ func printScavTrace(gen uint32, released uintptr, forced bool) {
 	printunlock()
 }
 
+///
+/// 开始一个新的 scavenge generation, 重置scavenger的搜索空间为全使用地址空间
+///
 // scavengeStartGen starts a new scavenge generation, resetting
 // the scavenger's search space to the full in-use address space.
 //
