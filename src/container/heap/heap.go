@@ -18,6 +18,7 @@ package heap
 
 import "sort"
 
+/// 小根堆???
 // The Interface type describes the requirements
 // for a type using the routines in this package.
 // Any type that implements it may be used as a
