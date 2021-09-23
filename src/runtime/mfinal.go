@@ -30,22 +30,24 @@ type finblock struct {
 	fin     [(_FinBlockSize - 2*sys.PtrSize - 2*4) / unsafe.Sizeof(finalizer{})]finalizer
 }
 
-var finlock mutex  // protects the following variables
-var fing *g        // goroutine that runs finalizers
-var finq *finblock // list of finalizers that are to be executed
-var finc *finblock // cache of free blocks
-var finptrmask [_FinBlockSize / sys.PtrSize / 8]byte
-var fingwait bool
-var fingwake bool
-var allfin *finblock // list of all blocks
+var (
+	finlock    mutex     // protects the following variables
+	fing       *g        // goroutine that runs finalizers
+	finq       *finblock // list of finalizers that are to be executed
+	finc       *finblock // cache of free blocks
+	finptrmask [_FinBlockSize / sys.PtrSize / 8]byte
+	fingwait   bool
+	fingwake   bool
+	allfin     *finblock // list of all blocks
+)
 
 // NOTE: Layout known to queuefinalizer.
 type finalizer struct {
 	fn   *funcval       // function to call (may be a heap pointer)
 	arg  unsafe.Pointer // ptr to object (may be a heap pointer)
-	nret uintptr        // bytes of return values from fn
-	fint *_type         // type of first argument of fn
-	ot   *ptrtype       // type of ptr to object (may be a heap pointer)
+	nret uintptr        // bytes of return values from fn /// 返回值的字节数
+	fint *_type         // type of first argument of fn /// 第一个参数的类型
+	ot   *ptrtype       // type of ptr to object (may be a heap pointer) /// 指向的对象的类型
 }
 
 var finalizer1 = [...]byte{
@@ -221,6 +223,8 @@ func runfinq() {
 					throw("bad kind in runfinq")
 				}
 				fingRunning = true
+
+				/// 调活之前注册的函数
 				reflectcall(nil, unsafe.Pointer(f.fn), frame, uint32(framesz), uint32(framesz))
 				fingRunning = false
 
@@ -243,6 +247,13 @@ func runfinq() {
 	}
 }
 
+///
+/// 设置finalizer为一个对象，携带一个finalizer函数。
+/// 当GC发现一个不可达的block带有finalizer, 它将清除这个相关性，并运行finalizer(obj)在一个
+/// 分离的Goroutine。这将使得对象再次可达，此时不再带有一个finalizer。下次释放。
+///
+///
+///
 // SetFinalizer sets the finalizer associated with obj to the provided
 // finalizer function. When the garbage collector finds an unreachable block
 // with an associated finalizer, it clears the association and runs
@@ -414,8 +425,10 @@ okarg:
 	nret = alignUp(nret, sys.PtrSize)
 
 	// make sure we have a finalizer goroutine
+	/// 创建 finalizer goroutine
 	createfing()
 
+	///
 	systemstack(func() {
 		if !addfinalizer(e.data, (*funcval)(f.data), nret, fint, ot) {
 			throw("runtime.SetFinalizer: finalizer already set")

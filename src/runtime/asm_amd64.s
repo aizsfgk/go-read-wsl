@@ -190,7 +190,7 @@ needtls:
 	// store through it, to make sure it works  /// 检验 TLS 功能是否可用
 	get_tls(BX)
 	MOVQ	$0x123, g(BX)   /// 通过TLS找到m0.tls[1], 进而找到m0.g0
-	                        /// g(BX) 会对 tls偏移1位索引，燃火就变成了tls[0]
+	                        /// g(BX) 会对 tls偏移1位索引，然后就变成了tls[0]
 	MOVQ	runtime·m0+m_tls(SB), AX
 	CMPQ	AX, $0x123
 	JEQ 2(PC)

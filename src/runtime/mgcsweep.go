@@ -356,11 +356,13 @@ func (s *mspan) ensureSwept() {
 	if spangen == sg || spangen == sg+3 {
 		return
 	}
+
 	// The caller must be sure that the span is a mSpanInUse span.
 	if atomic.Cas(&s.sweepgen, sg-2, sg-1) {
 		s.sweep(false)
 		return
 	}
+
 	// unfortunate condition, and we don't have efficient means to wait
 	for {
 		spangen := atomic.Load(&s.sweepgen)
@@ -450,7 +452,7 @@ func (s *mspan) sweep(preserve bool) bool {
 					y := special
 					special = special.next
 					*specialp = special
-					freespecial(y, unsafe.Pointer(p), size)
+					freespecial(y, unsafe.Pointer(p), size) /// 如果是特殊的则入队
 				} else {
 					// This is profile record, but the object has finalizers (so kept alive).
 					// Keep special record.

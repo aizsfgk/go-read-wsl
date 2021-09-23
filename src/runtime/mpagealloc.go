@@ -296,18 +296,21 @@ type pageAlloc struct {
 
 		// reservationBytes is how large of a reservation should be made
 		// in bytes of address space for each scavenge iteration.
+		///
+		/// 应该保留多少
+		///
 		reservationBytes uintptr
 
 		// released is the amount of memory released this generation.
-		released uintptr
+		released uintptr /// 释放的总内存数
 
 		// scavLWM is the lowest (offset) address that the scavenger reached this
 		// scavenge generation.
-		scavLWM offAddr
+		scavLWM offAddr /// 最低地址
 
 		// freeHWM is the highest (offset) address of a page that was freed to
 		// the page allocator this scavenge generation.
-		freeHWM offAddr
+		freeHWM offAddr /// 最高地址
 	}
 
 	// mheap_.lock. This level of indirection makes it possible

@@ -229,6 +229,7 @@ func gcenable() {
 	c := make(chan int, 2)
 
 	go bgsweep(c)      /// 后台清扫协程
+
 	go bgscavenge(c)   /// 后台scavenge; 将内存还给操作系统
 
 	<-c

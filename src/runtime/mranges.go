@@ -226,6 +226,7 @@ func (a *addrRanges) contains(addr uintptr) bool {
 	return a.ranges[i-1].contains(addr)
 }
 
+/// 插入一个新的地址范围，到 a
 // add inserts a new address range to a.
 //
 // r must not overlap with any address range in a.

@@ -77,7 +77,7 @@ const (
 	scavengePercent = 1 // 1%
 
 	// retainExtraPercent represents the amount of memory over the heap goal
-	// that the scavenger should keep as a buffer space for the allocator.
+	// that the scavenger should keep as a buffer space for the allocator. /// 保持一个buffer空间给缓存器
 	//
 	// The purpose of maintaining this overhead is to have a greater pool of
 	// unscavenged memory available for allocation (since using scavenged memory
@@ -98,7 +98,7 @@ const (
 	//
 	// This ratio is used as part of multiplicative factor to help the scavenger account
 	// for the additional costs of using scavenged memory in its pacing.
-	scavengeCostRatio = 0.7 * sys.GoosDarwin
+	scavengeCostRatio = 0.7 * sys.GoosDarwin /// 0
 
 	// scavengeReservationShards determines the amount of memory the scavenger
 	// should reserve for scavenging at a time. Specifically, the amount of
@@ -108,9 +108,11 @@ const (
 
 // heapRetained returns an estimate of the current heap RSS.
 func heapRetained() uint64 {
+	/// 堆系统 - 堆释放 = 堆保留
 	return atomic.Load64(&memstats.heap_sys) - atomic.Load64(&memstats.heap_released)
 }
 
+/// 更新 scavenger的pacing, 特别是比例和RSS目标
 // gcPaceScavenger updates the scavenger's pacing, particularly
 // its rate and RSS goal.
 //
@@ -127,7 +129,7 @@ func gcPaceScavenger() {
 	// information about the heap yet) so this is fine, and avoids a fault
 	// or garbage data later.
 	if memstats.last_next_gc == 0 {
-		mheap_.scavengeGoal = ^uint64(0)
+		mheap_.scavengeGoal = ^uint64(0) /// 最大值
 		return
 	}
 	// Compute our scavenging goal.
@@ -171,7 +173,8 @@ var scavenge struct {
 	g          *g    /// 清扫G
 	parked     bool
 	timer      *timer
-	sysmonWake uint32 // Set atomically.
+
+	sysmonWake uint32 // Set atomically. /// 系统监控
 }
 
 // readyForScavenger signals sysmon to wake the scavenger because
@@ -190,10 +193,14 @@ func readyForScavenger() {
 // on any allocation path.
 //
 // mheap_.lock, scavenge.lock, and sched.lock must not be held.
+/// 系统监控中调用
 func wakeScavenger() {
 	lock(&scavenge.lock)
+
+	/// 暂停中
 	if scavenge.parked {
 		// Notify sysmon that it shouldn't bother waking up the scavenger.
+		/// 不应该再次调用
 		atomic.Store(&scavenge.sysmonWake, 0)
 
 		// Try to stop the timer but we don't really care if we succeed.
@@ -202,6 +209,7 @@ func wakeScavenger() {
 		// In the case that we're racing with there's the low chance that
 		// we experience a spurious wake-up of the scavenger, but that's
 		// totally safe.
+		/// 尝试停止定时器，我们不关心其成功与否
 		stopTimer(scavenge.timer)
 
 		// Unpark the goroutine and tell it that there may have been a pacing
@@ -210,6 +218,9 @@ func wakeScavenger() {
 		// scheduling of user goroutines. In effect, this schedules the
 		// scavenger at a "lower priority" but that's OK because it'll
 		// catch up on the work it missed when it does get scheduled.
+		///
+		///
+		///
 		scavenge.parked = false
 
 		// Ready the goroutine by injecting it. We use injectglist instead
@@ -218,6 +229,9 @@ func wakeScavenger() {
 		// the current P's runnext slot, which is desireable to prevent
 		// the scavenger from interfering with user goroutine scheduling
 		// too much.
+		///
+		///
+		///
 		var list gList
 		list.push(scavenge.g)
 		injectglist(&list) /// 注入G队列
@@ -482,6 +496,7 @@ func printScavTrace(gen uint32, released uintptr, forced bool) {
 //
 //go:systemstack
 func (s *pageAlloc) scavengeStartGen() {
+	/// debug print
 	if debug.scavtrace > 0 {
 		printScavTrace(s.scav.gen, s.scav.released, false)
 	}
@@ -503,7 +518,7 @@ func (s *pageAlloc) scavengeStartGen() {
 		// scavenging from where we were.
 		startAddr = s.scav.scavLWM
 	}
-	s.scav.inUse.removeGreaterEqual(startAddr.addr())
+	s.scav.inUse.removeGreaterEqual(startAddr.addr()) /// 删除大于等于这个地址
 
 	// reservationBytes may be zero if s.inUse.totalBytes is small, or if
 	// scavengeReservationShards is large. This case is fine as the scavenger

@@ -297,7 +297,7 @@ const (
 	arenaBits = arenaL1Bits + arenaL2Bits
 
 	// arenaBaseOffset is the pointer value that corresponds to
-	// index 0 in the heap arena map.
+	// index 0 in the heap arena map. /// 是 heap arena map 的索引0位置
 	//
 	// On amd64, the address space is 48 bits, sign extended to 64
 	// bits. This offset lets us handle "negative" addresses (or
@@ -466,6 +466,8 @@ func mallocinit() {
 		println("logHeapArenaBytes: ", logHeapArenaBytes) // 26
 		println("(1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle)): ",(1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle))) // 0
 		println("_64bit: ", _64bit) // 1
+
+		//println("arenaBaseOffset: ", arenaBaseOffset)
 
 	}
 

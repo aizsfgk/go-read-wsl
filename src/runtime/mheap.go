@@ -1788,12 +1788,15 @@ func addspecial(p unsafe.Pointer, s *special) bool {
 
 	// Splice in record, fill in offset.
 	s.offset = uint16(offset)
-	s.next = *t
+	s.next = *t /// 拉链
 	*t = s
 	if go115NewMarkrootSpans {
 		spanHasSpecials(span)
 	}
+
+	/// 释放锁
 	unlock(&span.speciallock)
+
 	releasem(mp)
 
 	return true
@@ -1855,16 +1858,25 @@ type specialfinalizer struct {
 	ot      *ptrtype // May be a heap pointer, but always live.
 }
 
+///
+///
+///
 // Adds a finalizer to the object p. Returns true if it succeeded.
 func addfinalizer(p unsafe.Pointer, f *funcval, nret uintptr, fint *_type, ot *ptrtype) bool {
+
+	/// 获取特殊锁
 	lock(&mheap_.speciallock)
 	s := (*specialfinalizer)(mheap_.specialfinalizeralloc.alloc())
 	unlock(&mheap_.speciallock)
+
+	/// 设置类型
 	s.special.kind = _KindSpecialFinalizer
 	s.fn = f
 	s.nret = nret
 	s.fint = fint
 	s.ot = ot
+
+	///
 	if addspecial(p, &s.special) {
 		// This is responsible for maintaining the same
 		// GC-related invariants as markrootSpans in any
@@ -1926,13 +1938,16 @@ func setprofilebucket(p unsafe.Pointer, b *bucket) {
 // Do whatever cleanup needs to be done to deallocate s. It has
 // already been unlinked from the mspan specials list.
 func freespecial(s *special, p unsafe.Pointer, size uintptr) {
+
 	switch s.kind {
+	/// 特殊的 Finalizer
 	case _KindSpecialFinalizer:
 		sf := (*specialfinalizer)(unsafe.Pointer(s))
 		queuefinalizer(p, sf.fn, sf.nret, sf.fint, sf.ot)
 		lock(&mheap_.speciallock)
 		mheap_.specialfinalizeralloc.free(unsafe.Pointer(sf))
 		unlock(&mheap_.speciallock)
+	/// 特殊的 Profile
 	case _KindSpecialProfile:
 		sp := (*specialprofile)(unsafe.Pointer(s))
 		mProf_Free(sp.b, size)
@@ -2063,6 +2078,9 @@ func newAllocBits(nelems uintptr) *gcBits {
 	return newMarkBits(nelems)
 }
 
+///
+/// nextMarkBitArenaEpoch 建立一个新的周期为`arenas`持有标记位
+///
 // nextMarkBitArenaEpoch establishes a new epoch for the arenas
 // holding the mark bits. The arenas are named relative to the
 // current GC cycle which is demarcated by the call to finishweep_m.
@@ -2079,6 +2097,7 @@ func newAllocBits(nelems uintptr) *gcBits {
 // The gcBitsArenas.previous is released to the gcBitsArenas.free list.
 func nextMarkBitArenaEpoch() {
 	lock(&gcBitsArenas.lock)
+
 	if gcBitsArenas.previous != nil {
 		if gcBitsArenas.free == nil {
 			gcBitsArenas.free = gcBitsArenas.previous
@@ -2094,6 +2113,7 @@ func nextMarkBitArenaEpoch() {
 	gcBitsArenas.previous = gcBitsArenas.current
 	gcBitsArenas.current = gcBitsArenas.next
 	atomic.StorepNoWB(unsafe.Pointer(&gcBitsArenas.next), nil) // newMarkBits calls newArena when needed
+
 	unlock(&gcBitsArenas.lock)
 }
 
