@@ -527,6 +527,7 @@ func traceFullDequeue() traceBufPtr {
 	return buf
 }
 
+/// 跟踪逻辑 ///
 // traceEvent writes a single event to trace buffer, flushing the buffer if necessary.
 // ev is event type.
 // If skip > 0, write current stack id as the last argument (skipping skip top frames).
@@ -636,6 +637,8 @@ func traceAcquireBuffer() (mp *m, pid int32, bufp *traceBufPtr) {
 		return mp, p.id, &p.tracebuf
 	}
 	lock(&trace.bufLock)
+
+	/// 返回全局
 	return mp, traceGlobProc, &trace.buf
 }
 

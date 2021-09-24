@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	fixedRootFinalizers = iota
-	fixedRootFreeGStacks
-	fixedRootCount
+	fixedRootFinalizers = iota /// 0
+	fixedRootFreeGStacks       /// 1
+	fixedRootCount             /// 2
 
 	// rootBlockBytes is the number of bytes to scan per data or
 	// BSS root.
@@ -150,6 +150,7 @@ fail:
 // ptrmask for an allocation containing a single pointer.
 var oneptrmask = [...]uint8{1}
 
+/// 扫描 root 对象
 // markroot scans the i'th root.
 //
 // Preemption must be disabled (because this uses a gcWork). /// 不可被抢占
@@ -1083,13 +1084,16 @@ const (
 //
 //go:nowritebarrier
 func gcDrain(gcw *gcWork, flags gcDrainFlags) { /// gc 排出
+
+	/// 1. 未激活写栅栏，则报错
 	if !writeBarrier.needed {
 		throw("gcDrain phase incorrect")
 	}
 
+	/// 获取表示
 	gp := getg().m.curg
-	preemptible := flags&gcDrainUntilPreempt != 0
-	flushBgCredit := flags&gcDrainFlushBgCredit != 0
+	preemptible := flags&gcDrainUntilPreempt != 0    /// 可抢占
+	flushBgCredit := flags&gcDrainFlushBgCredit != 0 /// 冲刷后台结余
 	idle := flags&gcDrainIdle != 0
 
 	initScanWork := gcw.scanWork
@@ -1116,6 +1120,7 @@ func gcDrain(gcw *gcWork, flags gcDrainFlags) { /// gc 排出
 				break
 			}
 			markroot(gcw, job) /// gcDrain
+
 			if check != nil && check() {
 				goto done
 			}
@@ -1669,6 +1674,8 @@ func gcMarkTinyAllocs() {
 		}
 		_, span, objIndex := findObject(c.tiny, 0, 0)
 		gcw := &p.gcw
+
+		/// 涂灰小对象
 		greyobject(c.tiny, 0, 0, span, gcw, objIndex)
 	}
 }

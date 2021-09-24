@@ -2796,6 +2796,7 @@ top:
 		}
 	}
 
+	/// 优先拿GcWorker
 	/// gp为空 并且 激活了GC
 	if gp == nil && gcBlackenEnabled != 0 {
 		gp = gcController.findRunnableGCWorker(_g_.m.p.ptr())
@@ -4992,6 +4993,7 @@ func sysmon() {
 			lock(&forcegc.lock)
 			forcegc.idle = 0
 			var list gList
+			/// 唤醒
 			list.push(forcegc.g)
 			injectglist(&list)
 			unlock(&forcegc.lock)

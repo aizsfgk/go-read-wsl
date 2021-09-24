@@ -736,6 +736,7 @@ func (c *gcControllerState) enlistWorker() {
 // should be run. This must only be called when gcBlackenEnabled != 0.
 ///
 /// 返回后台标记工作的G,如果它应该运行。这必须被调用，当gcBlackenEnabled != 0
+/// 发现G mark worker 会设置mark模式
 func (c *gcControllerState) findRunnableGCWorker(_p_ *p) *g {
 	if gcBlackenEnabled == 0 {
 		throw("gcControllerState.findRunnable: blackening not enabled")
@@ -791,9 +792,14 @@ func (c *gcControllerState) findRunnableGCWorker(_p_ *p) *g {
 		_p_.gcMarkWorkerMode = gcMarkWorkerFractionalMode
 	}
 
+
+	/// 将G状态从`_Gwaiting`转换为`_Grunnable`
 	// Run the background mark worker
 	gp := _p_.gcBgMarkWorker.ptr()
 	casgstatus(gp, _Gwaiting, _Grunnable) /// findRunnableGCWorker
+
+
+
 	if trace.enabled {
 		traceGoUnpark(gp, 0)
 	}
@@ -1052,8 +1058,8 @@ var work struct {
 	// (and thus 8-byte alignment even on 32-bit architectures).
 	bytesMarked uint64
 
-	markrootNext uint32 // next markroot job
-	markrootJobs uint32 // number of markroot jobs
+	markrootNext uint32 // next markroot job   /// 下一个工作索引
+	markrootJobs uint32 // number of markroot jobs /// 总共的工作数
 
 	nproc  uint32
 	tstart int64
@@ -1321,6 +1327,8 @@ func gcStart(trigger gcTrigger) {
 		return
 	}
 	releasem(mp)
+
+
 	mp = nil /// 这个 G 不再持有 M
 
 	// Pick up the remaining unswept/not being swept spans concurrently
@@ -1368,13 +1376,14 @@ func gcStart(trigger gcTrigger) {
 	semacquire(&gcsema)
 	semacquire(&worldsema)
 
+	/// 如果激活了trace, 则进行跟踪
 	if trace.enabled {
 		traceGCStart() /// GC跟踪
 	}
 
 	// Check that all Ps have finished deferred mcache flushes.
 	for _, p := range allp {
-		if fg := atomic.Load(&p.mcache.flushGen); fg != mheap_.sweepgen {
+		if fg := atomic.Load(&p.mcache.flushGen); fg != mheap_.sweepgen { /// flushGen != mheap_.sweepgen表示需要冲刷
 			println("runtime: p", p.id, "flushGen", fg, "!= sweepgen", mheap_.sweepgen)
 			throw("p mcache not flushed")
 		}
@@ -1387,14 +1396,14 @@ func gcStart(trigger gcTrigger) {
 	/// 重置标记状态
 	systemstack(gcResetMarkState)
 
-	work.stwprocs, work.maxprocs = gomaxprocs, gomaxprocs
+	work.stwprocs, work.maxprocs = gomaxprocs, gomaxprocs /// 一般是核数
 	if work.stwprocs > ncpu {
 		// This is used to compute CPU time of the STW phases,
 		// so it can't be more than ncpu, even if GOMAXPROCS is.
 		work.stwprocs = ncpu
 	}
-	work.heap0 = atomic.Load64(&memstats.heap_live)
-	work.pauseNS = 0
+	work.heap0 = atomic.Load64(&memstats.heap_live) /// GC 中存活的字节数
+	work.pauseNS = 0 /// total STW time this cycle
 	work.mode = mode
 
 	now := nanotime()
@@ -1403,7 +1412,10 @@ func gcStart(trigger gcTrigger) {
 	if trace.enabled {
 		traceGCSTWStart(1)
 	}
+
+
 	systemstack(stopTheWorldWithSema) /// **** STW **** ///
+
 	// Finish sweep before we start concurrent scan.
 	systemstack(func() {
 		/// 保证上一个内存单元的正常回收
@@ -1937,8 +1949,10 @@ func gcBgMarkStartWorkers() {
 	// Background marking is performed by per-P G's. Ensure that
 	// each P has a background GC G.
 	for _, p := range allp {
-		if p.gcBgMarkWorker == 0 {
+		if p.gcBgMarkWorker == 0 { /// gcBgMarkStartWorkers
+
 			go gcBgMarkWorker(p)
+
 			notetsleepg(&work.bgMarkReady, -1)
 			noteclear(&work.bgMarkReady)
 		}
@@ -1974,12 +1988,13 @@ func gcBgMarkWorker(_p_ *p) {
 	// We pass park to a gopark unlock function, so it can't be on
 	// the stack (see gopark). Prevent deadlock from recursively
 	// starting GC by disabling preemption.
-	gp.m.preemptoff = "GC worker init"
+	gp.m.preemptoff = "GC worker init" /// GC work 初始化，防止抢占
 	park := new(parkInfo)
-	gp.m.preemptoff = ""
+	gp.m.preemptoff = "" /// 防止死锁
 
 	park.m.set(acquirem())
 	park.attach.set(_p_)
+
 	// Inform gcBgMarkStartWorkers that this worker is ready.
 	// After this point, the background mark worker is scheduled
 	// cooperatively by gcController.findRunnable. Hence, it must
@@ -2010,6 +2025,9 @@ func gcBgMarkWorker(_p_ *p) {
 			if park.attach != 0 {
 				p := park.attach.ptr()
 				park.attach.set(nil)
+
+
+				/// 保存当前G
 				// cas the worker because we may be
 				// racing with a new worker starting
 				// on this P.
@@ -2022,6 +2040,7 @@ func gcBgMarkWorker(_p_ *p) {
 			return true
 		}, unsafe.Pointer(park), waitReasonGCWorkerIdle, traceEvGoBlock, 0)
 
+		/// G 检测
 		// Loop until the P dies and disassociates this
 		// worker (the P may later be reused, in which case
 		// it will get a new worker) or we failed to associate.
@@ -2048,6 +2067,7 @@ func gcBgMarkWorker(_p_ *p) {
 		}
 
 		systemstack(func() {
+
 			// Mark our goroutine preemptible so its stack
 			// can be scanned. This lets two mark workers
 			// scan each other (otherwise, they would
@@ -2055,13 +2075,21 @@ func gcBgMarkWorker(_p_ *p) {
 			// the G stack. However, stack shrinking is
 			// disabled for mark workers, so it is safe to
 			// read from the G stack.
+			///
+			/// 标记我们的Goroutine可以被抢占的，从而保证G栈可以被扫描。
+			/// 这让两个标记workers相互扫描，否则导致死锁。
+			/// 我们必须不修改仍和的G stack. 然而 mark worker G stack 收缩是被取消的。
+			/// 因此这是安全的读取G stack。
+			///
 			casgstatus(gp, _Grunning, _Gwaiting)  /// gcBgMarkWorker
+
 			switch _p_.gcMarkWorkerMode {
 			default:
 				throw("gcBgMarkWorker: unexpected gcMarkWorkerMode")
-			case gcMarkWorkerDedicatedMode:
-				gcDrain(&_p_.gcw, gcDrainUntilPreempt|gcDrainFlushBgCredit)
+			case gcMarkWorkerDedicatedMode: /// 专注的
+				gcDrain(&_p_.gcw, gcDrainUntilPreempt|gcDrainFlushBgCredit) /// 涂黑操作
 				if gp.preempt {
+
 					// We were preempted. This is
 					// a useful signal to kick
 					// everything out of the run
@@ -2077,14 +2105,18 @@ func gcBgMarkWorker(_p_ *p) {
 					}
 					unlock(&sched.lock)
 				}
+
 				// Go back to draining, this time
 				// without preemption.
 				gcDrain(&_p_.gcw, gcDrainFlushBgCredit)
-			case gcMarkWorkerFractionalMode:
+
+			case gcMarkWorkerFractionalMode: /// 部分的
 				gcDrain(&_p_.gcw, gcDrainFractional|gcDrainUntilPreempt|gcDrainFlushBgCredit)
-			case gcMarkWorkerIdleMode:
+			case gcMarkWorkerIdleMode: /// 空闲的
 				gcDrain(&_p_.gcw, gcDrainIdle|gcDrainUntilPreempt|gcDrainFlushBgCredit)
 			}
+
+			/// 再转换为可运行
 			casgstatus(gp, _Gwaiting, _Grunning) /// gcBgMarkWorker
 		})
 
@@ -2333,11 +2365,12 @@ func gcSweep(mode gcMode) {
 //
 //go:systemstack
 func gcResetMarkState() {
+
 	// This may be called during a concurrent phase, so make sure
 	// allgs doesn't change.
 	lock(&allglock)
 	for _, gp := range allgs {
-		gp.gcscandone = false // set to true in gcphasework
+		gp.gcscandone = false // set to true in gcphasework /// 设置为未扫描完成
 		gp.gcAssistBytes = 0
 	}
 	unlock(&allglock)
