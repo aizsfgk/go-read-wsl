@@ -577,7 +577,7 @@ type m struct {
 	id            int64    /// MID
 	mallocing     int32    //// 是否正在分配内存； 1 是； 0 否
 	throwing      int32
-	preemptoff    string // if != "", keep curg running on this m;  抢占原因
+	preemptoff    string // if != "", keep curg running on this m;  /// 抢占原因
 	locks         int32  /// 1. 用来锁住goroutine和P关系; locks++; locks--;
 	dying         int32
 	profilehz     int32
@@ -1163,5 +1163,5 @@ var (
 // Set by the linker so the runtime can determine the buildmode.
 var (
 	islibrary bool // -buildmode=c-shared
-	isarchive bool // -buildmode=c-archive
+	isarchive bool // -buildmode=c-archiv
 )
