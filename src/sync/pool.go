@@ -25,6 +25,9 @@ import (
 // build efficient, thread-safe free lists. However, it is not suitable for all
 // free lists.
 //
+///
+/// 一个合适的使用Pool的场景是：管理一组临时静态共享对象，可能被重用通过并发的独立的客户端。
+/// Pool 提供了一种分期分配对很多客户端。
 // An appropriate use of a Pool is to manage a group of temporary items
 // silently shared among and potentially reused by concurrent independent
 // clients of a package. Pool provides a way to amortize allocation overhead

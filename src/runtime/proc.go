@@ -196,6 +196,8 @@ func main() {
 		if _cgo_notify_runtime_init_done == nil {
 			throw("_cgo_notify_runtime_init_done missing")
 		}
+
+		/// cgo 启动模板线程
 		// Start the template thread in case we enter Go from
 		// a C-created thread and need to create a new thread.
 		startTemplateThread()
@@ -1871,7 +1873,7 @@ var newmHandoff struct {
 	// haveTemplateThread indicates that the templateThread has
 	// been started. This is not protected by lock. Use cas to set
 	// to 1.
-	haveTemplateThread uint32
+	haveTemplateThread uint32 /// 1 表明模板线程已经启动了
 }
 
 // Create a new m. It will start off with a call to fn, or else the scheduler.
@@ -1943,6 +1945,7 @@ func startTemplateThread() {
 		return
 	}
 
+	/// 取消抢占 确保模板线程在park之前创建
 	// Disable preemption to guarantee that the template thread will be
 	// created before a park once haveTemplateThread is set.
 	mp := acquirem()
@@ -1974,9 +1977,11 @@ func templateThread() {
 
 	for {
 		lock(&newmHandoff.lock)
+
 		for newmHandoff.newm != 0 {
 			newm := newmHandoff.newm.ptr()
 			newmHandoff.newm = 0
+
 			unlock(&newmHandoff.lock)
 			for newm != nil {
 				next := newm.schedlink.ptr()
@@ -1986,6 +1991,7 @@ func templateThread() {
 			}
 			lock(&newmHandoff.lock)
 		}
+
 		newmHandoff.waiting = true
 		noteclear(&newmHandoff.wake)
 		unlock(&newmHandoff.lock)
@@ -4053,12 +4059,14 @@ func dolockOSThread() {
 // that thread.
 //
 // A goroutine should call LockOSThread before calling OS services or
-// non-Go library functions that depend on per-thread state.
+// non-Go library functions that depend on per-thread state. /// 依赖每个线程的状态
 func LockOSThread() {
 	if atomic.Load(&newmHandoff.haveTemplateThread) == 0 && GOOS != "plan9" {
 		// If we need to start a new thread from the locked
 		// thread, we need the template thread. Start it now
 		// while we're in a known-good state.
+
+		/// LockOSThread 启动模板线程
 		startTemplateThread()
 	}
 	_g_ := getg()
