@@ -39,6 +39,8 @@ type poolDequeue struct {
 	// harmless.
 	//
 	//
+	/// 32位存头
+	/// 32位存尾
 	headTail uint64
 
 	// vals is a ring buffer of interface{} values stored in this
@@ -114,15 +116,20 @@ func (d *poolDequeue) pushHead(val interface{}) bool {
 	return true
 }
 
+/// 从头部弹出
 // popHead removes and returns the element at the head of the queue.
 // It returns false if the queue is empty. It must only be called by a
 // single producer.
+/// 循环数组
 func (d *poolDequeue) popHead() (interface{}, bool) {
+	/// 是这样的
 	var slot *eface
 	for {
+		/// 加载
 		ptrs := atomic.LoadUint64(&d.headTail)
+		/// 解码
 		head, tail := d.unpack(ptrs)
-		if tail == head {
+		if tail == head { /// 是空的
 			// Queue is empty.
 			return nil, false
 		}
@@ -132,7 +139,7 @@ func (d *poolDequeue) popHead() (interface{}, bool) {
 		// slot.
 		head--
 		ptrs2 := d.pack(head, tail)
-		if atomic.CompareAndSwapUint64(&d.headTail, ptrs, ptrs2) {
+		if atomic.CompareAndSwapUint64(&d.headTail, ptrs, ptrs2) { /// 等于才交换
 			// We successfully took back slot.
 			slot = &d.vals[head&uint32(len(d.vals)-1)]
 			break
@@ -149,6 +156,7 @@ func (d *poolDequeue) popHead() (interface{}, bool) {
 	return val, true
 }
 
+/// 从尾部获取
 // popTail removes and returns the element at the tail of the queue.
 // It returns false if the queue is empty. It may be called by any
 // number of consumers.

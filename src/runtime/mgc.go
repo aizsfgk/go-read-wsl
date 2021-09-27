@@ -2401,6 +2401,7 @@ func sync_runtime_registerPoolCleanup(f func()) {
 }
 
 func clearpools() {
+	/// 清除sync.Pools
 	// clear sync.Pools
 	if poolcleanup != nil {
 		poolcleanup()

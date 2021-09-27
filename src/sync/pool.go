@@ -59,6 +59,12 @@ type Pool struct {
 	New func() interface{}
 }
 
+/// 1. private
+/// 2. shared
+/// 3. 其他P的shared
+/// 4. victimCache
+/// 5. New新建
+
 // Local per-P Pool appendix.
 type poolLocalInternal struct {
 	private interface{} // Can be used only by the respective P.
@@ -83,6 +89,10 @@ var poolRaceHash [128]uint64
 // directly, for fear of conflicting with other synchronization on that address.
 // Instead, we hash the pointer to get an index into poolRaceHash.
 // See discussion on golang.org/cl/31589.
+///
+/// 竞争探测器逻辑
+///
+///
 func poolRaceAddr(x interface{}) unsafe.Pointer {
 	ptr := uintptr((*[2]unsafe.Pointer)(unsafe.Pointer(&x))[1])
 	h := uint32((uint64(uint32(ptr)) * 0x85ebca6b) >> 16)
@@ -103,10 +113,14 @@ func (p *Pool) Put(x interface{}) {
 		race.Disable()
 	}
 	l, _ := p.pin()
+
+	/// 1. 优先放入private
 	if l.private == nil {
 		l.private = x
 		x = nil
 	}
+
+	/// 2. 再放入p.shared
 	if x != nil {
 		l.shared.pushHead(x)
 	}
@@ -125,18 +139,26 @@ func (p *Pool) Put(x interface{}) {
 // If Get would otherwise return nil and p.New is non-nil, Get returns
 // the result of calling p.New.
 func (p *Pool) Get() interface{} {
+	/// 竞争条件
 	if race.Enabled {
 		race.Disable()
 	}
+
+
 	l, pid := p.pin() // 获取本地localPool
+
+	/// 1. 先拿private
 	x := l.private
 	l.private = nil
 	if x == nil {
+
+		/// 2. 再拿shared
 		// Try to pop the head of the local shard. We prefer
 		// the head over the tail for temporal locality of
 		// reuse.
 		x, _ = l.shared.popHead()
 		if x == nil {
+			/// 3. 走慢路径
 			x = p.getSlow(pid)
 		}
 	}
@@ -147,6 +169,8 @@ func (p *Pool) Get() interface{} {
 			race.Acquire(poolRaceAddr(x))
 		}
 	}
+
+	/// 4. 新建
 	if x == nil && p.New != nil {
 		x = p.New()
 	}
@@ -154,9 +178,12 @@ func (p *Pool) Get() interface{} {
 }
 
 func (p *Pool) getSlow(pid int) interface{} {
+
 	// See the comment in pin regarding ordering of the loads.
 	size := atomic.LoadUintptr(&p.localSize) // load-acquire
 	locals := p.local                        // load-consume
+
+	/// 1. 尝试从其他P中偷取一个
 	// Try to steal one element from other procs.
 	for i := 0; i < int(size); i++ {
 		l := indexLocal(locals, (pid+i+1)%int(size)) /// 去其他PoolLocal里偷一个
@@ -165,6 +192,7 @@ func (p *Pool) getSlow(pid int) interface{} {
 		}
 	}
 
+	/// 2. 尝试从victimCache中获取
 	// Try the victim cache. We do this after attempting to steal
 	// from all primary caches because we want objects in the
 	// victim cache to age out if at all possible.
@@ -209,15 +237,19 @@ func (p *Pool) pin() (*poolLocal, int) {
 	if uintptr(pid) < s {
 		return indexLocal(l, pid), pid
 	}
+
+	/// 慢pin
 	return p.pinSlow()
 }
 
 func (p *Pool) pinSlow() (*poolLocal, int) {
+
 	// Retry under the mutex.
 	// Can not lock the mutex while pinned.
 	runtime_procUnpin()
 	allPoolsMu.Lock()
 	defer allPoolsMu.Unlock()
+
 	pid := runtime_procPin()
 	// poolCleanup won't be called while we are pinned.
 	s := p.localSize
@@ -236,6 +268,7 @@ func (p *Pool) pinSlow() (*poolLocal, int) {
 	return &local[pid], pid
 }
 
+/// 垃圾回收的时候，执行
 func poolCleanup() {
 	// This function is called with the world stopped, at the beginning of a garbage collection.
 	// It must not allocate and probably should not call any runtime functions.
@@ -253,6 +286,7 @@ func poolCleanup() {
 	for _, p := range allPools {
 		p.victim = p.local
 		p.victimSize = p.localSize
+
 		p.local = nil
 		p.localSize = 0
 	}
