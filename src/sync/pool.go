@@ -262,7 +262,7 @@ func (p *Pool) pinSlow() (*poolLocal, int) {
 	}
 	// If GOMAXPROCS changes between GCs, we re-allocate the array and lose the old one.
 	size := runtime.GOMAXPROCS(0)
-	local := make([]poolLocal, size)
+	local := make([]poolLocal, size) /// 存储
 	atomic.StorePointer(&p.local, unsafe.Pointer(&local[0])) // store-release
 	atomic.StoreUintptr(&p.localSize, uintptr(size))         // store-release
 	return &local[pid], pid
@@ -278,7 +278,7 @@ func poolCleanup() {
 
 	// Drop victim caches from all pools.
 	for _, p := range oldPools {
-		p.victim = nil
+		p.victim = nil /// nil 表示可以清除了
 		p.victimSize = 0
 	}
 
@@ -293,7 +293,7 @@ func poolCleanup() {
 
 	// The pools with non-empty primary caches now have non-empty
 	// victim caches and no pools have primary caches.
-	oldPools, allPools = allPools, nil
+	oldPools, allPools = allPools, nil /// nil 表示可以清除了
 }
 
 var (

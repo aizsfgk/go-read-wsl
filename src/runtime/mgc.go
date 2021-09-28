@@ -2407,6 +2407,7 @@ func clearpools() {
 		poolcleanup()
 	}
 
+	/// 清除 central sudog cache
 	// Clear central sudog cache.
 	// Leave per-P caches alone, they have strictly bounded size.
 	// Disconnect cached list before dropping it on the floor,
@@ -2420,6 +2421,7 @@ func clearpools() {
 	sched.sudogcache = nil
 	unlock(&sched.sudoglock)
 
+	/// 清除 central defer pools
 	// Clear central defer pools.
 	// Leave per-P pools alone, they have strictly bounded size.
 	lock(&sched.deferlock)

@@ -12,6 +12,7 @@ import (
 	"strings"
 )
 
+/// 16进制表
 const hextable = "0123456789abcdef"
 
 // EncodedLen returns the length of an encoding of n source bytes.
