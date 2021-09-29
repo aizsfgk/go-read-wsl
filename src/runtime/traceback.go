@@ -809,9 +809,9 @@ func printAncestorTracebackFuncInfo(f funcInfo, pc uintptr) {
 }
 
 func callers(skip int, pcbuf []uintptr) int {
-	sp := getcallersp()
-	pc := getcallerpc()
-	gp := getg()
+	sp := getcallersp() /// 获取sp
+	pc := getcallerpc() /// 获取pc
+	gp := getg()        /// 获取gPtr
 	var n int
 	systemstack(func() {
 		n = gentraceback(pc, sp, 0, gp, skip, &pcbuf[0], len(pcbuf), nil, nil, 0)

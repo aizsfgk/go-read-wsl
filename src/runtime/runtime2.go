@@ -1153,8 +1153,8 @@ var (
 	// as they are not an external api.
 	// Set on startup in asm_{386,amd64}.s
 	processorVersionInfo uint32
-	isIntel              bool
-	lfenceBeforeRdtsc    bool
+	isIntel              bool /// 是否是Intel
+	lfenceBeforeRdtsc    bool ///
 
 	goarm                uint8 // set by cmd/link on arm systems
 	framepointer_enabled bool  // set by cmd/link

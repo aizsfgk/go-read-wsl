@@ -302,24 +302,24 @@ type dbgVar struct {
 // already have an initial value.
 // GO - DEBUG 调试;  不同的调试是否开启???
 var debug struct {
-	allocfreetrace     int32 /// 内存分配释放 G相关
-	cgocheck           int32 /// cgo检查
-	clobberfree        int32 ///
-	efence             int32 /// 短暂的???
-	gccheckmark        int32 /// gc 检测标记
-	gcpacertrace       int32 /// gc 调步算法跟踪
-	gcshrinkstackoff   int32
-	gcstoptheworld     int32
-	gctrace            int32
-	invalidptr         int32
+	allocfreetrace     int32 /// Tracing of alloc/free/gc
+	cgocheck           int32 /// Pointer checking for cgo code
+	clobberfree        int32 /// sets the memory content at x to bad content, for debugging purposes
+	efence             int32 /// 直接在操作系统上，申请释放内存
+	gccheckmark        int32 /// GC 检测标记; checkmark bits
+	gcpacertrace       int32 /// GC 调步算法跟踪; 打印调步算法，相关的内存状态
+	gcshrinkstackoff   int32 /// 关闭栈收缩
+	gcstoptheworld     int32 /// GC 在 In STW mode 模式
+	gctrace            int32 /// Print gctrace before dropping worldsema
+	invalidptr         int32 /// The following ensures that we are rigorous about what data structures hold valid pointers
 	madvdontneed       int32 // for Linux; issue 28466
-	sbrk               int32
-	scavenge           int32
-	scavtrace          int32
-	scheddetail        int32 /// 调度细节
+	sbrk               int32 /// 使用 sbrk 分配内存
+	scavenge           int32 ///
+	scavtrace          int32 /// debug print scavenge generation
+	scheddetail        int32 /// 调度细节; schedtrace
 	schedtrace         int32 /// 调度摘要
-	tracebackancestors int32
-	asyncpreemptoff    int32
+	tracebackancestors int32 /// saveAncestors相关???
+	asyncpreemptoff    int32 /// Temporarily disable preemption
 }
 
 var dbgvars = []dbgVar{

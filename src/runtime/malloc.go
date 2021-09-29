@@ -452,7 +452,7 @@ func mallocinit() {
 		pagesPerArena:  8192
 		pageSize:  8192
 	 */
-	if SF_GO_DEBUG {
+	if SF_GO_DEBUG { // malloc
 		// println
 		println("------ mallocinit() ------")
 		println("arenaL2Bits: ", arenaL2Bits) // 22
@@ -466,7 +466,6 @@ func mallocinit() {
 		println("logHeapArenaBytes: ", logHeapArenaBytes) // 26
 		println("(1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle)): ",(1-_64bit+sys.GoarchWasm)*(32-(sys.GoarchMips+sys.GoarchMipsle))) // 0
 		println("_64bit: ", _64bit) // 1
-
 		//println("arenaBaseOffset: ", arenaBaseOffset)
 
 	}

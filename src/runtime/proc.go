@@ -521,6 +521,7 @@ const (
 // cpuinit extracts the environment variable GODEBUG from the environment on
 // Unix-like operating systems and calls internal/cpu.Initialize.
 func cpuinit() {
+	/// 检测 GODEBUG 是否开启
 	const prefix = "GODEBUG="
 	var env string
 
@@ -570,6 +571,8 @@ func cpuinit() {
 // The new G calls runtime·main.
 func schedinit() {
 	/// ********** 01. 锁初始化 ********** ///
+	/// static lock ranking ; https://colobu.com/2020/12/06/mutex-in-go-runtime/
+	/// 检查锁的顺序是不是按照文档设计的顺序执行的，如果有违反设定的顺序，就有可能死锁发生
 	lockInit(&sched.lock, lockRankSched)
 	lockInit(&sched.sysmonlock, lockRankSysmon)
 	lockInit(&sched.deferlock, lockRankDefer)
@@ -710,6 +713,7 @@ func mcommoninit(mp *m, id int64) {
 
 	lock(&sched.lock)
 
+	/// 分配m的ID
 	if id >= 0 {
 		mp.id = id
 	} else {
@@ -4606,6 +4610,7 @@ func procresize(nprocs int32) *p {
 		unlock(&allpLock)
 	}
 
+	/// 初始化全新的P
 	// initialize new P's
 	for i := old; i < nprocs; i++ {
 		pp := allp[i]

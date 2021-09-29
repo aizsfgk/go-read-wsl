@@ -59,6 +59,7 @@
 /// https://man7.org/linux/man-pages/man2/arch_prctl.2.html
 /// set architecture-specific thread state
 #define SYS_arch_prctl		158
+
 #define SYS_gettid		186
 /// https://man7.org/linux/man-pages/man2/futex.2.html
 /// fast user-space locking
@@ -695,9 +696,9 @@ TEXT runtime·settls(SB),NOSPLIT,$32
 #else
 	ADDQ	$8, DI	// ELF wants to use -8(FS)
 #endif
-	MOVQ	DI, SI
-	MOVQ	$0x1002, DI	// ARCH_SET_FS   /// 设置FS
-	MOVQ	$SYS_arch_prctl, AX
+	MOVQ	DI, SI  /// SI 存第二个参数
+	MOVQ	$0x1002, DI	// ARCH_SET_FS   /// 设置FS; /// DI 存第一个参数
+	MOVQ	$SYS_arch_prctl, AX /// arch_prctl(0x1002, -8(FS)) ; /// arch_prctl 系统调用； x86 or x86-64
 	SYSCALL
 	CMPQ	AX, $0xfffffffffffff001
 	JLS	2(PC)

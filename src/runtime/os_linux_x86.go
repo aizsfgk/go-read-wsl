@@ -88,6 +88,7 @@ func osArchInit() {
 		}
 	}
 
+	/// 如果是特定版本
 	if major == 5 && (minor == 2 || minor == 3 && patch < 15 || minor == 4 && patch < 2) {
 		gsignalInitQuirk = mlockGsignal
 		if m0.gsignal != nil {

@@ -305,9 +305,16 @@ func getHugePageSize() uintptr {
 }
 
 func osinit() {
+
 	ncpu = getproccount()
-	physHugePageSize = getHugePageSize()
+	physHugePageSize = getHugePageSize() /// 有可能是0;  8KB
+
 	osArchInit()
+
+	if SF_GO_DEBUG {
+		println("------------- osinit -------------")
+		println("physHugePageSize: ", physHugePageSize)
+	}
 }
 
 var urandom_dev = []byte("/dev/urandom\x00")
@@ -346,7 +353,7 @@ var gsignalInitQuirk func(gsignal *g)
 // Called to initialize a new m (including the bootstrap m).
 // Called on the parent thread (main thread in case of bootstrap), can allocate memory.
 func mpreinit(mp *m) {
-	mp.gsignal = malg(32 * 1024) // Linux wants >= 2K
+	mp.gsignal = malg(32 * 1024) // Linux wants >= 2K /// 信号G新建分配
 	mp.gsignal.m = mp
 	if gsignalInitQuirk != nil {
 		gsignalInitQuirk(mp.gsignal)

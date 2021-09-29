@@ -116,13 +116,13 @@ TEXT runtime·rt0_go(SB),NOSPLIT,$0
 	// Figure out how to serialize RDTSC.
 	// On Intel processors LFENCE is enough. AMD requires MFENCE.
 	// Don't know about the rest, so let's do MFENCE.
-	CMPL	BX, $0x756E6547  // "Genu"
+	CMPL	BX, $0x756E6547  // "Genu"   /// 必须这三个都是，才是Inter CPU
 	JNE	notintel
 	CMPL	DX, $0x49656E69  // "ineI"
 	JNE	notintel
 	CMPL	CX, $0x6C65746E  // "ntel"
 	JNE	notintel
-	MOVB	$1, runtime·isIntel(SB)             /// 修改全局变量：isIntel 为 true
+	MOVB	$1, runtime·isIntel(SB)             /// 修改全局变量：isIntel 为 true; /// 修改全局变量已经完成
 	MOVB	$1, runtime·lfenceBeforeRdtsc(SB)   /// 修改全局变量：lfenceBeforeRdtsc 为 true
 notintel:
 
@@ -134,8 +134,8 @@ notintel:
 nocpuinfo:
 	// if there is an _cgo_init, call it.
 	MOVQ	_cgo_init(SB), AX
-	TESTQ	AX, AX
-	JZ	needtls
+	TESTQ	AX, AX /// Test命令将两个操作数进行逻辑与运算，并根据运算结果设置相关的标志位。但是，Test命令的两个操作数不会被改变。运算结果在设置过相关标记位后会被丢弃
+	JZ	needtls    /// 如果是0；跳到needtls
 	// arg 1: g0, already in DI
 	MOVQ	$setg_gcc<>(SB), SI // arg 2: setg_gcc
 #ifdef GOOS_android
@@ -212,6 +212,10 @@ ok:
 	// save m0 to g0->m
 	MOVQ	AX, g_m(CX)
 
+    /// CLD指令功能：DF = 0
+    ///    将标志寄存器Flag的方向标志位DF清零。
+    ///    在字串操作中使变址寄存器SI或DI的地址指针自动增加，字串处理由前往后
+    /// 对应的命令是 STD
 	CLD				// convention is D is always left cleared
 	CALL	runtime·check(SB) /// 变量检测
 
