@@ -679,6 +679,7 @@ func (f funcInfo) _Func() *Func {
 	return (*Func)(unsafe.Pointer(f._func))
 }
 
+/// 发现函数
 func findfunc(pc uintptr) funcInfo {
 	/// 通过pc找到funcInfo
 	datap := findmoduledatap(pc)
@@ -947,6 +948,7 @@ func pcdatavalue2(f funcInfo, table int32, targetpc uintptr) (int32, uintptr) {
 	return pcvalue(f, pcdatastart(f, table), targetpc, nil, true)
 }
 
+/// 获取数据
 func funcdata(f funcInfo, i uint8) unsafe.Pointer {
 	if i < 0 || i >= f.nfuncdata {
 		return nil

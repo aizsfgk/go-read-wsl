@@ -120,9 +120,22 @@ var runtimeInitTime int64
 // Value to use for signal mask for newly created M's.
 var initSigmask sigset
 
+
+const (
+	SF_GO_DEBUG_SCHED = true
+)
+
 // The main goroutine.
 /// g1 开始执行 main函数
 func main() {
+
+	if SF_GO_DEBUG_SCHED {
+		println("-------------- runtime.main -------------")
+
+
+
+	}
+
 	g := getg() /// g == main goroutine, 不再是g0
 	//println("proc.go=>main=>g: ", g)
 
@@ -1200,7 +1213,7 @@ func startTheWorldWithSema(emitTraceEvent bool) int64 {
 //
 //go:nosplit
 //go:nowritebarrierrec
-func mstart() {   /// 启动m0
+func mstart() {   /// 启动m0; /// 新克隆的M, 也从这里开始
 	_g_ := getg()
 
 	//println("proc.go=>mstart=>_g_: ", _g_)
@@ -1220,6 +1233,9 @@ func mstart() {   /// 启动m0
 		_g_.stack.hi = uintptr(noescape(unsafe.Pointer(&size)))
 		_g_.stack.lo = _g_.stack.hi - size + 1024
 	}
+
+	// ******************************* //
+
 	// Initialize stack guard so that we can start calling regular
 	// Go code.
 	_g_.stackguard0 = _g_.stack.lo + _StackGuard
@@ -1229,6 +1245,7 @@ func mstart() {   /// 启动m0
 
 	mstart1()
 
+	/// 退出这个线程，不会返回??? 还是只有 main.goroutine 返回
 	// Exit this thread.
 	switch GOOS {
 	case "windows", "solaris", "illumos", "plan9", "darwin", "aix":
@@ -1276,6 +1293,9 @@ func mstart1() {
 	}
 
 	if _g_.m != &m0 {
+
+		/// m 和 p 关联
+		/// 如果不是m0; 则使用nextp
 		acquirep(_g_.m.nextp.ptr())
 		_g_.m.nextp = 0
 	}
@@ -1580,7 +1600,7 @@ func allocm(_p_ *p, fn func(), id int64) *m {
 	if iscgo || GOOS == "solaris" || GOOS == "illumos" || GOOS == "windows" || GOOS == "plan9" || GOOS == "darwin" {
 		mp.g0 = malg(-1)
 	} else {
-		mp.g0 = malg(8192 * sys.StackGuardMultiplier)
+		mp.g0 = malg(8192 * sys.StackGuardMultiplier) // 8KB
 	}
 	mp.g0.m = mp
 
@@ -1887,9 +1907,13 @@ var newmHandoff struct {
 // id is optional pre-allocated m ID. Omit by passing -1.
 //go:nowritebarrierrec
 func newm(fn func(), _p_ *p, id int64) {
-	mp := allocm(_p_, fn, id)  /// 1. 新分配一个m结构
-	mp.nextp.set(_p_)
+	mp := allocm(_p_, fn, id)  /// 1. 新分配一个m结构; 这里的m.g0 == 8K
+
+	mp.nextp.set(_p_) /// 设置nextp
+
 	mp.sigmask = initSigmask
+
+	/// 通过模板线程启动M
 	if gp := getg(); gp != nil && gp.m != nil && (gp.m.lockedExt != 0 || gp.m.incgo) && GOOS != "plan9" {
 		// We're on a locked M or a thread that may have been
 		// started by C. The kernel state of this thread may
@@ -1915,6 +1939,8 @@ func newm(fn func(), _p_ *p, id int64) {
 		unlock(&newmHandoff.lock)
 		return
 	}
+
+	/// 否则正常方式启动M
 	newm1(mp)
 }
 
@@ -1935,8 +1961,10 @@ func newm1(mp *m) {
 		execLock.runlock()
 		return
 	}
+
+
 	execLock.rlock() // Prevent process clone.
-	newosproc(mp)
+	newosproc(mp) /// clone一个M
 	execLock.runlock()
 }
 
@@ -2095,7 +2123,7 @@ func startm(_p_ *p, spinning bool) {
 	mp.spinning = spinning
 	mp.nextp.set(_p_)
 
-	notewakeup(&mp.park)   //// 唤醒自旋状态的
+	notewakeup(&mp.park)   //// 唤醒自旋状态的; /// m 有自己的自选状态
 }
 
 // Hands off P from syscall or locked M.
@@ -2181,7 +2209,7 @@ func wakep() {
 		return
 	}
 
-	/// 启动一个新的m; 去执行g
+	/// 启动一个新的m; 然后自选
 	startm(nil, true)
 }
 
@@ -2777,6 +2805,7 @@ top:
 		gcstopm()
 		goto top
 	}
+
 	if pp.runSafePointFn != 0 {
 		runSafePointFn()
 	}
@@ -2788,6 +2817,7 @@ top:
 		throw("schedule: spinning with local work")
 	}
 
+	/// 检查 P 上的定时器
 	checkTimers(pp, 0)
 
 	var gp *g
@@ -2809,7 +2839,7 @@ top:
 	/// 优先拿GcWorker
 	/// gp为空 并且 激活了GC
 	if gp == nil && gcBlackenEnabled != 0 {
-		gp = gcController.findRunnableGCWorker(_g_.m.p.ptr())
+		gp = gcController.findRunnableGCWorker(_g_.m.p.ptr()) /// 获取GCworker
 		tryWakeP = tryWakeP || gp != nil
 	}
 
@@ -2831,6 +2861,8 @@ top:
 		// We can see gp != nil here even if the M is spinning,
 		// if checkTimers added a local goroutine via goready.
 	}
+
+	/// 窃取
 	if gp == nil {
 		//如果从本地运行队列和全局运行队列都没有找到需要运行的goroutine，
 		//则调用findrunnable函数从其它工作线程的运行队列中偷取，如果偷取不到，则当前工作线程进入睡眠，
@@ -3741,7 +3773,9 @@ func newproc(siz int32, fn *funcval) { /// siz 参数字节大小； fn
 	/// 对于我们现在这个场景来说，pc就是CALLruntime·newproc(SB)指令后面的POPQ AX这条指令的地址
 	pc := getcallerpc() /// 获取调用者的pc; 这里是g0的pc
 
-
+	///
+	/// 系统栈是 M0 的 G0 栈 64KB, 是一个特殊的G0
+	///
 	/// systemstack的作用是切换到g0栈执行作为参数的函数
 	/// 我们这个场景现在本身就在g0栈，因此什么也不做，直接调用作为参数的函数
 	systemstack(func() {
@@ -3750,6 +3784,8 @@ func newproc(siz int32, fn *funcval) { /// siz 参数字节大小； fn
 		_p_ := getg().m.p.ptr()                  /// 从g0中获取p; 放入g1的本地队列   # 2. 获取p
 		runqput(_p_, newg, true)           /// 将g放入本地队列         # 3. 将g放入p的本地队列
 
+		/// main函数已经执行
+		/// 唤醒P
 		if mainStarted {                        ///  初始化时候；这里不启动；# 4. 如果main goroutine已经启动；则唤醒p;
 			wakep()
 		}
@@ -3776,7 +3812,14 @@ func newproc1(fn *funcval, argp unsafe.Pointer, narg int32, callergp *g, callerp
 		_g_.m.throwing = -1 // do not dump full stacks
 		throw("go of nil func value")
 	}
+
+	/// 取消被抢占
 	/// 获取m
+	/*
+		_g_ := getg()
+		_g_.m.locks++
+		return _g_.m
+	 */
 	acquirem() // disable preemption because it can be holding p in a local var
 
 	siz := narg
@@ -3786,7 +3829,7 @@ func newproc1(fn *funcval, argp unsafe.Pointer, narg int32, callergp *g, callerp
 	// Not worth it: this is almost always an error.
 	// 4*sizeof(uintreg): extra space added below
 	// sizeof(uintreg): caller's LR (arm) or return address (x86, in gostartcall).
-	if siz >= _StackMin-4*sys.RegSize-sys.RegSize {
+	if siz >= _StackMin-4*sys.RegSize-sys.RegSize { /// 2048 - 40; /// 函数参数太大
 		throw("newproc: function arguments too large for new goroutine")
 	}
 
@@ -3803,7 +3846,7 @@ func newproc1(fn *funcval, argp unsafe.Pointer, narg int32, callergp *g, callerp
 		throw("newproc1: newg missing stack")
 	}
 
-	if readgstatus(newg) != _Gdead {
+	if readgstatus(newg) != _Gdead { /// 不等于Gdead, 则throw
 		throw("newproc1: new g is not Gdead")
 	}
 
@@ -3826,6 +3869,8 @@ func newproc1(fn *funcval, argp unsafe.Pointer, narg int32, callergp *g, callerp
 	if narg > 0 {
 		/// 把参数从执行newproc函数的栈（初始化时是g0栈）拷贝到新g的栈
 		memmove(unsafe.Pointer(spArg), argp, uintptr(narg))
+
+
 		// This is a stack-to-stack copy. If write barriers
 		// are enabled and the source stack is grey (the
 		// destination is always black), then perform a
@@ -3838,6 +3883,8 @@ func newproc1(fn *funcval, argp unsafe.Pointer, narg int32, callergp *g, callerp
 			if stkmap.nbit > 0 {
 				// We're in the prologue, so it's always stack map index 0.
 				bv := stackmapdata(stkmap, 0)
+
+				/// write barriers for copying from [src, src+size) to [dst, dst+size)
 				bulkBarrierBitmap(spArg, spArg, uintptr(bv.n)*sys.PtrSize, 0, bv.bytedata)
 			}
 		}
@@ -4458,7 +4505,7 @@ func (pp *p) init(id int32) {
 			}
 			// Use the bootstrap mcache0. Only one P will get
 			// mcache0: the one with ID 0.
-			pp.mcache = mcache0
+			pp.mcache = mcache0 /// 初始化的化0， 使用mcache0
 		} else {
 			pp.mcache = allocmcache()
 		}
@@ -4658,6 +4705,7 @@ func procresize(nprocs int32) *p {
 	// g.m.p is now set, so we no longer need mcache0 for bootstrapping.
 	mcache0 = nil
 
+	/// 释放多余的P
 	// release resources from unused P's
 	for i := nprocs; i < old; i++ {
 		p := allp[i]
