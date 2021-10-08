@@ -155,6 +155,7 @@ func SetPanicOnFault(enabled bool) bool {
 // process; instead, use a temporary file or network socket.
 //
 // The heap dump format is defined at https://golang.org/s/go15heapdump.
+/// https://github.com/golang/go/wiki/heapdump15-through-heapdump17l
 func WriteHeapDump(fd uintptr)
 
 // SetTraceback sets the amount of detail printed by the runtime in

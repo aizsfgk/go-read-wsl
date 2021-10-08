@@ -42,6 +42,7 @@ var (
 	spectreIndex bool
 )
 
+// DEBUG 变量
 var (
 	// append
 	Debug_append       int

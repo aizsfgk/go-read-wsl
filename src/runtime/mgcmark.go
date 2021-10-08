@@ -160,6 +160,7 @@ var oneptrmask = [...]uint8{1}
 //go:nowritebarrier
 func markroot(gcw *gcWork, i uint32) {
 	// TODO(austin): This is a bit ridiculous. Compute and store
+
 	// the bases in gcMarkRootPrepare instead of the counts.
 	baseFlushCache := uint32(fixedRootCount) /// baseFlushCache == 2
 	baseData := baseFlushCache + uint32(work.nFlushCacheRoots)
@@ -173,12 +174,12 @@ func markroot(gcw *gcWork, i uint32) {
 	switch {
 	case baseFlushCache <= i && i < baseData:
 		flushmcache(int(i - baseFlushCache))
-
+	/// 标记数据块
 	case baseData <= i && i < baseBSS:
 		for _, datap := range activeModules() {
 			markrootBlock(datap.data, datap.edata-datap.data, datap.gcdatamask.bytedata, gcw, int(i-baseData))
 		}
-
+	/// 标记BSS块
 	case baseBSS <= i && i < baseSpans:
 		for _, datap := range activeModules() {
 			markrootBlock(datap.bss, datap.ebss-datap.bss, datap.gcbssmask.bytedata, gcw, int(i-baseBSS))

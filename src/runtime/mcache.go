@@ -178,6 +178,7 @@ func (c *mcache) releaseAll() {
 			c.alloc[i] = &emptymspan
 		}
 	}
+
 	// Clear tinyalloc pool.
 	c.tiny = 0
 	c.tinyoffset = 0

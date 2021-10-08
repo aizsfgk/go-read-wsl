@@ -12,6 +12,7 @@
 ///
 /// 打印内存
 ///
+/// 文件解析
 
 package runtime
 
@@ -22,12 +23,16 @@ import (
 
 //go:linkname runtime_debug_WriteHeapDump runtime/debug.WriteHeapDump
 func runtime_debug_WriteHeapDump(fd uintptr) {
+
+	/// 停止世界
 	stopTheWorld("write heap dump")
 
+	/// 在系统栈上
 	systemstack(func() {
 		writeheapdump_m(fd)
 	})
 
+	/// 启动世界
 	startTheWorld()
 }
 
@@ -651,7 +656,10 @@ func mdump() {
 		}
 	}
 	memclrNoHeapPointers(unsafe.Pointer(&typecache), unsafe.Sizeof(typecache))
+
+	/// 先写入头信息
 	dwrite(unsafe.Pointer(&dumphdr[0]), uintptr(len(dumphdr)))
+	///
 	dumpparams()
 	dumpitabs()
 	dumpobjs()
