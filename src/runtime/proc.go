@@ -122,7 +122,7 @@ var initSigmask sigset
 
 
 const (
-	SF_GO_DEBUG_SCHED = true
+	SF_GO_DEBUG_SCHED = false
 )
 
 // The main goroutine.

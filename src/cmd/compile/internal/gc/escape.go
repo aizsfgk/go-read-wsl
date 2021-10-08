@@ -8,11 +8,13 @@ import (
 	"cmd/compile/internal/logopt"
 	"cmd/compile/internal/types"
 	"cmd/internal/src"
+
 	"fmt"
 	"math"
 	"strings"
 )
 
+/// 逃逸分析
 // Escape analysis.
 //
 // Here we analyze functions to determine which Go variables
