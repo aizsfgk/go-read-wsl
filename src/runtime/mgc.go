@@ -1971,8 +1971,9 @@ func gcBgMarkPrepare() {
 	// of workers, almost all of which are "waiting". While a
 	// worker is working it decrements nwait. If nproc == nwait,
 	// there are no workers.
-	work.nproc = ^uint32(0)
-	work.nwait = ^uint32(0)
+
+	work.nproc = ^uint32(0) /// 设置为最大值
+	work.nwait = ^uint32(0) ///
 }
 
 ///

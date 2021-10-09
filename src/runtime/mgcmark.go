@@ -95,7 +95,7 @@ func gcMarkRootPrepare() {
 		//
 		// Snapshot allArenas as markArenas. This snapshot is safe because allArenas
 		// is append-only.
-		mheap_.markArenas = mheap_.allArenas[:len(mheap_.allArenas):len(mheap_.allArenas)]
+		mheap_.markArenas = mheap_.allArenas[:len(mheap_.allArenas):len(mheap_.allArenas)] /// [::]
 		work.nSpanRoots = len(mheap_.markArenas) * (pagesPerArena / pagesPerSpanRoot)
 	} else {
 		// We're only interested in scanning the in-use spans,
@@ -184,18 +184,18 @@ func markroot(gcw *gcWork, i uint32) {
 		for _, datap := range activeModules() {
 			markrootBlock(datap.bss, datap.ebss-datap.bss, datap.gcbssmask.bytedata, gcw, int(i-baseBSS))
 		}
-
+	/// 标记Finalizer
 	case i == fixedRootFinalizers:
 		for fb := allfin; fb != nil; fb = fb.alllink {
 			cnt := uintptr(atomic.Load(&fb.cnt))
 			scanblock(uintptr(unsafe.Pointer(&fb.fin[0])), cnt*unsafe.Sizeof(fb.fin[0]), &finptrmask[0], gcw, nil)
 		}
-
+	/// 标记FreeGStacks
 	case i == fixedRootFreeGStacks:
 		// Switch to the system stack so we can call
 		// stackfree.
 		systemstack(markrootFreeGStacks)
-
+	/// marks roots for one shard of markArenas
 	case baseSpans <= i && i < baseStacks:
 		// mark mspan.specials
 		markrootSpans(gcw, int(i-baseSpans))
@@ -486,7 +486,7 @@ func oldMarkrootSpans(gcw *gcWork, shard int) {
 		unlock(&s.speciallock)
 	}
 }
-
+/// 辅助标记吗???
 // gcAssistAlloc performs GC work to make gp's assist debt positive.
 // gp must be the calling user gorountine.
 //
@@ -783,6 +783,7 @@ func gcFlushBgCredit(scanWork int64) {
 	unlock(&work.assistQueue.lock)
 }
 
+/// 扫描g的stack,涂灰栈上所有的指针
 // scanstack scans gp's stack, greying all pointers found on the stack.
 //
 // scanstack will also shrink the stack if it is safe to do so. If it
@@ -791,6 +792,8 @@ func gcFlushBgCredit(scanWork int64) {
 //
 // scanstack is marked go:systemstack because it must not be preempted
 // while using a workbuf.
+/// 无需写栅栏
+/// 需要systemstack
 //
 //go:nowritebarrier
 //go:systemstack
@@ -1085,6 +1088,8 @@ const (
 //
 //go:nowritebarrier
 func gcDrain(gcw *gcWork, flags gcDrainFlags) { /// gc 排出
+	/// 后台标记
+	/// gcDrainUntilPreempt|gcDrainFlushBgCredit
 
 	/// 1. 未激活写栅栏，则报错
 	if !writeBarrier.needed {
@@ -1099,6 +1104,7 @@ func gcDrain(gcw *gcWork, flags gcDrainFlags) { /// gc 排出
 
 	initScanWork := gcw.scanWork
 
+	/// ********** 后台标记不会走这里 *********** ///
 	// checkWork is the scan work before performing the next
 	// self-preempt check.
 	checkWork := int64(1<<63 - 1)
@@ -1120,9 +1126,10 @@ func gcDrain(gcw *gcWork, flags gcDrainFlags) { /// gc 排出
 			if job >= work.markrootJobs {
 				break
 			}
+			/// job是一个索引数
 			markroot(gcw, job) /// gcDrain
 
-			if check != nil && check() {
+			if check != nil && check() { /// 后台标记不会走这里
 				goto done
 			}
 		}
