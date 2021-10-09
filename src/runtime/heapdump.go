@@ -466,6 +466,7 @@ func dumproots() {
 var freemark [_PageSize / 8]bool
 
 func dumpobjs() {
+	/// 遍历全部的span
 	for _, s := range mheap_.allspans {
 		if s.state.get() != mSpanInUse {
 			continue
@@ -493,6 +494,7 @@ func dumpobjs() {
 	}
 }
 
+/// 打印参数
 func dumpparams() {
 	dumpint(tagParams)
 	x := uintptr(1)
@@ -659,16 +661,25 @@ func mdump() {
 
 	/// 先写入头信息
 	dwrite(unsafe.Pointer(&dumphdr[0]), uintptr(len(dumphdr)))
-	///
+	/// 打印参数
 	dumpparams()
+	/// 打印符号表
 	dumpitabs()
+	/// 打印对象
 	dumpobjs()
+	/// 打印goroutines
 	dumpgs()
+	/// 打印 threads
 	dumpms()
+	/// 打印根对象
 	dumproots()
+	/// 打印内存状态
 	dumpmemstats()
+	/// 打印内存快照
 	dumpmemprof()
+	/// 结束
 	dumpint(tagEOF)
+	///
 	flush()
 }
 
