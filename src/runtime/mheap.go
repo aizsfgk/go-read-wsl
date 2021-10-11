@@ -533,7 +533,7 @@ type mspan struct {
 	needzero    uint8         // needs to be zeroed before allocation
 	divShift    uint8         // for divide by elemsize - divMagic.shift
 	divShift2   uint8         // for divide by elemsize - divMagic.shift2
-	elemsize    uintptr       // computed from sizeclass or from npages
+	elemsize    uintptr       // computed from sizeclass or from npages /// 几个字节
 	limit       uintptr       // end of data in span
 	speciallock mutex         // guards specials list
 

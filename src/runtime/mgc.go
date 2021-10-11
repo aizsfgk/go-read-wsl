@@ -148,7 +148,7 @@ const (
 	_FinBlockSize    = 4 * 1024   /// 终结块大小； 4096B ==> 4KB
 
 	// debugScanConservative enables debug logging for stack
-	// frames that are scanned conservatively.
+	// frames that are scanned conservatively. /// 保守的被扫描
 	debugScanConservative = false
 
 	// sweepMinHeapDistance is a lower bound on the heap distance
@@ -434,9 +434,11 @@ type gcControllerState struct {
 	// bytes that should be performed by mutator assists. This is
 	// computed at the beginning of each cycle and updated every
 	// time heap_scan is updated.
+	/// 每字节需要做的标记工作
 	assistWorkPerByte float64
 
 	// assistBytesPerWork is 1/assistWorkPerByte.
+	///
 	assistBytesPerWork float64
 
 	/// 时钟时间分数; 用来在部分模式GC中
@@ -1021,7 +1023,7 @@ const gcAssistTimeSlack = 5000
 // gcOverAssistWork determines how many extra units of scan work a GC
 // assist does when an assist happens. This amortizes the cost of an
 // assist by pre-paying for this many bytes of future allocations.
-const gcOverAssistWork = 64 << 10
+const gcOverAssistWork = 64 << 10 /// 64K
 
 /// gc.work
 var work struct {

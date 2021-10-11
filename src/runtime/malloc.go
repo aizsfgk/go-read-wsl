@@ -1027,6 +1027,8 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 	// GC is not currently active.
 	var assistG *g
 	if gcBlackenEnabled != 0 {
+		
+		/// 记账当前用户G为分配内存
 		// Charge the current user G for this allocation.
 		assistG = getg()
 		if assistG.m.curg != nil {
@@ -1034,8 +1036,10 @@ func mallocgc(size uintptr, typ *_type, needzero bool) unsafe.Pointer {
 		}
 		// Charge the allocation against the G. We'll account
 		// for internal fragmentation at the end of mallocgc.
+		/// 对G的分配内存，进行收费
 		assistG.gcAssistBytes -= int64(size)
 
+		/// 如果小于0，说明需要进行辅助分配
 		if assistG.gcAssistBytes < 0 {
 			// This G is in debt. Assist the GC to correct
 			// this before allocating. This must happen

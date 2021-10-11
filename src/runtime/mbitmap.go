@@ -274,7 +274,7 @@ func markBitsForAddr(p uintptr) markBits {
 }
 
 func (s *mspan) markBitsForIndex(objIndex uintptr) markBits {
-	bytep, mask := s.gcmarkBits.bitp(objIndex)
+	bytep, mask := s.gcmarkBits.bitp(objIndex) /// 标记位
 	return markBits{bytep, mask, objIndex}
 }
 

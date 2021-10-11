@@ -4,7 +4,7 @@
 
 package runtime
 
-import (
+import  (
 	"runtime/internal/atomic"
 	"runtime/internal/sys"
 	"unsafe"
@@ -37,17 +37,22 @@ func init() {
 
 // Garbage collector work pool abstraction. /// 垃圾收集器工作池抽象
 //
+/// 实现了一个 生产消费者模式: 为指针 涂灰对象
+/// 一个灰色对象：被标记了，并且在工作队列中
+/// 一个黑色对象：被标记了，并且不在工作队列中
 // This implements a producer/consumer model for pointers to grey
 // objects. A grey object is one that is marked and on a work
 // queue. A black object is marked and not on a work queue.
 //
+/// 写栅栏， 根对象发现，栈扫描，对象扫描 这些会生产指针为灰色对象。
+/// scanning 消费指针为灰色对象。
 // Write barriers, root discovery, stack scanning, and object scanning
 // produce pointers to grey objects. Scanning consumes pointers to
 // grey objects, thus blackening them, and then scans them,
 // potentially producing new pointers to grey objects.
 
 // A gcWork provides the interface to produce and consume work for the
-// garbage collector.
+// garbage collector. /// 生产消费工作，为垃圾回收。
 //
 // A gcWork can be used on the stack as follows:
 //
@@ -59,7 +64,10 @@ func init() {
 // the garbage collector from transitioning to mark termination since
 // gcWork may locally hold GC work buffers. This can be done by
 // disabling preemption (systemstack or acquirem).
+
+
 type gcWork struct {
+	/// 第一，第二 工作缓冲区
 	// wbuf1 and wbuf2 are the primary and secondary work buffers.
 	//
 	// This can be thought of as a stack of both work buffers'

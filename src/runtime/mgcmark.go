@@ -492,6 +492,7 @@ func oldMarkrootSpans(gcw *gcWork, shard int) {
 //
 // This must be called with preemption enabled.
 func gcAssistAlloc(gp *g) {
+	/// 辅助标记不可以是G0
 	// Don't assist in non-preemptible contexts. These are
 	// generally fragile and won't allow the assist to block.
 	if getg() == gp.m.g0 {
@@ -507,33 +508,39 @@ retry:
 	// balance positive. When the required amount of work is low,
 	// we over-assist to build up credit for future allocations
 	// and amortize the cost of assisting.
+
+	/// 债务数
+	/// debtBytes > 0
 	debtBytes := -gp.gcAssistBytes
-	scanWork := int64(gcController.assistWorkPerByte * float64(debtBytes))
-	if scanWork < gcOverAssistWork {
-		scanWork = gcOverAssistWork
-		debtBytes = int64(gcController.assistBytesPerWork * float64(scanWork))
+
+	scanWork := int64(gcController.assistWorkPerByte * float64(debtBytes)) /// 正真需要扫描的工作量
+	if scanWork < gcOverAssistWork { /// 如果小于64K,
+		scanWork = gcOverAssistWork  /// 则设置为64K
+		debtBytes = int64(gcController.assistBytesPerWork * float64(scanWork)) /// 债务数
 	}
 
+	/// 从后台标记中，窃取一些结余
 	// Steal as much credit as we can from the background GC's
 	// scan credit. This is racy and may drop the background
 	// credit below 0 if two mutators steal at the same time. This
 	// will just cause steals to fail until credit is accumulated
 	// again, so in the long run it doesn't really matter, but we
 	// do have to handle the negative credit case.
-	bgScanCredit := atomic.Loadint64(&gcController.bgScanCredit)
+	bgScanCredit := atomic.Loadint64(&gcController.bgScanCredit) /// 后台结余
 	stolen := int64(0)
-	if bgScanCredit > 0 {
-		if bgScanCredit < scanWork {
-			stolen = bgScanCredit
-			gp.gcAssistBytes += 1 + int64(gcController.assistBytesPerWork*float64(stolen))
-		} else {
+	if bgScanCredit > 0 { /// 有后台结余
+		if bgScanCredit < scanWork { /// 不满足需要的扫描工作
+			stolen = bgScanCredit  ///
+			gp.gcAssistBytes += 1 + int64(gcController.assistBytesPerWork*float64(stolen)) /// 增加一些
+		} else { /// 后台结余满足大小
 			stolen = scanWork
-			gp.gcAssistBytes += debtBytes
+			gp.gcAssistBytes += debtBytes /// 把之前减少的再增加上
 		}
 		atomic.Xaddint64(&gcController.bgScanCredit, -stolen)
 
 		scanWork -= stolen
 
+		/// 账单 和 结余 抵消，返回
 		if scanWork == 0 {
 			// We were able to steal all of the credit we
 			// needed.
@@ -549,6 +556,7 @@ retry:
 		traceGCMarkAssistStart()
 	}
 
+	/// 执行辅助标记工作
 	// Perform assist work
 	systemstack(func() {
 		gcAssistAlloc1(gp, scanWork)
@@ -633,16 +641,19 @@ func gcAssistAlloc1(gp *g, scanWork int64) {
 		throw("nwait > work.nprocs")
 	}
 
+	/// 设置为等待状态
 	// gcDrainN requires the caller to be preemptible.
 	casgstatus(gp, _Grunning, _Gwaiting) /// gcAssistAlloc1
 	gp.waitreason = waitReasonGCAssistMarking
 
 	// drain own cached work first in the hopes that it
 	// will be more cache friendly.
-	gcw := &getg().m.p.ptr().gcw
-	workDone := gcDrainN(gcw, scanWork)
+	gcw := &getg().m.p.ptr().gcw /// 找到P的本地工作queue
+
+	workDone := gcDrainN(gcw, scanWork) /// 涂黑
 
 	casgstatus(gp, _Gwaiting, _Grunning) /// gcAssistAlloc1
+	/// 恢复执行
 
 	// Record that we did this much scan work.
 	//
@@ -1162,6 +1173,8 @@ func gcDrain(gcw *gcWork, flags gcDrainFlags) { /// gc 排出
 			// Unable to get work.
 			break
 		}
+
+		/// 扫描对象
 		scanobject(b, gcw)
 
 		// Flush background scan work credit to the global
@@ -1211,15 +1224,18 @@ done:
 //go:systemstack
 func gcDrainN(gcw *gcWork, scanWork int64) int64 {
 	if !writeBarrier.needed {
-		throw("gcDrainN phase incorrect")
+		throw("gcDrainN phase incorrect") /// 阶段不正确
 	}
 
 	// There may already be scan work on the gcw, which we don't
 	// want to claim was done by this call.
 	workFlushed := -gcw.scanWork
-
+	/// 获取当前用户G
 	gp := getg().m.curg
+
+	/// 不可抢占 并且 本地的扫描工作
 	for !gp.preempt && workFlushed+gcw.scanWork < scanWork {
+
 		// See gcDrain comment.
 		if work.full == 0 {
 			gcw.balance()
@@ -1249,6 +1265,8 @@ func gcDrainN(gcw *gcWork, scanWork int64) int64 {
 			if work.markrootNext < work.markrootJobs {
 				job := atomic.Xadd(&work.markrootNext, +1) - 1
 				if job < work.markrootJobs {
+
+					/// 标记根对象
 					markroot(gcw, job) /// gcDrainN
 					continue
 				}
@@ -1256,6 +1274,9 @@ func gcDrainN(gcw *gcWork, scanWork int64) int64 {
 			// No heap or root jobs.
 			break
 		}
+
+		/// 扫描对象
+		/// 这里利用了bitmap
 		scanobject(b, gcw)
 
 		// Flush background scan work credit.
@@ -1313,6 +1334,12 @@ func scanblock(b0, n0 uintptr, ptrmask *uint8, gcw *gcWork, stk *stackScanState)
 	}
 }
 
+///
+/// 扫描对象;
+/// 从b开始扫描对象，添加指针到gcw。
+/// b 必须指向一个heap对象或者一个oblet的开始位置。
+/// scanobject 查询 GC-Bitmap 为指针遮罩和对象大小的span
+///
 // scanobject scans the object starting at b, adding pointers to gcw.
 // b must point to the beginning of a heap object or an oblet.
 // scanobject consults the GC bitmap for the pointer mask and the
@@ -1320,12 +1347,15 @@ func scanblock(b0, n0 uintptr, ptrmask *uint8, gcw *gcWork, stk *stackScanState)
 //
 //go:nowritebarrier
 func scanobject(b uintptr, gcw *gcWork) {
+
+	/// 找到 b 的 bit位 和 对象大小
 	// Find the bits for b and the size of the object at b.
 	//
 	// b is either the beginning of an object, in which case this
 	// is the size of the object to scan, or it points to an
 	// oblet, in which case we compute the size to scan below.
-	hbits := heapBitsForAddr(b)
+	hbits := heapBitsForAddr(b) /// **** heapBitmap ****
+
 	s := spanOfUnchecked(b)
 	n := s.elemsize
 	if n == 0 {
@@ -1382,10 +1412,10 @@ func scanobject(b uintptr, gcw *gcWork) {
 		// in the type bit for the one word. The only one-word objects
 		// are pointers, or else they'd be merged with other non-pointer
 		// data into larger allocations.
-		if i != 1*sys.PtrSize && bits&bitScan == 0 {
+		if i != 1*sys.PtrSize && bits&bitScan == 0 {  // scan
 			break // no more pointers in this object
 		}
-		if bits&bitPointer == 0 {
+		if bits&bitPointer == 0 { // pointer
 			continue // not a pointer
 		}
 
@@ -1406,11 +1436,16 @@ func scanobject(b uintptr, gcw *gcWork) {
 			// just allocated and hence will be marked by
 			// allocation itself.
 			if obj, span, objIndex := findObject(obj, b, i); obj != 0 {
+
+				/// 涂灰对象
 				greyobject(obj, b, i, span, gcw, objIndex)
 			}
 		}
 	}
+
+	/// 标记的字节数
 	gcw.bytesMarked += uint64(n)
+	/// 扫描的工作数
 	gcw.scanWork += int64(i)
 }
 
@@ -1530,8 +1565,10 @@ func shade(b uintptr) {
 func greyobject(obj, base, off uintptr, span *mspan, gcw *gcWork, objIndex uintptr) {
 	// obj should be start of allocation, and so must be at least pointer-aligned.
 	if obj&(sys.PtrSize-1) != 0 {
-		throw("greyobject: obj not pointer-aligned")
+		throw("greyobject: obj not pointer-aligned") /// 对象没有对齐
 	}
+
+	///
 	mbits := span.markBitsForIndex(objIndex)
 
 	if useCheckmark {
@@ -1570,7 +1607,7 @@ func greyobject(obj, base, off uintptr, span *mspan, gcw *gcWork, objIndex uintp
 		if mbits.isMarked() {
 			return
 		}
-		mbits.setMarked()
+		mbits.setMarked() /// 设置为被标记
 
 		// Mark span.
 		arena, pageIdx, pageMask := pageIndexOf(span.base())
