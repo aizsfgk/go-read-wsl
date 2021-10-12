@@ -770,7 +770,7 @@ func (c *gcControllerState) findRunnableGCWorker(_p_ *p) *g {
 	}
 
 	/// dedicatedMarkWorkersNeeded > 0; 直接是专注模式
-	if decIfPositive(&c.dedicatedMarkWorkersNeeded) {
+	if decIfPositive(&c.dedicatedMarkWorkersNeeded) { /// 确定需要启动的个数
 		// This P is now dedicated to marking until the end of
 		// the concurrent mark phase.
 		/// 专注模式
@@ -1065,7 +1065,7 @@ var work struct {
 
 	nproc  uint32
 	tstart int64
-	nwait  uint32
+	nwait  uint32 /// 等待工作数
 	ndone  uint32
 
 	// Number of roots of various root types. Set by gcMarkRootPrepare.
@@ -1344,6 +1344,7 @@ func gcStart(trigger gcTrigger) {
 	//
 	// We check the transition condition continuously here in case
 	// this G gets delayed in to the next GC cycle.
+	/// 这是一个循环
 	for trigger.test() && sweepone() != ^uintptr(0) { /// 标记开始，一定要保证清扫完成
 		sweep.nbgsweep++
 	}
@@ -1398,6 +1399,7 @@ func gcStart(trigger gcTrigger) {
 	/// 重置标记状态
 	systemstack(gcResetMarkState)
 
+	/// 停止P个数，最大P个数
 	work.stwprocs, work.maxprocs = gomaxprocs, gomaxprocs /// 一般是核数
 	if work.stwprocs > ncpu {
 		// This is used to compute CPU time of the STW phases,
@@ -1577,6 +1579,8 @@ top:
 		// result in a deadlock as we attempt to preempt a worker that's
 		// trying to preempt us (e.g. for a stack scan).
 		casgstatus(gp, _Grunning, _Gwaiting) /// gcMarkDone
+
+		/// 遍历每一个P
 		forEachP(func(_p_ *p) {
 			// Flush the write barrier buffer, since this may add
 			// work to the gcWork.
@@ -1707,7 +1711,7 @@ top:
 				work.pauseNS += now - work.pauseStart
 			})
 			semrelease(&worldsema)
-			goto top
+			goto top /// 很重要
 		}
 	}
 
@@ -1742,6 +1746,7 @@ top:
 func gcMarkTermination(nextTriggerRatio float64) {
 	// World is stopped.
 	// Start marktermination which includes enabling the write barrier.
+	/// 停止世界， 辅助标记和后台标记不用涂黑了，但是写栅栏还在
 	atomic.Store(&gcBlackenEnabled, 0)
 	setGCPhase(_GCmarktermination)   /// gcMarkTermination； 标记终止阶段
 
@@ -1761,7 +1766,11 @@ func gcMarkTermination(nextTriggerRatio float64) {
 	// the root set down a bit (g0 stacks are not scanned, and
 	// we don't need to scan gc's internal state).  We also
 	// need to switch to g0 so we can shrink the stack.
+	///
+	/// 在 G0 栈上运行gc, 此时g stack 是不再改变的。设置根集合给一个bit标记。
+	/// 因为在G0上，我们也可以收缩栈。
 	systemstack(func() {
+
 		gcMark(startTime)
 		// Must return immediately.
 		// The outer function's stack may have moved
@@ -1811,8 +1820,8 @@ func gcMarkTermination(nextTriggerRatio float64) {
 	}
 
 	// Record next_gc and heap_inuse for scavenger.
-	memstats.last_next_gc = memstats.next_gc
-	memstats.last_heap_inuse = memstats.heap_inuse
+	memstats.last_next_gc = memstats.next_gc ///
+	memstats.last_heap_inuse = memstats.heap_inuse ///
 
 	// Update GC trigger and pacing for the next cycle.
 	gcSetTriggerRatio(nextTriggerRatio)
@@ -1831,6 +1840,7 @@ func gcMarkTermination(nextTriggerRatio float64) {
 
 	// Update work.totaltime.
 	sweepTermCpu := int64(work.stwprocs) * (work.tMark - work.tSweepTerm)
+
 	// We report idle marking time below, but omit it from the
 	// overall utilization here since it's "free".
 	markCpu := gcController.assistTime + gcController.dedicatedMarkTime + gcController.fractionalMarkTime
@@ -1950,8 +1960,8 @@ func gcMarkTermination(nextTriggerRatio float64) {
 func gcBgMarkStartWorkers() {
 	// Background marking is performed by per-P G's. Ensure that
 	// each P has a background GC G.
-	for _, p := range allp {
-		if p.gcBgMarkWorker == 0 { /// gcBgMarkStartWorkers
+	for _, p := range allp { /// 给每个P, 都挂在一个后台标记Goroutine
+		if p.gcBgMarkWorker == 0 { /// gcBgMarkStartWorkers; /// 后台标记工作数是0的时候
 
 			go gcBgMarkWorker(p)
 
@@ -2034,7 +2044,7 @@ func gcBgMarkWorker(_p_ *p) {
 				// cas the worker because we may be
 				// racing with a new worker starting
 				// on this P.
-				if !p.gcBgMarkWorker.cas(0, guintptr(unsafe.Pointer(g))) {
+				if !p.gcBgMarkWorker.cas(0, guintptr(unsafe.Pointer(g))) { /// 替换成功，等待被调度，否则false返回
 					// The P got a new worker.
 					// Exit this worker.
 					return false
@@ -2155,7 +2165,7 @@ func gcBgMarkWorker(_p_ *p) {
 			_p_.gcBgMarkWorker.set(nil)
 			releasem(park.m.ptr())
 
-			gcMarkDone() /// 标记终止阶段
+			gcMarkDone() /// 后台标记: 标记终止阶段
 
 			// Disable preemption and prepare to reattach
 			// to the P.

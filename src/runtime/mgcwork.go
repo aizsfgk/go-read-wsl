@@ -100,6 +100,7 @@ type gcWork struct {
 	// flushed to the global work list since the last gcMarkDone
 	// termination check. Specifically, this indicates that this
 	// gcWork may have communicated work to another gcWork.
+	/// 表明 非空的 work buffer 被冲刷到全局列表。
 	flushedWork bool
 
 	// pauseGen causes put operations to spin while pauseGen ==

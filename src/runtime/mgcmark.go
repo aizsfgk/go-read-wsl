@@ -204,7 +204,7 @@ func markroot(gcw *gcWork, i uint32) {
 		// the rest is scanning goroutine stacks
 		var gp *g
 		if baseStacks <= i && i < end {
-			gp = allgs[i-baseStacks]
+			gp = allgs[i-baseStacks] /// 获取到gp
 		} else {
 			throw("markroot: bad index")
 		}
@@ -567,7 +567,7 @@ retry:
 	completed := gp.param != nil
 	gp.param = nil
 	if completed {
-		gcMarkDone()
+		gcMarkDone() /// 辅助标记
 	}
 
 	if gp.gcAssistBytes < 0 {
@@ -1078,7 +1078,7 @@ const (
 // GC is done; it's the caller's responsibility to balance work from
 // other Ps.
 //
-/// gcDrain 扫描 work buffers 中的根对象，涂黑灰色的对象，直到灰色对象不能
+/// gcDrain 扫描 work buffers 中的`根`和`对象`，涂黑灰色的对象，直到灰色对象不能
 /// 获取新的work任务。它可能在 gcdone 前返回。调用者有责任平衡不同P之间的工作。
 //
 // If flags&gcDrainUntilPreempt != 0, gcDrain returns when g.preempt
@@ -1321,6 +1321,7 @@ func scanblock(b0, n0 uintptr, ptrmask *uint8, gcw *gcWork, stk *stackScanState)
 				// Same work as in scanobject; see comments there.
 				p := *(*uintptr)(unsafe.Pointer(b + i))
 				if p != 0 {
+					/// 发现对象，涂灰对象
 					if obj, span, objIndex := findObject(p, b, i); obj != 0 {
 						greyobject(obj, b, i, span, gcw, objIndex)
 					} else if stk != nil && p >= stk.stack.lo && p < stk.stack.hi {
@@ -1400,7 +1401,7 @@ func scanobject(b uintptr, gcw *gcWork) {
 	}
 
 	var i uintptr
-	for i = 0; i < n; i += sys.PtrSize {
+	for i = 0; i < n; i += sys.PtrSize { /// 指针大小的遍历
 		// Find bits for this word.
 		if i != 0 {
 			// Avoid needless hbits.next() on last iteration.
@@ -1568,7 +1569,7 @@ func greyobject(obj, base, off uintptr, span *mspan, gcw *gcWork, objIndex uintp
 		throw("greyobject: obj not pointer-aligned") /// 对象没有对齐
 	}
 
-	///
+	/// 使用了BitMap
 	mbits := span.markBitsForIndex(objIndex)
 
 	if useCheckmark {
