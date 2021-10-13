@@ -169,7 +169,7 @@ const (
 // GOGC==0, this will set heapminimum to 0, resulting in constant
 // collection even when the heap size is small, which is useful for
 // debugging.
-var heapminimum uint64 = defaultHeapMinimum
+var heapminimum uint64 = defaultHeapMinimum /// 4MB
 
 // defaultHeapMinimum is the value of heapminimum for GOGC==100.
 const defaultHeapMinimum = 4 << 20 /// 4MB
@@ -273,7 +273,7 @@ var gcphase uint32
 // If you change the first four bytes, you must also change the write
 // barrier insertion code.
 ///
-///
+/// 写栅栏： enabled 是否激活???
 ///
 ///
 var writeBarrier struct {
@@ -464,6 +464,7 @@ type gcControllerState struct {
 // for a new GC cycle. The caller must hold worldsema. /// 必须持有 worldsema
 func (c *gcControllerState) startCycle() {
 
+	/// 全都置为0
 	c.scanWork = 0
 	c.bgScanCredit = 0
 	c.assistTime = 0
@@ -479,7 +480,7 @@ func (c *gcControllerState) startCycle() {
 	// minimum distance, even if it means going over the GOGC goal
 	// by a tiny bit.
 	if memstats.next_gc < memstats.heap_live+1024*1024 {    /// 至少1MB
-		memstats.next_gc = memstats.heap_live + 1024*1024
+		memstats.next_gc = memstats.heap_live + 1024*1024   /// 如果下一轮小于当前活跃，至少1MB
 	}
 
 	/// 计算后台标记使用目标
@@ -547,14 +548,14 @@ func (c *gcControllerState) startCycle() {
 // It should only be called when gcBlackenEnabled != 0 (because this
 // is when assists are enabled and the necessary statistics are
 // available).
-func (c *gcControllerState) revise() {
+func (c *gcControllerState) revise() { /// 修改
 	gcpercent := gcpercent
 	if gcpercent < 0 {
 		// If GC is disabled but we're running a forced GC,
 		// act like GOGC is huge for the below calculations.
 		gcpercent = 100000
 	}
-	live := atomic.Load64(&memstats.heap_live)
+	live := atomic.Load64(&memstats.heap_live) /// 当前存活的内存
 
 	// Assume we're under the soft goal. Pace GC to complete at
 	// next_gc assuming the heap is in steady-state.
@@ -847,8 +848,8 @@ func gcSetTriggerRatio(triggerRatio float64) {
 	// Compute the next GC goal, which is when the allocated heap
 	// has grown by GOGC/100 over the heap marked by the last
 	// cycle.
-	goal := ^uint64(0)
-	if gcpercent >= 0 {
+	goal := ^uint64(0) /// 取最大值
+	if gcpercent >= 0 { ///
 		goal = memstats.heap_marked + memstats.heap_marked*uint64(gcpercent)/100
 	}
 
@@ -1058,6 +1059,7 @@ var work struct {
 	//
 	// Put this field here because it needs 64-bit atomic access
 	// (and thus 8-byte alignment even on 32-bit architectures).
+	/// 本次循环被标记得字节数
 	bytesMarked uint64
 
 	markrootNext uint32 // next markroot job   /// 下一个工作索引

@@ -288,6 +288,7 @@ func markrootBlock(b0, n0 uintptr, ptrmask0 *uint8, gcw *gcWork, shard int) {
 	scanblock(b, n, ptrmask, gcw, nil)
 }
 
+/// 释放状态是dead的Goroutine的栈
 // markrootFreeGStacks frees stacks of dead Gs.
 //
 // This does not free stacks of dead Gs cached on Ps, but having a few
