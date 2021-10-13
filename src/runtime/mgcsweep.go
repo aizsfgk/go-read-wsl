@@ -372,7 +372,11 @@ func (s *mspan) ensureSwept() {
 		osyield()
 	}
 }
-
+/// 释放和手机finalizer为没有标记的块在标记阶段。
+/// 它清除标记位，为下次GC
+/// 返回true, 如果这个span归还给heap
+/// 如果 preserve=true ; 不要退回给heap 也不要 重新连接到mcentral lists
+///
 // Sweep frees or collects finalizers for blocks not marked in the mark phase.
 // It clears the mark bits in preparation for the next GC round.
 // Returns true if the span was returned to heap.
@@ -382,6 +386,7 @@ func (s *mspan) sweep(preserve bool) bool {
 	if !go115NewMCentralImpl {
 		return s.oldSweep(preserve)
 	}
+
 	// It's critical that we enter this function with preemption disabled,
 	// GC must not start while we are in the middle of this function.
 	_g_ := getg()
@@ -400,11 +405,15 @@ func (s *mspan) sweep(preserve bool) bool {
 
 	atomic.Xadd64(&mheap_.pagesSwept, int64(s.npages))
 
-	spc := s.spanclass
-	size := s.elemsize
+	spc := s.spanclass /// span clalss
+	size := s.elemsize /// 大小???
 
 	c := _g_.m.p.ptr().mcache
 
+	///
+	/// allocBits 表明 没有标记的对象, 不需要被处理。尽管她们被释放在最后一个gc。
+	///
+	///
 	// The allocBits indicate which unmarked objects don't need to be
 	// processed since they were free at the end of the last GC cycle
 	// and were not allocated since then.
@@ -421,6 +430,7 @@ func (s *mspan) sweep(preserve bool) bool {
 	// 2. A tiny object can have several finalizers setup for different offsets.
 	//    If such object is not marked, we need to queue all finalizers at once.
 	// Both 1 and 2 are possible at the same time.
+
 	hadSpecials := s.specials != nil
 	specialp := &s.specials
 	special := *specialp
@@ -517,6 +527,9 @@ func (s *mspan) sweep(preserve bool) bool {
 			}
 		}
 	}
+
+
+	/// 跟新索引
 
 	// Count the number of free objects in this span.
 	nalloc := uint16(s.countAlloc())

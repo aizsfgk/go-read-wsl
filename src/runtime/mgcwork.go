@@ -179,6 +179,9 @@ func (w *gcWork) checkPut(ptr uintptr, ptrs []uintptr) {
 	}
 }
 
+
+/// 入队一个对象为了垃圾回收
+/// obj 必须是一个指向对象或者oblet的开始地址
 // put enqueues a pointer for the garbage collector to trace.
 // obj must point to the beginning of a heap object or an oblet.
 //go:nowritebarrierrec
