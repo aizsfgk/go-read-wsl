@@ -99,7 +99,7 @@ const (
 	// _Gscanrunning is different: it is used to briefly block
 	// state transitions while GC signals the G to scan its own
 	// stack. This is otherwise like _Grunning.
-	/// _Gscanrunning是不同的： 它被用来简短地阻塞状态转换。等GC给G发送信号，去scan它自己地栈。
+	/// _Gscanrunning是不同的： 它被用来简短地阻塞状态转换。等GC给G发送信号，去scan它自己的栈。
 	//
 	// atomicstatus&~Gscan gives the state the goroutine will
 	// return to when the scan completes.

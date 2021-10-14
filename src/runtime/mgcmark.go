@@ -1451,6 +1451,7 @@ func scanobject(b uintptr, gcw *gcWork) {
 	gcw.scanWork += int64(i)
 }
 
+/// 保守的扫描，任何可能是指针的，都被认为是指针
 // scanConservative scans block [b, b+n) conservatively, treating any
 // pointer-like value in the block as a pointer.
 //

@@ -320,9 +320,10 @@ const (
 // Note: this list must match the list in cmd/internal/objabi/funcid.go.
 type funcID uint8
 
+/// 特殊的funcID
 const (
 	funcID_normal funcID = iota // not a special function
-	funcID_runtime_main
+	funcID_runtime_main /// main
 	funcID_goexit
 	funcID_jmpdefer
 	funcID_mcall
