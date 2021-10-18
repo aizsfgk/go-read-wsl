@@ -356,6 +356,7 @@ func wantAsyncPreempt(gp *g) bool {
 	return (gp.preempt || gp.m.p != 0 && gp.m.p.ptr().preempt) && readgstatus(gp)&^_Gscan == _Grunning
 }
 
+/// 是否是异步安全点
 // isAsyncSafePoint reports whether gp at instruction PC is an
 // asynchronous safe point. This indicates that:
 //

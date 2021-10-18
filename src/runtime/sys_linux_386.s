@@ -414,6 +414,7 @@ TEXT runtime·sigfwd(SB),NOSPLIT,$12-16
 	MOVL	AX, SP
 	RET
 
+/// 函数调用
 TEXT runtime·sigtramp(SB),NOSPLIT,$28
 	// Save callee-saved C registers, since the caller may be a C signal handler.
 	MOVL	BX, bx-4(SP)

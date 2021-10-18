@@ -472,13 +472,17 @@ type g struct {
 	stackguard0 uintptr // offset known to liblink
 	stackguard1 uintptr // offset known to liblink
 
+	/// 2个链表
 	_panic       *_panic // innermost panic - offset known to liblink
 	_defer       *_defer // innermost defer
+
+
 	m            *m      // current m; offset known to arm liblink; /// 此时的G 正在被哪个工作线程执行
 	sched        gobuf
 	syscallsp    uintptr        // if status==Gsyscall, syscallsp = sched.sp to use during gc
 	syscallpc    uintptr        // if status==Gsyscall, syscallpc = sched.pc to use during gc
 	stktopsp     uintptr        // expected sp at top of stack, to check in traceback
+
 	param        unsafe.Pointer // passed parameter on wakeup
 	atomicstatus uint32  /// 存储状态
 	stackLock    uint32 // sigprof/scang lock; TODO: fold in to atomicstatus
@@ -487,9 +491,13 @@ type g struct {
 	waitsince    int64      // approx time when the g become blocked /// g 变成阻塞
 	waitreason   waitReason // if status==Gwaiting /// 如果状态时等待；返回具体的等待原因
 
-	/// // 抢占调度标志，如果需要抢占调度，设置preempt为true
+	/// 抢占调度标志，如果需要抢占调度，设置preempt为true
 	preempt       bool // preemption signal, duplicates stackguard0 = stackpreempt
+
+	/// 基于信号的抢占调度标识；suspendG的时候，会将preemptStop 设置为 true
 	preemptStop   bool // transition to _Gpreempted on preemption; otherwise, just deschedule
+
+
 	preemptShrink bool // shrink stack at synchronous safe point
 
 	// asyncSafePoint is set if g is stopped at an asynchronous
@@ -518,7 +526,9 @@ type g struct {
 	tracelastp     puintptr // last P emitted an event for this goroutine
 	lockedm        muintptr
 	sig            uint32   /// 存储 goroutine 的信号
-	writebuf       []byte
+
+
+	writebuf       []byte /// 写缓冲区
 	sigcode0       uintptr
 	sigcode1       uintptr
 	sigpc          uintptr
@@ -578,9 +588,10 @@ type m struct {
 	mallocing     int32    //// 是否正在分配内存； 1 是； 0 否
 	throwing      int32
 	preemptoff    string // if != "", keep curg running on this m;  /// 抢占原因
+
 	locks         int32  /// 1. 用来锁住goroutine和P关系; locks++; locks--;
-	dying         int32
-	profilehz     int32
+	dying         int32 /// panic 相关
+	profilehz     int32 ///
 
 	/// 表示当前工作线程正在试图从其它工作线程的本地运行队列偷取goroutine
 	spinning      bool // m is out of work and is actively looking for work
@@ -588,8 +599,8 @@ type m struct {
 	newSigstack   bool // minit on C thread called sigaltstack
 	printlock     int8
 	incgo         bool   // m is executing a cgo call
-	freeWait      uint32 // if == 0, safe to free g0 and delete m (atomic)
-	fastrand      [2]uint32
+	freeWait      uint32 // if == 0, safe to free g0 and delete m (atomic) /// 是否有释放等待
+	fastrand      [2]uint32 /// 随机数???
 	needextram    bool
 	traceback     uint8       /// traceback=1 to override GOTRACEBACK setting; 开启栈跟踪
 	ncgocall      uint64      // number of cgo calls in total
@@ -662,6 +673,7 @@ type p struct {
 
 	raceprocctx uintptr
 
+	/// defer 池
 	deferpool    [5][]*_defer // pool of available defer structs of different sizes (see panic.go)
 	deferpoolbuf [5][32]*_defer
 
@@ -724,6 +736,8 @@ type p struct {
 	/// 定时器heap上的第一个实体；它被更新使用原子函数；0表示定时器heap为空
 	timer0When uint64
 
+	/// ******************* gc 相关功能 ********************* ///
+
 	// Per-P GC state
 	gcAssistTime         int64    // Nanoseconds in assistAlloc
 	gcFractionalMarkTime int64    // Nanoseconds in fractional mark worker (atomic)
@@ -780,7 +794,7 @@ type p struct {
 
 	// preempt is set to indicate that this P should be enter the
 	// scheduler ASAP (regardless of what G is running on it).
-	preempt bool /// 异步抢占标识
+	preempt bool /// 异步抢占标识;
 
 	pad cpu.CacheLinePad
 }
