@@ -152,6 +152,8 @@ import (
 // remove the deletion barrier, we'll have to work out a new way to
 // handle the profile logging.
 
+
+/// 复制一个值，从src到dst
 // typedmemmove copies a value of type t to dst from src.
 // Must be nosplit, see #16026.
 //
@@ -342,6 +344,7 @@ func reflect_typedmemclrpartial(typ *_type, ptr unsafe.Pointer, off, size uintpt
 	memclrNoHeapPointers(ptr, size)
 }
 
+/// 从ptr指针开始处，清理n个字节
 // memclrHasPointers clears n bytes of typed memory starting at ptr.
 // The caller must ensure that the type of the object at ptr has
 // pointers, usually by checking typ.ptrdata. However, ptr
