@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Garbage collector: type and heap bitmaps. /// 类型和 heap bitmaps
+// Garbage collector: type and heap bitmaps. /// 类型和heap 位图
 //
 // Stack, data, and bss bitmaps
 //
@@ -10,7 +10,11 @@
 // by 1-bit bitmaps in which 0 means uninteresting and 1 means live pointer
 // to be visited during GC. The bits in each byte are consumed starting with
 // the low bit: 1<<0, 1<<1, and so on.
-//
+///
+/// 栈，数据，BSS 位图
+/// 0: 无指针
+/// 1: 有指针
+///
 // Heap bitmap
 //
 // The heap bitmap comprises 2 bits for each pointer-sized word in the heap,
@@ -30,6 +34,9 @@
 // over. This 00 is called the ``dead'' encoding: it signals that the
 // rest of the words in the object are uninteresting to the garbage
 // collector.
+///
+/// 堆位图
+///
 //
 // In the second word, the high bit is the GC ``checkmarked'' bit (see below).
 //
@@ -582,6 +589,7 @@ func (h heapBits) setCheckmarked(size uintptr) {
 	atomic.Or8(h.bitp, bitScan<<(heapBitsShift+h.shift))
 }
 
+/// 在一个内存范围，针对指针槽（pointer slot）执行写栅栏，使用指针/扫描器信息。
 // bulkBarrierPreWrite executes a write barrier
 // for every pointer slot in the memory range [src, src+size),
 // using pointer/scalar information from [dst, dst+size).
@@ -616,6 +624,8 @@ func bulkBarrierPreWrite(dst, src, size uintptr) {
 	if !writeBarrier.needed {
 		return
 	}
+
+	// span 为空
 	if s := spanOf(dst); s == nil {
 		// If dst is a global, use the data or BSS bitmaps to
 		// execute write barriers.
