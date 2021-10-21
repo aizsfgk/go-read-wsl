@@ -4,6 +4,8 @@
 
 package binary
 
+/// 这个文件实现了变长整数，针对64位整数
+
 // This file implements "varint" encoding of 64-bit integers.
 // The encoding is:
 // - unsigned integers are serialized 7 bits at a time, starting with the

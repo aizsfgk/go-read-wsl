@@ -4,7 +4,10 @@
 
 // Package binary implements simple translation between numbers and byte
 // sequences and encoding and decoding of varints.
-//
+///
+/// 在字节和数字之间转换：编码和解码
+///
+// varint: 可变长整数
 // Numbers are translated by reading and writing fixed-size values.
 // A fixed-size value is either a fixed-size arithmetic
 // type (bool, int8, uint8, int16, float32, complex64, ...)
@@ -40,6 +43,12 @@ type ByteOrder interface {
 	PutUint64([]byte, uint64)
 	String() string
 }
+
+
+/// 大端的编码，必须使用大端的解码：网络字节序
+/// 小端的编码，必须使用小端的解码：本地字节序
+
+/// 转换为大端字节序，还是转换为小端字节序
 
 // LittleEndian is the little-endian implementation of ByteOrder.
 var LittleEndian littleEndian
@@ -143,6 +152,11 @@ func (bigEndian) String() string { return "BigEndian" }
 
 func (bigEndian) GoString() string { return "binary.BigEndian" }
 
+///
+/// 从r中读取数据，放入Data
+/// Data 必须是一个指向固定大小值得指针或者一个固定大小值得切片
+///
+///
 // Read reads structured binary data from r into data.
 // Data must be a pointer to a fixed-size value or a slice
 // of fixed-size values.
@@ -159,10 +173,13 @@ func (bigEndian) GoString() string { return "binary.BigEndian" }
 // The error is EOF only if no bytes were read.
 // If an EOF happens after reading some but not all the bytes,
 // Read returns ErrUnexpectedEOF.
+///
+///
+///
 func Read(r io.Reader, order ByteOrder, data interface{}) error {
 	// Fast path for basic types and slices.
 	if n := intDataSize(data); n != 0 {
-		bs := make([]byte, n)
+		bs := make([]byte, n) /// 构建一个固定长度切片
 		if _, err := io.ReadFull(r, bs); err != nil {
 			return err
 		}
@@ -434,7 +451,7 @@ func sizeof(t reflect.Type) int {
 
 	case reflect.Struct:
 		sum := 0
-		for i, n := 0, t.NumField(); i < n; i++ {
+		for i, n := 0, t.NumField(); i < n; i++ { /// 每个字段的值+
 			s := sizeof(t.Field(i).Type)
 			if s < 0 {
 				return -1
