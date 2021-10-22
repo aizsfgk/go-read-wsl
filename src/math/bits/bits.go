@@ -4,6 +4,10 @@
 
 //go:generate go run make_tables.go
 
+///
+/// 位计数 和 管理函数
+///
+///
 // Package bits implements bit counting and manipulation
 // functions for the predeclared unsigned integer types.
 package bits
