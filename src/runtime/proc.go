@@ -4016,10 +4016,13 @@ func gfput(_p_ *p, gp *g) {
 	}
 }
 
+/// 从gfree列表中，获取Goroutine
 // Get from gfree list.
 // If local list is empty, grab a batch from global list.
 func gfget(_p_ *p) *g {
 retry:
+
+	/// 本地为空；则从全局获取
 	if _p_.gFree.empty() && (!sched.gFree.stack.empty() || !sched.gFree.noStack.empty()) {
 		lock(&sched.gFree.lock)
 		// Move a batch of free Gs to the P.
@@ -4039,6 +4042,8 @@ retry:
 		unlock(&sched.gFree.lock)
 		goto retry
 	}
+
+	/// 直接从本地获取
 	gp := _p_.gFree.pop()
 	if gp == nil {
 		return nil
