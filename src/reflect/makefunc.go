@@ -46,10 +46,12 @@ type makeFuncImpl struct {
 // of how to use MakeFunc to build a swap function for different types.
 //
 func MakeFunc(typ Type, fn func(args []Value) (results []Value)) Value {
+	/// 不是函数
 	if typ.Kind() != Func {
 		panic("reflect: call of MakeFunc with non-Func type")
 	}
 
+	///
 	t := typ.common()
 	ftyp := (*funcType)(unsafe.Pointer(t))
 
