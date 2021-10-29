@@ -10,9 +10,9 @@ import "unsafe"
 // It grows without bound, but that's assumed to be OK.
 type profMap struct {
 	hash    map[uintptr]*profMapEntry
-	all     *profMapEntry
-	last    *profMapEntry
-	free    []profMapEntry
+	all     *profMapEntry  /// 所有的
+	last    *profMapEntry  /// 最近的
+	free    []profMapEntry /// 释放
 	freeStk []uintptr
 }
 
@@ -26,6 +26,7 @@ type profMapEntry struct {
 }
 
 func (m *profMap) lookup(stk []uint64, tag unsafe.Pointer) *profMapEntry {
+	///计算hash值
 	// Compute hash of (stk, tag).
 	h := uintptr(0)
 	for _, x := range stk {
@@ -56,6 +57,8 @@ Search:
 		return e
 	}
 
+	
+
 	// Add new entry.
 	if len(m.free) < 1 {
 		m.free = make([]profMapEntry, 128)
@@ -68,6 +71,9 @@ Search:
 	if len(m.freeStk) < len(stk) {
 		m.freeStk = make([]uintptr, 1024)
 	}
+
+
+
 	// Limit cap to prevent append from clobbering freeStk.
 	e.stk = m.freeStk[:len(stk):len(stk)]
 	m.freeStk = m.freeStk[len(stk):]

@@ -131,6 +131,7 @@ func main() {
 
 	if SF_GO_DEBUG_SCHED {
 		println("-------------- runtime.main -------------")
+		defer println("-------------- runtime.main end -------------")
 
 
 
