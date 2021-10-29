@@ -687,6 +687,12 @@ func inHeapOrStack(b uintptr) bool {
 	}
 }
 
+/// 1. 指针P通过便宜找到heapArena
+/// 2. 通过heapArena元信息中的spans, 找到具体位于的span
+
+/// spanOf 返回 指针p所在的span。
+/// 如果找个指针不指向heap arena 或者 不存在span包含这个指针p, 返回nil。
+///
 // spanOf returns the span of p. If p does not point into the heap
 // arena or no span has ever contained p, spanOf returns nil.
 //
@@ -704,7 +710,8 @@ func spanOf(p uintptr) *mspan {
 	// budget. Also, many of the checks here are safety checks
 	// that Go needs to do anyway, so the generated code is quite
 	// short.
-	ri := arenaIndex(p)
+	ri := arenaIndex(p) /// 找到 arena 索引位置
+
 	if arenaL1Bits == 0 {
 		// If there's no L1, then ri.l1() can't be out of bounds but ri.l2() can.
 		if ri.l2() >= uint(len(mheap_.arenas[0])) {
@@ -716,11 +723,11 @@ func spanOf(p uintptr) *mspan {
 			return nil
 		}
 	}
-	l2 := mheap_.arenas[ri.l1()]
+	l2 := mheap_.arenas[ri.l1()] /// Linux 上ri.l1()永远返回0
 	if arenaL1Bits != 0 && l2 == nil { // Should never happen if there's no L1.
 		return nil
 	}
-	ha := l2[ri.l2()]
+	ha := l2[ri.l2()] /// ha == heapArena
 	if ha == nil {
 		return nil
 	}

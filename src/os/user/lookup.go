@@ -6,17 +6,23 @@ package user
 
 import "sync"
 
+
+/// 返回当前用户
 // Current returns the current user.
 //
 // The first call will cache the current user information.
 // Subsequent calls will return the cached value and will not reflect
 // changes to the current user.
 func Current() (*User, error) {
+	/// 只执行一次
 	cache.Do(func() { cache.u, cache.err = current() })
+	/// 错误不为空
 	if cache.err != nil {
 		return nil, cache.err
 	}
+	/// 复制
 	u := *cache.u // copy
+	/// 返回
 	return &u, nil
 }
 

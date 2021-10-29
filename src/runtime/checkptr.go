@@ -16,8 +16,9 @@ func checkptrAlignment(p unsafe.Pointer, elem *_type, n uintptr) {
 		throw("checkptr: misaligned pointer conversion")
 	}
 
+	/// base 必须是在同一个range中的
 	// Check that (*[n]elem)(p) doesn't straddle multiple heap objects.
-	if size := n * elem.size; size > 1 && checkptrBase(p) != checkptrBase(add(p, size-1)) {
+	if size := n * elem.size; size > 1 && checkptrBase(p) != checkptrBase(add(p, size-1)) { /// 2个Base不一致
 		throw("checkptr: converted pointer straddles multiple allocations")
 	}
 }
@@ -45,6 +46,8 @@ func checkptrArithmetic(p unsafe.Pointer, originals []unsafe.Pointer) {
 	throw("checkptr: pointer arithmetic result points to invalid allocation")
 }
 
+///
+///
 /// 返回包含地址p的内存的基地址
 // checkptrBase returns the base address for the allocation containing
 // the address p.

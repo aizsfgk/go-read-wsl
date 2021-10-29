@@ -747,6 +747,7 @@ var cpu struct {
 	done      chan bool
 }
 
+
 // StartCPUProfile enables CPU profiling for the current process.
 // While profiling, the profile will be buffered and written to w.
 // StartCPUProfile returns an error if profiling is already enabled.
@@ -759,6 +760,7 @@ var cpu struct {
 // for syscall.SIGPROF, but note that doing so may break any profiling
 // being done by the main program.
 func StartCPUProfile(w io.Writer) error {
+
 	// The runtime routines allow a variable profiling rate,
 	// but in practice operating systems cannot trigger signals
 	// at more than about 500 Hz, and our processing of the
@@ -768,6 +770,7 @@ func StartCPUProfile(w io.Writer) error {
 	// system, and a nice round number to make it easy to
 	// convert sample counts to seconds. Instead of requiring
 	// each client to specify the frequency, we hard code it.
+	/// 硬编码为100
 	const hz = 100
 
 	cpu.Lock()
@@ -780,8 +783,14 @@ func StartCPUProfile(w io.Writer) error {
 		return fmt.Errorf("cpu profiling already in use")
 	}
 	cpu.profiling = true
+
+
 	runtime.SetCPUProfileRate(hz)
+
+
 	go profileWriter(w)
+
+
 	return nil
 }
 
@@ -792,11 +801,14 @@ func StartCPUProfile(w io.Writer) error {
 // The caller must save the returned data and tags before calling readProfile again.
 func readProfile() (data []uint64, tags []unsafe.Pointer, eof bool)
 
+/// 后台协程写入数据
 func profileWriter(w io.Writer) {
+
 	b := newProfileBuilder(w)
+
 	var err error
 	for {
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond) /// 100 微妙
 		data, tags, eof := readProfile()
 		if e := b.addCPUData(data, tags); e != nil && err == nil {
 			err = e

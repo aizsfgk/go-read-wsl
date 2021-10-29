@@ -391,6 +391,7 @@ func badPointer(s *mspan, p, refBase, refOff uintptr) {
 	throw("found bad pointer in Go heap (incorrect use of unsafe or cgo?)")
 }
 
+/// 通过p地址找到堆对象的基地址
 // findObject returns the base address for the heap object containing
 // the address p, the object's span, and the index of the object in s.
 // If p does not point into a heap object, it returns base == 0.

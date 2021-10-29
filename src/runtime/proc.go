@@ -4323,6 +4323,10 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 	// To recap, there are no constraints on the assembly being used for the
 	// transition. We simply require that g and SP match and that the PC is not
 	// in gogo.
+
+	///
+	/// sigprof(c.sigpc(), c.sigsp(), c.siglr(), gp, _g_.m)
+	/// sigprof(pc, sp, lr uintptr, gp *g, mp *m)
 	traceback := true
 	if gp == nil || sp < gp.stack.lo || gp.stack.hi < sp || setsSP(pc) || (mp != nil && mp.vdsoSP != 0) {
 		traceback = false
@@ -4384,6 +4388,7 @@ func sigprof(pc, sp, lr uintptr, gp *g, mp *m) {
 	}
 
 	if prof.hz != 0 {
+		/// 添加
 		cpuprof.add(gp, stk[:n])
 	}
 
@@ -4454,8 +4459,9 @@ func setsSP(pc uintptr) bool {
 	return false
 }
 
+/// 设置 cpu profile 比率
 // setcpuprofilerate sets the CPU profiling rate to hz times per second.
-// If hz <= 0, setcpuprofilerate turns off CPU profiling.
+// If hz <= 0, setcpuprofilerate turns off CPU profiling. /// <=0 关闭
 func setcpuprofilerate(hz int32) {
 	// Force sane arguments.
 	if hz < 0 {
@@ -4470,7 +4476,7 @@ func setcpuprofilerate(hz int32) {
 	// Stop profiler on this thread so that it is safe to lock prof.
 	// if a profiling signal came in while we had prof locked,
 	// it would deadlock.
-	setThreadCPUProfiler(0)
+	setThreadCPUProfiler(0) /// 设置CPU setitimer; 定时器
 
 	for !atomic.Cas(&prof.signalLock, 0, 1) {
 		osyield()
@@ -4479,7 +4485,7 @@ func setcpuprofilerate(hz int32) {
 		setProcessCPUProfiler(hz)
 		prof.hz = hz
 	}
-	atomic.Store(&prof.signalLock, 0)
+	atomic.Store(&prof.signalLock, 0) /// 置为0
 
 	lock(&sched.lock)
 	sched.profilehz = hz

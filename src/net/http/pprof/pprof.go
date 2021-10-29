@@ -117,11 +117,15 @@ func serveError(w http.ResponseWriter, status int, txt string) {
 	fmt.Fprintln(w, txt)
 }
 
+/// Profile 相应的格式记录
 // Profile responds with the pprof-formatted cpu profile.
 // Profiling lasts for duration specified in seconds GET parameter, or for 30 seconds if not specified.
 // The package initialization registers it as /debug/pprof/profile.
 func Profile(w http.ResponseWriter, r *http.Request) {
+	/// 设置Header
 	w.Header().Set("X-Content-Type-Options", "nosniff")
+
+	/// 获取秒数；默认30s
 	sec, err := strconv.ParseInt(r.FormValue("seconds"), 10, 64)
 	if sec <= 0 || err != nil {
 		sec = 30
@@ -136,13 +140,20 @@ func Profile(w http.ResponseWriter, r *http.Request) {
 	// because if it does it starts writing.
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", `attachment; filename="profile"`)
+
+
+	/// 启动CPU profile
 	if err := pprof.StartCPUProfile(w); err != nil {
 		// StartCPUProfile failed, so no writes yet.
 		serveError(w, http.StatusInternalServerError,
 			fmt.Sprintf("Could not enable CPU profiling: %s", err))
 		return
 	}
+
+	/// 睡眠这么久
 	sleep(w, time.Duration(sec)*time.Second)
+
+	/// 停止收集
 	pprof.StopCPUProfile()
 }
 

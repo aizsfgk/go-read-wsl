@@ -15,7 +15,10 @@ import (
 // The reader is assumed to be a user g.
 //
 /// profBuf 是一个无锁缓冲，为profiling events
-//
+/// 并发安全的为一个reader 和 一个 writer.
+/// writer: 一个信号句柄运行函数，非user g
+/// reader: user g
+///
 // Each logged event corresponds to a fixed size header, a list of
 // uintptrs (typically a stack), and exactly one unsafe.Pointer tag.
 // The header and uintptrs are stored in the circular buffer data and the

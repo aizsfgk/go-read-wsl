@@ -367,8 +367,8 @@ type moduledata struct {
 
 	text, etext           uintptr /// 代码段
 	noptrdata, enoptrdata uintptr /// 含有指针的数据段
-	data, edata           uintptr /// 数据段
-	bss, ebss             uintptr /// 未初始化数据段
+	data, edata           uintptr /// 数据段，开始结束地址
+	bss, ebss             uintptr /// 未初始化数据段， 开始结束地址
 	noptrbss, enoptrbss   uintptr /// 含有指针的未初始化数据段
 	end, gcdata, gcbss    uintptr
 	types, etypes         uintptr /// 类型
@@ -427,6 +427,7 @@ var firstmoduledata moduledata  // linker symbol /// 连接符号表
 var lastmoduledatap *moduledata // linker symbol
 var modulesSlice *[]*moduledata // see activeModules /// 激活的模块
 
+/// 返回一个激活模块的切片
 // activeModules returns a slice of active modules.
 //
 // A module is active once its gcdatamask and gcbssmask have been

@@ -254,7 +254,8 @@ type locInfo struct {
 // by calling b.addCPUData, and then the eventual profile
 // can be obtained by calling b.finish.
 func newProfileBuilder(w io.Writer) *profileBuilder {
-	zw, _ := gzip.NewWriterLevel(w, gzip.BestSpeed)
+	zw, _ := gzip.NewWriterLevel(w, gzip.BestSpeed) /// 最快速度压缩级
+	/// 新建构建器
 	b := &profileBuilder{
 		w:         w,
 		zw:        zw,
@@ -264,6 +265,8 @@ func newProfileBuilder(w io.Writer) *profileBuilder {
 		locs:      map[uintptr]locInfo{},
 		funcs:     map[string]int{},
 	}
+
+	/// 读取mapping
 	b.readMapping()
 	return b
 }

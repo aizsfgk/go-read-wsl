@@ -57,12 +57,12 @@ func SetCPUProfileRate(hz int) {
 	if hz < 0 {
 		hz = 0
 	}
-	if hz > 1000000 {
+	if hz > 1000000 { /// 百万
 		hz = 1000000
 	}
 
 	lock(&cpuprof.lock)
-	if hz > 0 {
+	if hz > 0 { /// 开启
 		if cpuprof.on || cpuprof.log != nil {
 			print("runtime: cannot set cpu profile rate until previous profile has finished.\n")
 			unlock(&cpuprof.lock)
@@ -70,11 +70,18 @@ func SetCPUProfileRate(hz int) {
 		}
 
 		cpuprof.on = true
+		/// 新建一个Buf
 		cpuprof.log = newProfBuf(1, 1<<17, 1<<14)
+		/// 设置hz
 		hdr := [1]uint64{uint64(hz)}
+		/// 写一个事件
 		cpuprof.log.write(nil, nanotime(), hdr[:], nil)
+
+		///
 		setcpuprofilerate(int32(hz))
-	} else if cpuprof.on {
+
+	} else if cpuprof.on { /// 关闭
+
 		setcpuprofilerate(0)
 		cpuprof.on = false
 		cpuprof.addExtra()

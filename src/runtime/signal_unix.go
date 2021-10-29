@@ -319,12 +319,12 @@ func setProcessCPUProfiler(hz int32) {
 func setThreadCPUProfiler(hz int32) {
 	var it itimerval
 	if hz == 0 {
-		setitimer(_ITIMER_PROF, &it, nil)
+		setitimer(_ITIMER_PROF, &it, nil) /// 定时器
 	} else {
 		it.it_interval.tv_sec = 0
 		it.it_interval.set_usec(1000000 / hz)
 		it.it_value = it.it_interval
-		setitimer(_ITIMER_PROF, &it, nil)
+		setitimer(_ITIMER_PROF, &it, nil) /// ITIMER_PROF：以该进程在用户态下和内核态下所费的时间来计算。它送出SIGPROF信号。
 	}
 	_g_ := getg()
 	_g_.m.profilehz = hz
