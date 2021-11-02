@@ -28,16 +28,19 @@ import (
 // made using extra funcdata info that indicates the exact stack slots that
 // contain the bitmask and defer fn/args.
 
+/// panic 是 runtime 生成 / from inside malloc ; 则转为 throw a msg
 // Check to make sure we can really generate a panic. If the panic
 // was generated from the runtime, or from inside malloc, then convert
 // to a throw of msg.
 // pc should be the program counter of the compiler-generated code that
 // triggered this panic.
 func panicCheck1(pc uintptr, msg string) {
+
 	if sys.GoarchWasm == 0 && hasPrefix(funcname(findfunc(pc)), "runtime.") {
 		// Note: wasm can't tail call, so we can't get the original caller's pc.
 		throw(msg)
 	}
+
 	// TODO: is this redundant? How could we be in malloc
 	// but not in the runtime? runtime/internal/*, maybe?
 	gp := getg()
@@ -46,6 +49,7 @@ func panicCheck1(pc uintptr, msg string) {
 	}
 }
 
+/// 运行时允许的
 // Same as above, but calling from the runtime is allowed.
 //
 // Using this function is necessary for any panic that may be
@@ -217,6 +221,9 @@ func panicmem() {
 	panic(memoryError)
 }
 
+///
+/// 创建一个新的 deferred 函数
+///
 // Create a new deferred function fn with siz bytes of arguments.
 // The compiler turns a defer statement into a call to this.
 //go:nosplit
@@ -232,9 +239,9 @@ func deferproc(siz int32, fn *funcval) { // arguments of fn follow fn
 	// collection or stack copying trigger until we've copied them out
 	// to somewhere safe. The memmove below does that.
 	// Until the copy completes, we can only call nosplit routines.
-	sp := getcallersp()
-	argp := uintptr(unsafe.Pointer(&fn)) + unsafe.Sizeof(fn)
-	callerpc := getcallerpc()
+	sp := getcallersp() /// 栈指针
+	argp := uintptr(unsafe.Pointer(&fn)) + unsafe.Sizeof(fn) ///
+	callerpc := getcallerpc() /// 程序计数器
 
 	d := newdefer(siz)
 	if d._panic != nil {

@@ -57,7 +57,7 @@ Search:
 		return e
 	}
 
-	
+
 
 	// Add new entry.
 	if len(m.free) < 1 {

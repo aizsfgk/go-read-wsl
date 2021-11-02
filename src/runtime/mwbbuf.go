@@ -59,7 +59,7 @@ type wbBuf struct {
 	// buf stores a series of pointers to execute write barriers
 	// on. This must be a multiple of wbBufEntryPointers because
 	// the write barrier only checks for overflow once per entry.
-	buf [wbBufEntryPointers * wbBufEntries]uintptr
+	buf [wbBufEntryPointers * wbBufEntries]uintptr /// 2 * 256 == 512
 
 	// debugGen causes the write barrier buffer to flush after
 	// every write barrier if equal to gcWorkPauseGen. This is for
