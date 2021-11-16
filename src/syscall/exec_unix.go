@@ -26,8 +26,9 @@ import (
 // allocate a new file descriptor close-on-exec. Instead you
 // have to allocate the descriptor and then mark it close-on-exec.
 // If a fork happens between those two events, the child's exec
-// will inherit an unwanted file descriptor.
+// will inherit an unwanted file descriptor. /// 继承一个不期望的文件描述符
 //
+/// 这个锁解决了这个竞争： 创建 close-on-exec fd 持有锁读， fork 自身持有锁写。
 // This lock solves that race: the create new fd/mark close-on-exec
 // operation is done holding ForkLock for reading, and the fork itself
 // is done holding ForkLock for writing. At least, that's the idea.

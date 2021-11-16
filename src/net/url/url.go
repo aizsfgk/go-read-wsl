@@ -18,6 +18,7 @@ import (
 	"strings"
 )
 
+/// 定义一个错误
 // Error reports an error and the operation and URL that caused it.
 type Error struct {
 	Op  string
@@ -25,9 +26,12 @@ type Error struct {
 	Err error
 }
 
+/// 未包裹，直接输出错误
 func (e *Error) Unwrap() error { return e.Err }
+/// 对错误的包裹
 func (e *Error) Error() string { return fmt.Sprintf("%s %q: %s", e.Op, e.URL, e.Err) }
 
+/// 是一个Timeout接口，则调用该方法
 func (e *Error) Timeout() bool {
 	t, ok := e.Err.(interface {
 		Timeout() bool
@@ -35,6 +39,7 @@ func (e *Error) Timeout() bool {
 	return ok && t.Timeout()
 }
 
+/// 是一个Temporary接口，则调用该方法
 func (e *Error) Temporary() bool {
 	t, ok := e.Err.(interface {
 		Temporary() bool
@@ -42,8 +47,10 @@ func (e *Error) Temporary() bool {
 	return ok && t.Temporary()
 }
 
+/// 16进制字符串
 const upperhex = "0123456789ABCDEF"
 
+/// 是否是十六进制字符
 func ishex(c byte) bool {
 	switch {
 	case '0' <= c && c <= '9':
@@ -56,6 +63,7 @@ func ishex(c byte) bool {
 	return false
 }
 
+/// 转换为数字
 func unhex(c byte) byte {
 	switch {
 	case '0' <= c && c <= '9':
@@ -71,12 +79,19 @@ func unhex(c byte) byte {
 type encoding int
 
 const (
+	/// 1
 	encodePath encoding = 1 + iota
+	/// 2
 	encodePathSegment
+	/// 3
 	encodeHost
+	/// 4
 	encodeZone
+	/// 5
 	encodeUserPassword
+	/// 6
 	encodeQueryComponent
+	/// 7
 	encodeFragment
 )
 
