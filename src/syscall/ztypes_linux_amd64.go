@@ -6,7 +6,9 @@
 package syscall
 
 const (
+	/// 指针大小 8
 	sizeofPtr      = 0x8
+	/// 短类型 2
 	sizeofShort    = 0x2
 	sizeofInt      = 0x4
 	sizeofLong     = 0x8

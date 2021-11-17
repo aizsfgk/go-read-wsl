@@ -5,6 +5,9 @@
 
 package syscall
 
+
+// 系统调用号
+
 const (
 	SYS_READ                   = 0
 	SYS_WRITE                  = 1

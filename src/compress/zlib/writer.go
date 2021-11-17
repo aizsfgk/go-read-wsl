@@ -16,10 +16,15 @@ import (
 // These constants are copied from the flate package, so that code that imports
 // "compress/zlib" does not also have to import "compress/flate".
 const (
+	/// 无压缩
 	NoCompression      = flate.NoCompression
+	/// 最快地速度
 	BestSpeed          = flate.BestSpeed
+	/// 最高地压缩率
 	BestCompression    = flate.BestCompression
+	/// 默认压缩率
 	DefaultCompression = flate.DefaultCompression
+	/// 仅仅huffman
 	HuffmanOnly        = flate.HuffmanOnly
 )
 
@@ -89,6 +94,8 @@ func (z *Writer) Reset(w io.Writer) {
 	z.wroteHeader = false
 }
 
+
+///自己固有地压缩格式
 // writeHeader writes the ZLIB header.
 func (z *Writer) writeHeader() (err error) {
 	z.wroteHeader = true

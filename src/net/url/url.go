@@ -107,6 +107,7 @@ func (e InvalidHostError) Error() string {
 	return "invalid character " + strconv.Quote(string(e)) + " in host name"
 }
 
+/// 是否需要转义
 // Return true if the specified character should be escaped when
 // appearing in a URL string, according to RFC 3986.
 //
@@ -352,6 +353,7 @@ func escape(s string, mode encoding) string {
 	return string(t)
 }
 
+/// 一个URL代表一个解析的URL
 // A URL represents a parsed URL (technically, a URI reference).
 //
 // The general form represented is:
@@ -869,7 +871,7 @@ func (u *URL) String() string {
 		buf.WriteByte('#')
 		buf.WriteString(u.EscapedFragment())
 	}
-	return buf.String()
+	return buf.String() /// 返回之前的url链接
 }
 
 // Redacted is like String but replaces any password with "xxxxx".

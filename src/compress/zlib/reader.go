@@ -35,10 +35,13 @@ import (
 const zlibDeflate = 8
 
 var (
+	/// 无效地检查数
 	// ErrChecksum is returned when reading ZLIB data that has an invalid checksum.
 	ErrChecksum = errors.New("zlib: invalid checksum")
+	/// 无效地字典
 	// ErrDictionary is returned when reading ZLIB data that has an invalid dictionary.
 	ErrDictionary = errors.New("zlib: invalid dictionary")
+	/// 无效地Header
 	// ErrHeader is returned when reading ZLIB data that has an invalid header.
 	ErrHeader = errors.New("zlib: invalid header")
 )

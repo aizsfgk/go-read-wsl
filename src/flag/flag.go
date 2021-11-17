@@ -315,6 +315,7 @@ const (
 	PanicOnError                         // Call panic with a descriptive error.
 )
 
+/// 标签集合
 // A FlagSet represents a set of defined flags. The zero value of a FlagSet
 // has no name and has ContinueOnError error handling.
 //
@@ -963,13 +964,18 @@ func (f *FlagSet) parseOne() (bool, error) {
 	return true, nil
 }
 
+/// 进行参数解析
 // Parse parses flag definitions from the argument list, which should not
 // include the command name. Must be called after all flags in the FlagSet
 // are defined and before flags are accessed by the program.
 // The return value will be ErrHelp if -help or -h were set but not defined.
 func (f *FlagSet) Parse(arguments []string) error {
 	f.parsed = true
+
+	/// 参数列表
 	f.args = arguments
+
+	/// 一个一个地解析
 	for {
 		seen, err := f.parseOne()
 		if seen {
@@ -978,6 +984,8 @@ func (f *FlagSet) Parse(arguments []string) error {
 		if err == nil {
 			break
 		}
+
+		/// 错误处理???
 		switch f.errorHandling {
 		case ContinueOnError:
 			return err

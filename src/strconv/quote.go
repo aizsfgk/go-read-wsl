@@ -32,6 +32,8 @@ func appendQuotedWith(buf []byte, s string, quote byte, ASCIIonly, graphicOnly b
 		copy(nBuf, buf)
 		buf = nBuf
 	}
+
+	/// 增加引号
 	buf = append(buf, quote)
 	for width := 0; len(s) > 0; s = s[width:] {
 		r := rune(s[0])
@@ -47,6 +49,7 @@ func appendQuotedWith(buf []byte, s string, quote byte, ASCIIonly, graphicOnly b
 		}
 		buf = appendEscapedRune(buf, r, quote, ASCIIonly, graphicOnly)
 	}
+	/// 增加引号
 	buf = append(buf, quote)
 	return buf
 }

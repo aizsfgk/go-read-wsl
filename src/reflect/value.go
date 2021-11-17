@@ -2350,6 +2350,7 @@ func ValueOf(i interface{}) Value {
 	return unpackEface(i)
 }
 
+/// 返回类型代表的0值
 // Zero returns a Value representing the zero value for the specified type.
 // The result is different from the zero value of the Value struct,
 // which represents no value at all.
