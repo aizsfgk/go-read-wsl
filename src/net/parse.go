@@ -5,6 +5,8 @@
 // Simple file i/o and string manipulation, to avoid
 // depending on strconv and bufio and strings.
 
+/// 网络数据解析
+
 package net
 
 import (

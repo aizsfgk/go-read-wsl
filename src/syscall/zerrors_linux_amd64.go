@@ -1388,7 +1388,7 @@ var errors = [...]string{
 	4:   "interrupted system call",
 	5:   "input/output error",
 	6:   "no such device or address",
-	7:   "argument list too long",
+	7:   "argument list too long", /// 参数列表太长
 	8:   "exec format error",
 	9:   "bad file descriptor",
 	10:  "no child processes",
