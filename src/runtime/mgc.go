@@ -468,6 +468,8 @@ func (c *gcControllerState) startCycle() {
 	c.scanWork = 0
 	c.bgScanCredit = 0
 	c.assistTime = 0
+
+	/// 3个模式的时间都是0
 	c.dedicatedMarkTime = 0
 	c.fractionalMarkTime = 0
 	c.idleMarkTime = 0
@@ -548,7 +550,7 @@ func (c *gcControllerState) startCycle() {
 // It should only be called when gcBlackenEnabled != 0 (because this
 // is when assists are enabled and the necessary statistics are
 // available).
-func (c *gcControllerState) revise() { /// 修改
+func (c *gcControllerState) revise() { /// 修改/修正
 	gcpercent := gcpercent
 	if gcpercent < 0 {
 		// If GC is disabled but we're running a forced GC,
@@ -583,6 +585,8 @@ func (c *gcControllerState) revise() { /// 修改
 		scanWorkExpected = int64(memstats.heap_scan)
 	}
 
+
+	/// 计算需要scan的worker数
 	// Compute the remaining scan work estimate.
 	//
 	// Note that we currently count allocations during GC as both
@@ -603,6 +607,7 @@ func (c *gcControllerState) revise() { /// 修改
 		scanWorkRemaining = 1000
 	}
 
+	/// 计算需要标记的内存数
 	// Compute the heap distance remaining.
 	heapRemaining := heapGoal - int64(live)
 	if heapRemaining <= 0 {

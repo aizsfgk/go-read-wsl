@@ -9,12 +9,12 @@ const (
 	_ENOMEM = 0xc         // 内存错误
 	_ENOSYS = 0x26        // 系统不支持
 
-	_PROT_NONE  = 0x0
+	_PROT_NONE  = 0x0     /// 权限
 	_PROT_READ  = 0x1
 	_PROT_WRITE = 0x2
 	_PROT_EXEC  = 0x4
 
-	_MAP_ANON    = 0x20
+	_MAP_ANON    = 0x20   /// mmap 相关 flag
 	_MAP_PRIVATE = 0x2
 	_MAP_FIXED   = 0x10
 
@@ -75,11 +75,11 @@ const (
 	_SEGV_MAPERR = 0x1
 	_SEGV_ACCERR = 0x2
 
-	_ITIMER_REAL    = 0x0
+	_ITIMER_REAL    = 0x0   /// timer相关
 	_ITIMER_VIRTUAL = 0x1
 	_ITIMER_PROF    = 0x2
 
-	_EPOLLIN       = 0x1
+	_EPOLLIN       = 0x1    /// epoll相关
 	_EPOLLOUT      = 0x4
 	_EPOLLERR      = 0x8
 	_EPOLLHUP      = 0x10

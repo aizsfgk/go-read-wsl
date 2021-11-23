@@ -19,7 +19,7 @@ const (
 	//
 	// Larger values reduce workbuf allocation overhead. Smaller
 	// values reduce heap fragmentation.
-	workbufAlloc = 32 << 10
+	workbufAlloc = 32 << 10 /// 32 * 1KB == 32KB
 )
 
 // throwOnGCWork causes any operations that add pointers to a gcWork
@@ -125,10 +125,10 @@ type gcWork struct {
 func (w *gcWork) init() {
 	w.wbuf1 = getempty()
 	wbuf2 := trygetfull()
-	if wbuf2 == nil {
+	if wbuf2 == nil {w.wbuf2 = wbuf2
 		wbuf2 = getempty()
 	}
-	w.wbuf2 = wbuf2
+
 }
 
 func (w *gcWork) checkPut(ptr uintptr, ptrs []uintptr) {
@@ -331,7 +331,7 @@ func (w *gcWork) tryGetFast() uintptr {
 // ability to hide pointers during the concurrent mark phase.
 //
 //go:nowritebarrierrec
-func (w *gcWork) dispose() {
+func (w *gcWork) dispose() { /// 排列
 	if wbuf := w.wbuf1; wbuf != nil {
 		if wbuf.nobj == 0 {
 			putempty(wbuf)
@@ -350,6 +350,8 @@ func (w *gcWork) dispose() {
 		}
 		w.wbuf2 = nil
 	}
+
+	/// 字节标记数
 	if w.bytesMarked != 0 {
 		// dispose happens relatively infrequently. If this
 		// atomic becomes a problem, we should first try to
@@ -358,19 +360,25 @@ func (w *gcWork) dispose() {
 		atomic.Xadd64(&work.bytesMarked, int64(w.bytesMarked))
 		w.bytesMarked = 0
 	}
+
+	/// 扫描工作数
 	if w.scanWork != 0 {
 		atomic.Xaddint64(&gcController.scanWork, w.scanWork)
 		w.scanWork = 0
 	}
 }
 
+/// 平衡
 // balance moves some work that's cached in this gcWork back on the
 // global queue.
 //go:nowritebarrierrec
 func (w *gcWork) balance() {
+
+	/// 第一缓冲区空，直接返回
 	if w.wbuf1 == nil {
 		return
 	}
+	/// 拿到第二缓冲区
 	if wbuf := w.wbuf2; wbuf.nobj != 0 {
 		w.checkPut(0, wbuf.obj[:wbuf.nobj])
 		putfull(wbuf)
@@ -381,8 +389,11 @@ func (w *gcWork) balance() {
 		w.wbuf1 = handoff(wbuf)
 		w.flushedWork = true // handoff did putfull
 	} else {
+		///
 		return
 	}
+
+
 	// We flushed a buffer to the full list, so wake a worker.
 	if gcphase == _GCmark {
 		gcController.enlistWorker()
@@ -428,6 +439,7 @@ func (b *workbuf) checkempty() {
 	}
 }
 
+/// 从 work.empty list 中拿一个work buffer
 // getempty pops an empty work buffer off the work.empty list,
 // allocating new buffers if none are available.
 //go:nowritebarrier
@@ -448,7 +460,7 @@ func getempty() *workbuf {
 		var s *mspan
 		if work.wbufSpans.free.first != nil {
 			lock(&work.wbufSpans.lock)
-			s = work.wbufSpans.free.first
+			s = work.wbufSpans.free.first /// 获取抵押给span
 			if s != nil {
 				work.wbufSpans.free.remove(s)
 				work.wbufSpans.busy.insert(s)
@@ -457,14 +469,14 @@ func getempty() *workbuf {
 		}
 		if s == nil {
 			systemstack(func() {
-				s = mheap_.allocManual(workbufAlloc/pageSize, &memstats.gc_sys)
+				s = mheap_.allocManual(workbufAlloc/pageSize, &memstats.gc_sys) /// 手动分配一个span
 			})
 			if s == nil {
 				throw("out of memory")
 			}
 			// Record the new span in the busy list.
 			lock(&work.wbufSpans.lock)
-			work.wbufSpans.busy.insert(s)
+			work.wbufSpans.busy.insert(s) /// 插入到繁忙池
 			unlock(&work.wbufSpans.lock)
 		}
 		// Slice up the span into new workbufs. Return one and
@@ -476,13 +488,15 @@ func getempty() *workbuf {
 			if i == 0 {
 				b = newb
 			} else {
-				putempty(newb)
+				putempty(newb) /// 放入 work.empty list
 			}
 		}
 	}
 	return b
 }
 
+
+/// 将一个workbuf 放入 work.empty 列表
 // putempty puts a workbuf onto the work.empty list.
 // Upon entry this go routine owns b. The lfstack.push relinquishes ownership.
 //go:nowritebarrier
@@ -491,6 +505,7 @@ func putempty(b *workbuf) {
 	work.empty.push(&b.node)
 }
 
+/// 将一个workbuf 放入 work.full 列表
 // putfull puts the workbuf on the work.full list for the GC.
 // putfull accepts partially full buffers so the GC can avoid competing
 // with the mutators for ownership of partially full buffers.
@@ -500,6 +515,7 @@ func putfull(b *workbuf) {
 	work.full.push(&b.node)
 }
 
+/// 尝试从 work.full 中获取一个 workbuffer
 // trygetfull tries to get a full or partially empty workbuffer.
 // If one is not immediately available return nil
 //go:nowritebarrier
@@ -512,6 +528,7 @@ func trygetfull() *workbuf {
 	return b
 }
 
+/// 移动一半
 //go:nowritebarrier
 func handoff(b *workbuf) *workbuf {
 	// Make new buffer with half of b's pointers.
@@ -526,6 +543,8 @@ func handoff(b *workbuf) *workbuf {
 	return b1
 }
 
+/// 移动繁忙的span 到 空闲的 span. 他们可以被返还给heap。
+/// 它仅被调用，当全部的workbufs 在 empty list上的时候。
 // prepareFreeWorkbufs moves busy workbuf spans to free list so they
 // can be freed to the heap. This must only be called when all
 // workbufs are on the empty list.
@@ -542,6 +561,8 @@ func prepareFreeWorkbufs() {
 	unlock(&work.wbufSpans.lock)
 }
 
+/// 释放一些workbufs, 返还给heap
+/// 返回true, 如果它应该被调用再次释放。
 // freeSomeWbufs frees some workbufs back to the heap and returns
 // true if it should be called again to free more.
 func freeSomeWbufs(preemptible bool) bool {
@@ -562,6 +583,7 @@ func freeSomeWbufs(preemptible bool) bool {
 				break
 			}
 			work.wbufSpans.free.remove(span)
+			/// 释放
 			mheap_.freeManual(span, &memstats.gc_sys)
 		}
 	})
