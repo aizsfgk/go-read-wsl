@@ -1163,6 +1163,8 @@ func gcDrain(gcw *gcWork, flags gcDrainFlags) { /// gc 排出
 		if b == 0 {
 			b = gcw.tryGet()
 			if b == 0 {
+
+				/// 冲刷写栅栏缓冲
 				// Flush the write barrier
 				// buffer; this may create
 				// more work.

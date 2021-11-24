@@ -24,6 +24,9 @@ import (
 	"unsafe"
 )
 
+
+/// Go 使用一个 负荷栅栏，包括删除写栅栏和插入写栅栏。
+///
 // Go uses a hybrid barrier that combines a Yuasa-style deletion
 // barrier—which shades the object whose reference is being
 // overwritten—with Dijkstra insertion barrier—which shades the object
@@ -168,6 +171,8 @@ func typedmemmove(typ *_type, dst, src unsafe.Pointer) {
 	if writeBarrier.needed && typ.ptrdata != 0 {
 		bulkBarrierPreWrite(uintptr(dst), uintptr(src), typ.ptrdata)
 	}
+
+
 	// There's a race here: if some other goroutine can write to
 	// src, it may change some pointer in src after we've
 	// performed the write barrier but before we perform the

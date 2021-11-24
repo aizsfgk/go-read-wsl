@@ -590,6 +590,7 @@ func (h heapBits) setCheckmarked(size uintptr) {
 	atomic.Or8(h.bitp, bitScan<<(heapBitsShift+h.shift))
 }
 
+/// 大块栅栏预写
 /// 在一个内存范围，针对指针槽（pointer slot）执行写栅栏，使用指针/扫描器信息。
 // bulkBarrierPreWrite executes a write barrier
 // for every pointer slot in the memory range [src, src+size),
@@ -628,6 +629,8 @@ func bulkBarrierPreWrite(dst, src, size uintptr) {
 
 	// span 为空
 	if s := spanOf(dst); s == nil {
+
+		/// data 数据
 		// If dst is a global, use the data or BSS bitmaps to
 		// execute write barriers.
 		for _, datap := range activeModules() {
@@ -636,6 +639,8 @@ func bulkBarrierPreWrite(dst, src, size uintptr) {
 				return
 			}
 		}
+
+		/// bss 数据
 		for _, datap := range activeModules() {
 			if datap.bss <= dst && dst < datap.ebss {
 				bulkBarrierBitmap(dst, src, size, dst-datap.bss, datap.gcbssmask.bytedata)

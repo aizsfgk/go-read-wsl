@@ -292,10 +292,14 @@ func wbBufFlush1(_p_ *p) {
 			// path to reduce the rate of flushes?
 			continue
 		}
+
+		/// 找到对象
 		obj, span, objIndex := findObject(ptr, 0, 0)
 		if obj == 0 {
 			continue
 		}
+
+		/// mark bits
 		// TODO: Consider making two passes where the first
 		// just prefetches the mark bits.
 		mbits := span.markBitsForIndex(objIndex)
@@ -319,6 +323,7 @@ func wbBufFlush1(_p_ *p) {
 	}
 
 	// Enqueue the greyed objects. /// 置灰对象
+	/// 批量放入
 	gcw.putBatch(ptrs[:pos])
 
 	_p_.wbBuf.reset()
