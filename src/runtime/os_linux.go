@@ -514,5 +514,5 @@ func signalM(mp *m, sig int) {
 	if atomic.Load(&touchStackBeforeSignal) != 0 {
 		atomic.Cas((*uint32)(unsafe.Pointer(mp.gsignal.stack.hi-4)), 0, 0)
 	}
-	tgkill(getpid(), int(mp.procid), sig)
+	tgkill(getpid(), int(mp.procid), sig) /// 给这个M发送信号
 }

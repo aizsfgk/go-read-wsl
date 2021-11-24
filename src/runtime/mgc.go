@@ -697,6 +697,7 @@ func (c *gcControllerState) endCycle() float64 {
 	return triggerRatio
 }
 
+/// 确保另一个专注的mark worker 在另一个P上启动，如果有空闲的worker slots.
 // enlistWorker encourages another dedicated mark worker to start on
 // another P if there are spare worker slots. It is used by putfull
 // when more work is made available.
@@ -725,6 +726,8 @@ func (c *gcControllerState) enlistWorker() {
 		return
 	}
 	myID := gp.m.p.ptr().id
+
+	/// 尝试5次
 	for tries := 0; tries < 5; tries++ {
 		id := int32(fastrandn(uint32(gomaxprocs - 1)))
 		if id >= myID {
@@ -734,6 +737,8 @@ func (c *gcControllerState) enlistWorker() {
 		if p.status != _Prunning { /// enlistWorker
 			continue
 		}
+
+		/// 抢占一个
 		if preemptone(p) {
 			return
 		}

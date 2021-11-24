@@ -194,12 +194,15 @@ func (w *gcWork) put(obj uintptr) {
 	// allocate a workbuf.
 	lockWithRankMayAcquire(&work.wbufSpans.lock, lockRankWbufSpans)
 	lockWithRankMayAcquire(&mheap_.lock, lockRankMheap)
+
+	/// w.wbuf1 是空
 	if wbuf == nil {
+		/// 则进行初始化
 		w.init()
 		wbuf = w.wbuf1
 		// wbuf is empty at this point.
-	} else if wbuf.nobj == len(wbuf.obj) {
-		w.wbuf1, w.wbuf2 = w.wbuf2, w.wbuf1
+	} else if wbuf.nobj == len(wbuf.obj) { /// 对象数相等
+		w.wbuf1, w.wbuf2 = w.wbuf2, w.wbuf1 /// 则进行交换
 		wbuf = w.wbuf1
 		if wbuf.nobj == len(wbuf.obj) {
 			putfull(wbuf)
@@ -217,11 +220,14 @@ func (w *gcWork) put(obj uintptr) {
 	// it can encourage more workers to run. We delay this until
 	// the end of put so that w is in a consistent state, since
 	// enlistWorker may itself manipulate w.
+	/// 如果我们把一个 buffer 放到了work.full 上，需要让这个gc控制器知道，
+	/// 它确保更多的workers 去运行。我们延迟这个，直到最后gcWork状态一致。
 	if flushed && gcphase == _GCmark {
-		gcController.enlistWorker()
+		gcController.enlistWorker() /// 入队工作
 	}
 }
 
+/// 函数 scanobject 和 greyobject 中会调用这个
 // putFast does a put and reports whether it can be done quickly
 // otherwise it returns false and the caller needs to call put.
 //go:nowritebarrierrec
@@ -289,7 +295,11 @@ func (w *gcWork) tryGet() uintptr {
 		wbuf = w.wbuf1
 		// wbuf is empty at this point.
 	}
+
+	/// wbuf1 为空
 	if wbuf.nobj == 0 {
+
+		/// 进行交换
 		w.wbuf1, w.wbuf2 = w.wbuf2, w.wbuf1
 		wbuf = w.wbuf1
 		if wbuf.nobj == 0 {
