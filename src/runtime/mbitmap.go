@@ -917,6 +917,12 @@ func (s *mspan) countAlloc() int {
 	return count
 }
 
+///
+/// 记录新的分配 [x, x+size) 持有 [x, x+dataSize) 更多的值通过类型。
+///
+///
+///
+///
 // heapBitsSetType records that the new allocation [x, x+size)
 // holds in [x, x+dataSize) one or more values of type typ.
 // (The number of values is given by dataSize / typ.size.)
@@ -959,15 +965,16 @@ func heapBitsSetType(x, size, dataSize uintptr, typ *_type) {
 		if doubleCheck {
 			h := heapBitsForAddr(x)
 			if !h.isPointer() {
-				throw("heapBitsSetType: pointer bit missing")
+				throw("heapBitsSetType: pointer bit missing") /// 指针位丢失
 			}
 			if !h.morePointers() {
-				throw("heapBitsSetType: scan bit missing")
+				throw("heapBitsSetType: scan bit missing")    /// 扫描位丢失
 			}
 		}
 		return
 	}
 
+	/// heapBits
 	h := heapBitsForAddr(x)
 	ptrmask := typ.gcdata // start of 1-bit pointer mask (or GC program, handled below)
 

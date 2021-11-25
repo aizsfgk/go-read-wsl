@@ -1866,7 +1866,7 @@ type specialfinalizer struct {
 }
 
 ///
-///
+/// 添加一个 finalizer 到一个对象p. 如果成功，则返回true
 ///
 // Adds a finalizer to the object p. Returns true if it succeeded.
 func addfinalizer(p unsafe.Pointer, f *funcval, nret uintptr, fint *_type, ot *ptrtype) bool {
