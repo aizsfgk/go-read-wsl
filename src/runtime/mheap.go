@@ -1873,7 +1873,7 @@ func addfinalizer(p unsafe.Pointer, f *funcval, nret uintptr, fint *_type, ot *p
 
 	/// 获取特殊锁
 	lock(&mheap_.speciallock)
-	s := (*specialfinalizer)(mheap_.specialfinalizeralloc.alloc())
+	s := (*specialfinalizer)(mheap_.specialfinalizeralloc.alloc()) /// 分配一个finalizser
 	unlock(&mheap_.speciallock)
 
 	/// 设置类型

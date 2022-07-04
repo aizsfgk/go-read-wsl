@@ -507,7 +507,10 @@ type g struct {
 
 	/// 在错误的地址上，使用panic代替crash
 	paniconfault bool // panic (instead of crash) on unexpected fault address
+
+	/// G 是否被扫描了?
 	gcscandone   bool // g has scanned stack; protected by _Gscan bit in status
+
 	throwsplit   bool // must not split stack
 
 	// activeStackChans indicates that there are unlocked channels
@@ -615,7 +618,7 @@ type m struct {
 	/// 记录所有工作线程的一个链表
 	alllink       *m // on allm
 	schedlink     muintptr
-	lockedg       guintptr
+	lockedg       guintptr    /// 如果已经锁住了G, 则直接拿到这个G进行执行。
 	createstack   [32]uintptr // stack that created this thread.
 	lockedExt     uint32      // tracking for external LockOSThread /// 外部的 LockOSThread
 	lockedInt     uint32      // tracking for internal lockOSThread /// 内部的 LockOSThread
@@ -988,6 +991,8 @@ func extendRandom(r []byte, n int) {
 		}
 	}
 }
+
+/// 一个 _defer 持有一个 defer调用列表
 
 // A _defer holds an entry on the list of deferred calls.
 // If you add a field here, add code to clear it in freedefer and deferProcStack

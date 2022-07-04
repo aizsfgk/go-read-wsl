@@ -5054,6 +5054,8 @@ func sysmon() {
 			// Kick the scavenger awake if someone requested it.
 			wakeScavenger()
 		}
+
+		///
 		// retake P's blocked in syscalls
 		// and preempt long running G's
 		if retake(now) != 0 { /// 抢占一个运行中的P
@@ -5061,6 +5063,9 @@ func sysmon() {
 		} else {
 			idle++
 		}
+
+
+		// GC
 		// check if we need to force a GC
 		if t := (gcTrigger{kind: gcTriggerTime, now: now}); t.test() && atomic.Load(&forcegc.idle) != 0 {
 			lock(&forcegc.lock)
